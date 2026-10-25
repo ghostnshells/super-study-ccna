@@ -120,7 +120,7 @@ select,input[type=text],input[type=number]{border:1px solid var(--line);backgrou
 .wk:first-child{border-top:0}
 .wk.now{background:var(--accent-soft)}
 .wk .when{font:600 13px var(--f-mono)}
-.wk .when span{display:block;font-weight:400;color:var(--muted)}
+.wk .when span{display:block;font-weight:400;color:var(--muted);white-space:nowrap}
 .wk .topics{display:flex;flex-wrap:wrap;gap:6px}
 .wk .note{font-size:13px;color:var(--muted);margin-top:6px}
 @media (max-width:640px){.wk{grid-template-columns:1fr}.wk>div:last-child{justify-self:start}}
@@ -217,7 +217,8 @@ svg text.d-muted{fill:var(--muted);stroke:none}
 .timer{font:600 15px var(--f-mono)}
 .timer.low{color:var(--bad)}
 .builder{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;max-width:900px}
-.builder label{display:grid;gap:5px;font-size:13px;font-weight:600;color:var(--muted)}
+.builder label{display:grid;gap:5px;min-width:0;font-size:13px;font-weight:600;color:var(--muted)}
+.builder select{width:100%;min-width:0;max-width:100%}
 .result-head{display:flex;gap:24px;flex-wrap:wrap;align-items:baseline}
 .result-head .big{font-family:var(--f-display);font-size:52px;font-weight:700}
 .review-item{border-top:1px solid var(--line);padding:14px 0}
@@ -270,7 +271,7 @@ table.data td.n{font-variant-numeric:tabular-nums;text-align:right}
       <a href="#sources" data-v="sources">Free sources</a>
       <a href="#coverage" data-v="coverage">Coverage</a>
     </nav>
-    <span class="sync" id="sync">saved on this device</span>
+    <span class="sync" id="sync">saved in this browser</span>
   </div>
 </header>
 <main class="wrap" id="app"><p class="loading" role="status">Loading the study hub…</p></main>
@@ -327,7 +328,7 @@ async function flush(){
   if (!docRef || saving || !dirty) return;
   saving = true; dirty = false;
   try { await docRef.set(JSON.parse(JSON.stringify(S))); setSync("synced to your account"); }
-  catch(e){ setSync("saved on this device"); if (e && e.code === "invalid_argument") docRef = null; }
+  catch(e){ setSync("saved in this browser"); if (e && e.code === "invalid_argument") docRef = null; }
   saving = false;
   if (dirty) { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 1500); }
 }
@@ -360,6 +361,11 @@ function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.remove(
 function ymd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function currentWeek(){ const t = ymd(new Date()); for (const w of WEEKS) if (t >= w.start && t <= w.end) return w.n; if (t < WEEKS[0].start) return 1; return t > "2026-12-11" ? 9 : 1; }
 function fmtDate(s){ const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d).toLocaleDateString("en-US",{month:"short",day:"numeric"}); }
+function fmtRange(start, end){
+  const [sy,sm,sd] = start.split("-").map(Number), [ey,em,ed] = end.split("-").map(Number);
+  if (sy===ey && sm===em) return `${new Date(sy,sm-1,sd).toLocaleDateString("en-US",{month:"short"})} ${sd}–${ed}`;
+  return `${fmtDate(start)}–${fmtDate(end)}`;
+}
 function weekTopics(n){ const w = OUT.weeks.find(x=>x.n===n); return w ? w.topics : []; }
 function qStats(filter){
   let n=0,c=0,seen=0; for (const q of QS){ if (!filter(q)) continue; n++; const r=S.q[q.id]; if (r){ seen++; if (r[2]) c++; } }
@@ -456,7 +462,7 @@ function renderHome(app){
              : w.n===7 ? `<div class="note"><strong>Checkpoint 2, Sat Dec 5:</strong> <a href="#exam">Practice Exam A</a>, timed. 80% or more keeps Dec 12; 70 to 79% moves you to Dec 19; below 70% to Dec 22.</div>`
              : w.n===8 ? `<div class="note">Practice Exam B early in the week, then the <a href="#quiz-mistakes">mistakes quiz</a> and weak topics.</div>` : "";
       return `<div class="wk ${w.n===cw?"now":""}">
-        <div class="when">Week ${w.n}<span>${fmtDate(w.start)} to ${fmtDate(w.end)}</span><span>${w.hours} h</span></div>
+        <div class="when">Week ${w.n}<span>${fmtRange(w.start,w.end)}</span><span>${w.hours} h</span></div>
         <div><div class="topics">${tops.length?tops.map(t=>topicChip(t)).join(""):'<span class="muted">Review, practice exams, weak areas</span>'}</div>
           <div class="note">${esc(w.note)}</div>${ck}</div>
         <div>${tops.length?`<a class="btn small" href="#quiz-w${w.n}">Quiz week ${w.n}</a>`:`<a class="btn small" href="#exam">Exams</a>`}</div>
