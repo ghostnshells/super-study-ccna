@@ -169,6 +169,8 @@ if (manifest) {
 }
 
 if (vercel) {
+  assert(vercel.buildCommand === "npm run build", "vercel.json: unexpected build command");
+  assert(vercel.outputDirectory === "dist", "vercel.json: outputDirectory must be dist");
   assert(Array.isArray(vercel.headers) && vercel.headers.length > 0, "vercel.json: no headers configured");
   const headers = vercel.headers.flatMap(rule => rule.headers || []).map(header => header.key.toLowerCase());
   for (const name of ["content-security-policy", "referrer-policy", "x-content-type-options"]) {
