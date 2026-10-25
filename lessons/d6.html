@@ -1,0 +1,1669 @@
+<section class="topic" id="t-6-1" data-topics="6.1">
+<h2>6.1 How automation impacts network management</h2>
+
+<p>Domain 6 is 10 percent of the exam, and most of it is vocabulary and concepts rather than configuration. Cisco tests whether you can recognize the terms it uses (controller, northbound, southbound, underlay, overlay, fabric, idempotent, agentless, CRUD) and pick the right one in a scenario. You already write code, so this lesson spends little time on programming itself and a lot of time on exactly how Cisco frames each idea.</p>
+
+<h3>The problem automation solves</h3>
+<p>A traditional enterprise network is run box by box. An engineer opens an SSH session to each router or switch, types commands in global configuration mode, checks the result with <code>show</code> commands, and repeats on the next device. That works for ten devices. It breaks down at hundreds or thousands, because every manual step is slow, inconsistent and a chance for a typo.</p>
+<p>Network automation means using software (scripts, controllers, configuration management tools) to perform configuration, verification and operational tasks that a human would otherwise do by hand at the CLI. The engineer describes what should happen once, and the software applies it to every device the same way.</p>
+
+<h3>Benefits Cisco expects you to name</h3>
+<table>
+<thead><tr><th>Benefit</th><th>What it means in practice</th></tr></thead>
+<tbody>
+<tr><td>Consistency / standardization</td><td>Every device gets the same tested configuration from the same template, so there are no "snowflake" devices with one-off settings.</td></tr>
+<tr><td>Fewer human errors</td><td>No mistyped VLAN IDs, ACL entries or subnet masks. Most outages in traditional networks are caused by human configuration error, and automation removes the typing step.</td></tr>
+<tr><td>Speed and agility</td><td>A change that took a weekend of device-by-device work can be pushed to hundreds of devices in minutes. New sites and services are deployed faster.</td></tr>
+<tr><td>Scale</td><td>The effort to change 1,000 devices is close to the effort to change 10. Staff do not need to grow linearly with device count.</td></tr>
+<tr><td>Compliance and drift detection</td><td>Software can compare every running configuration against an approved "golden" baseline and report or fix any difference. Auditors get evidence on demand.</td></tr>
+<tr><td>Lower operational cost (OpEx)</td><td>Less engineer time on repetitive tasks, fewer outages, faster troubleshooting.</td></tr>
+<tr><td>Better visibility and data</td><td>Controllers and scripts collect state from every device continuously, which feeds dashboards, analytics and AI/ML tools (topic 6.4).</td></tr>
+<tr><td>Repeatable rollback</td><td>When configuration is stored as versioned code, returning to the last known good state is a controlled operation, not a memory exercise.</td></tr>
+</tbody>
+</table>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> Automation does not remove the need to understand networking. It also amplifies mistakes: a wrong template pushed by automation breaks every device at once. That is why automated changes still go through testing, peer review and change control. If an answer says automation "eliminates the need for network engineers" or "eliminates all errors," it is wrong.</p></div>
+
+<h3>Configuration drift</h3>
+<p><strong>Configuration drift</strong> is the gradual divergence of a device's actual (running) configuration from its intended, approved configuration. It happens through emergency fixes typed at 2 a.m. and never documented, one-off troubleshooting changes that were never removed, inconsistent manual rollouts, and devices replaced from old backups.</p>
+<p>Drift matters because a network that does not match its documentation is unpredictable: security controls may be missing on some devices, troubleshooting assumptions are wrong, and compliance audits fail. In a regulated environment like a GxP site, undocumented drift is also a compliance finding by itself.</p>
+<p>Automation addresses drift in three ways:</p>
+<ul>
+<li><strong>Detection:</strong> a tool periodically pulls each running configuration and compares it to the intended configuration. Catalyst Center has a compliance feature that flags devices whose running configuration no longer matches what it provisioned. Ansible's check mode (<code>--check --diff</code>) and Terraform's <code>plan</code> do the same thing for the resources they manage.</li>
+<li><strong>Remediation:</strong> rerunning the same automation puts the device back into the intended state. Because good automation is <em>idempotent</em> (see below), rerunning it is safe.</li>
+<li><strong>Prevention:</strong> if every change must go through the automation pipeline, manual changes become rare and visible.</li>
+</ul>
+
+<h3>Infrastructure as code (IaC)</h3>
+<p><strong>Infrastructure as code</strong> means defining infrastructure (network devices, servers, cloud resources) in machine-readable text files that are stored in version control, reviewed like software, and applied by a tool. Key ideas:</p>
+<dl>
+<dt>Source of truth</dt><dd>The files in the repository (often Git) define what the network should look like. The devices are made to match the files, not the other way around.</dd>
+<dt>Version control</dt><dd>Every change is a commit with an author, a timestamp and a message, so you have a full history and can roll back.</dd>
+<dt>Declarative vs imperative (procedural)</dt><dd>A declarative tool is told the desired end state ("VLAN 10 named USERS must exist") and works out the steps. An imperative tool is told the exact steps in order ("enter config mode, type vlan 10, type name USERS"). Terraform is declarative. Ansible playbooks run tasks in order, but most of its modules are written to reach a declared state.</dd>
+<dt>Idempotency</dt><dd>Applying the same configuration once or many times produces the same result. The second run of an idempotent tool finds nothing to change and reports no changes. This is what makes automation safe to rerun for drift remediation.</dd>
+<dt>CI/CD pipeline</dt><dd>Continuous integration and continuous delivery: proposed changes are automatically tested (syntax checks, lab validation) and then deployed. You only need to recognize the term for the CCNA.</dd>
+</dl>
+
+<h3>What changes for network engineers</h3>
+<ul>
+<li><strong>From CLI typing to defining intent.</strong> The engineer spends more time designing templates, policies and data (variables per site) and less time typing commands device by device.</li>
+<li><strong>New skills:</strong> data formats (JSON, YAML, XML), REST APIs, basic Python, Git, and tools such as Ansible and Terraform. Cisco calls this area network programmability.</li>
+<li><strong>Centralized management:</strong> controllers such as Catalyst Center, Meraki dashboard and SD-WAN Manager become the primary interface instead of individual device CLIs (topic 6.2).</li>
+<li><strong>Zero-touch provisioning:</strong> new devices can boot, contact a controller (for example via Plug and Play in Catalyst Center) and receive their configuration without an engineer consoling in.</li>
+<li><strong>Operations become data-driven:</strong> controllers collect telemetry and health data continuously, and analytics or AI/ML tools find problems that a human would miss (topic 6.4).</li>
+<li><strong>The fundamentals still matter.</strong> You cannot write a correct OSPF template without understanding OSPF, and you cannot troubleshoot a failed automation run without reading <code>show</code> output.</li>
+</ul>
+
+<table>
+<thead><tr><th>Aspect</th><th>Manual (traditional)</th><th>Automated</th></tr></thead>
+<tbody>
+<tr><td>How changes are made</td><td>CLI, one device at a time</td><td>Templates, scripts, controllers, many devices at once</td></tr>
+<tr><td>Consistency</td><td>Depends on each engineer</td><td>Same template everywhere</td></tr>
+<tr><td>Error rate</td><td>Typos and missed devices common</td><td>Low, but a bad template fails everywhere</td></tr>
+<tr><td>Documentation</td><td>Often stale</td><td>The code and its history are the documentation</td></tr>
+<tr><td>Drift</td><td>Hard to see</td><td>Detected and corrected automatically</td></tr>
+<tr><td>Time to deploy</td><td>Hours to weeks</td><td>Minutes</td></tr>
+</tbody>
+</table>
+
+<div class="callout key"><p><strong>Remember:</strong> automation benefits = consistency, fewer human errors, speed, scale, compliance/drift detection, lower OpEx. Configuration drift = running config diverging from the intended config. Idempotent = safe to run repeatedly with the same result.</p></div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Automation replaces device-by-device CLI work with software that applies changes consistently to many devices.</li>
+<li>Main benefits: consistency, fewer human errors, speed, scale, compliance and drift detection, lower operational cost.</li>
+<li>Configuration drift is the gap between running and intended configuration; automation detects and remediates it.</li>
+<li>Infrastructure as code keeps intended configuration in version-controlled files that act as the source of truth.</li>
+<li>Idempotent tools produce the same end state no matter how many times they run.</li>
+<li>Automation amplifies mistakes, so testing and change control still apply, and networking fundamentals still matter.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-6-2" data-topics="6.2">
+<h2>6.2 Traditional networks compared with controller-based networking</h2>
+
+<h3>Traditional networking</h3>
+<p>In a traditional network every device is an independent box:</p>
+<ul>
+<li><strong>Per-device management.</strong> Each router and switch has its own configuration, managed through its own CLI (console, SSH, Telnet), and possibly SNMP for monitoring. There is no single place to see or change the whole network.</li>
+<li><strong>Distributed control plane.</strong> Each device runs its own control plane protocols (OSPF, STP, ARP, CDP and so on) and makes its own forwarding decisions based on what it learned from neighbors. No device has a complete, authoritative view; the network "converges" as devices exchange information.</li>
+<li><strong>Configuration is imperative and local.</strong> To change a policy (say, a QoS marking or an ACL) across the network, an engineer translates the intent into commands and applies them to each relevant device by hand.</li>
+</ul>
+<p>The distributed model is resilient (there is no single point of failure for control decisions) and well understood, which is why it is still the foundation of most networks. Its weakness is operational: it is slow, error-prone and hard to keep consistent at scale.</p>
+
+<h3>Controller-based networking</h3>
+<p>A controller-based network adds a central software platform, the <strong>controller</strong>, that has a network-wide view and manages devices through APIs and protocols instead of a human typing on each device.</p>
+<ul>
+<li><strong>Centralized management and (some) control.</strong> The controller holds the inventory, topology and policy for the whole network. Depending on the architecture it may compute forwarding behavior itself (classic OpenFlow SDN) or it may manage and configure devices that still run their own distributed protocols (Catalyst Center with SD-Access, Cisco ACI, SD-WAN Manager).</li>
+<li><strong>Southbound interface (SBI).</strong> The controller talks down to devices using protocols such as NETCONF, RESTCONF, SSH/CLI, SNMP or OpenFlow (topic 6.3).</li>
+<li><strong>Northbound interface (NBI).</strong> The controller exposes REST APIs up to applications, scripts and its own GUI, so humans and programs manage the network through the controller, not the devices.</li>
+<li><strong>Policy-based / intent-based.</strong> The engineer states what they want ("guest users may reach only the Internet," "voice traffic gets priority") and the controller translates that into device configuration.</li>
+<li><strong>Data plane stays on the devices.</strong> Even in a controller-based network, user traffic is forwarded by the switches and routers. The controller is not in the traffic path.</li>
+</ul>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 300" role="img" aria-label="Traditional box-by-box management compared with controller-based management">
+<text class="d-text" x="175" y="22" text-anchor="middle">Traditional: box by box</text>
+<text class="d-text" x="545" y="22" text-anchor="middle">Controller-based</text>
+<line x1="360" y1="10" x2="360" y2="290" stroke="currentColor" stroke-dasharray="4 4"/>
+<rect class="d-fill" stroke="currentColor" x="95" y="40" width="160" height="40" rx="6"/>
+<text class="d-text" x="175" y="65" text-anchor="middle">Engineer (SSH / CLI)</text>
+<line x1="175" y1="80" x2="60" y2="190" stroke="currentColor"/>
+<line x1="175" y1="80" x2="175" y2="190" stroke="currentColor"/>
+<line x1="175" y1="80" x2="290" y2="190" stroke="currentColor"/>
+<text class="d-muted" x="230" y="135">one session per device</text>
+<rect class="d-fill" stroke="currentColor" x="15" y="190" width="95" height="60" rx="6"/>
+<text class="d-text" x="62" y="214" text-anchor="middle">R1</text>
+<text class="d-muted" x="62" y="236" text-anchor="middle">CP + DP</text>
+<rect class="d-fill" stroke="currentColor" x="128" y="190" width="95" height="60" rx="6"/>
+<text class="d-text" x="175" y="214" text-anchor="middle">SW1</text>
+<text class="d-muted" x="175" y="236" text-anchor="middle">CP + DP</text>
+<rect class="d-fill" stroke="currentColor" x="241" y="190" width="95" height="60" rx="6"/>
+<text class="d-text" x="288" y="214" text-anchor="middle">SW2</text>
+<text class="d-muted" x="288" y="236" text-anchor="middle">CP + DP</text>
+<text class="d-muted" x="175" y="275" text-anchor="middle">each device decides and is configured alone</text>
+<rect class="d-fill" stroke="currentColor" x="455" y="34" width="180" height="32" rx="6"/>
+<text class="d-text" x="545" y="55" text-anchor="middle">Engineer, scripts, apps</text>
+<line x1="545" y1="66" x2="545" y2="96" stroke="currentColor"/>
+<text class="d-muted" x="555" y="86">NBI (REST)</text>
+<rect class="d-accent-fill" stroke="currentColor" x="420" y="96" width="250" height="44" rx="6"/>
+<text class="d-text" x="545" y="123" text-anchor="middle">Controller: inventory, policy, view</text>
+<line x1="545" y1="140" x2="430" y2="190" stroke="currentColor"/>
+<line x1="545" y1="140" x2="545" y2="190" stroke="currentColor"/>
+<line x1="545" y1="140" x2="660" y2="190" stroke="currentColor"/>
+<text class="d-muted" x="580" y="168">SBI</text>
+<rect class="d-fill" stroke="currentColor" x="385" y="190" width="95" height="60" rx="6"/>
+<text class="d-text" x="432" y="214" text-anchor="middle">R1</text>
+<text class="d-muted" x="432" y="236" text-anchor="middle">DP</text>
+<rect class="d-fill" stroke="currentColor" x="498" y="190" width="95" height="60" rx="6"/>
+<text class="d-text" x="545" y="214" text-anchor="middle">SW1</text>
+<text class="d-muted" x="545" y="236" text-anchor="middle">DP</text>
+<rect class="d-fill" stroke="currentColor" x="611" y="190" width="95" height="60" rx="6"/>
+<text class="d-text" x="658" y="214" text-anchor="middle">SW2</text>
+<text class="d-muted" x="658" y="236" text-anchor="middle">DP</text>
+<text class="d-muted" x="545" y="275" text-anchor="middle">one place to define policy; devices still forward</text>
+</svg>
+<figcaption>Traditional management touches each device and each device runs its own control plane (CP) and data plane (DP). In a controller-based design, people and programs use the controller's northbound API, the controller manages devices through southbound protocols, and the devices keep forwarding traffic.</figcaption>
+</figure>
+
+<h3>Policy-based and intent-based networking</h3>
+<p><strong>Intent-based networking (IBN)</strong> is Cisco's term for a closed loop in which the network is managed by business intent rather than device commands:</p>
+<ol>
+<li><strong>Translation:</strong> the administrator expresses intent ("the Finance group must not reach the lab network"); the controller translates it into policy.</li>
+<li><strong>Activation:</strong> the controller pushes the resulting configuration to all relevant devices automatically.</li>
+<li><strong>Assurance:</strong> the controller continuously collects telemetry to verify that the network actually behaves as intended, and flags or fixes deviations.</li>
+</ol>
+<p>Policy-based networking is the same idea at a smaller scale: you define a policy once (for example, an application QoS policy or a group-based access policy) and the controller renders it into per-device configuration.</p>
+
+<h3>Cisco Catalyst Center (formerly DNA Center)</h3>
+<p>Cisco renamed DNA Center to <strong>Catalyst Center</strong> in 2023. The exam topics write "Catalyst Center/DNA Center," and the REST API paths still begin with <code>/dna/</code>, so recognize both names. Catalyst Center is Cisco's enterprise campus and branch controller, available as an on-premises appliance or virtual appliance. Its main functions:</p>
+<table>
+<thead><tr><th>Feature area</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td>Discovery and inventory</td><td>Finds devices (using CDP/LLDP or IP ranges, with SNMP and SSH/NETCONF credentials) and keeps a live inventory: model, software version, serial number, role, reachability.</td></tr>
+<tr><td>Topology</td><td>Builds a graphical map of physical and logical connections between discovered devices.</td></tr>
+<tr><td>Design</td><td>Defines the network hierarchy (areas, buildings, floors) and shared settings such as DNS, DHCP, NTP, syslog and SNMP servers, IP pools and wireless settings.</td></tr>
+<tr><td>Policy</td><td>Group-based access policy (SD-Access with Cisco ISE and Security Group Tags), application policy (QoS), and virtual networks.</td></tr>
+<tr><td>Provision and templates</td><td>Pushes configuration to devices from templates (the Template Editor/Template Programmer), and Plug and Play (PnP) provides zero-touch onboarding of new switches, routers and APs.</td></tr>
+<tr><td>Software Image Management (SWIM)</td><td>Stores approved "golden" images, checks devices before and after upgrades, and schedules image distribution and activation across many devices.</td></tr>
+<tr><td>Assurance</td><td>Health scores for the network, devices, clients and applications; issue detection with suggested remediation; historical "time travel" of client and device data; path trace. Its AI-driven features include personalized baselines and anomaly detection (topic 6.4).</td></tr>
+<tr><td>Compliance</td><td>Flags devices whose running configuration, software image or settings no longer match what Catalyst Center intended (drift).</td></tr>
+<tr><td>Platform APIs</td><td>The northbound <strong>Intent API</strong> (REST, HTTPS, JSON) lets scripts and other systems do what the GUI does. Cisco also documents event notifications and IT service management integrations around it.</td></tr>
+</tbody>
+</table>
+
+<div class="callout tip"><p><strong>Tip:</strong> Catalyst Center can manage traditional (non-fabric) networks too. It is not only for SD-Access. A common exam distractor says Catalyst Center "replaces the need for routing protocols" or "forwards user traffic"; neither is true.</p></div>
+
+<h3>Cisco Meraki: cloud-managed networking</h3>
+<p>Meraki is another controller model, where the controller is a cloud service (the Meraki dashboard) operated by Cisco:</p>
+<ul>
+<li>Devices (MR access points, MS switches, MX security appliances, and supported Catalyst devices) build an encrypted connection out to the Meraki cloud and receive configuration from it. The administrator manages everything through a web dashboard, and Meraki also provides a REST API (HTTPS, JSON).</li>
+<li>Management is <strong>out of band</strong>: only management data (configuration, statistics, monitoring) goes to the cloud. User traffic goes directly to its destination and never passes through the Meraki cloud.</li>
+<li>If the connection to the cloud is lost, the devices keep forwarding traffic with their last known configuration; only management and reporting are affected until connectivity returns.</li>
+</ul>
+<p>The Cisco wireless LAN controller (WLC) is the other controller you met in topic 1.1: lightweight APs tunnel to the WLC with CAPWAP and get their configuration from it. It is a controller-based model for one part of the network (wireless).</p>
+
+<h3>Comparison table</h3>
+<table>
+<thead><tr><th>Characteristic</th><th>Traditional</th><th>Controller-based</th></tr></thead>
+<tbody>
+<tr><td>Management point</td><td>Each device (CLI, per-device SNMP)</td><td>Central controller (GUI and REST API)</td></tr>
+<tr><td>Control plane</td><td>Fully distributed on every device</td><td>Centralized in the controller (OpenFlow model) or still distributed but centrally configured (most Cisco solutions)</td></tr>
+<tr><td>Data plane</td><td>On each device</td><td>Still on each device</td></tr>
+<tr><td>Configuration method</td><td>Manual, imperative, device by device</td><td>Policy/intent defined once, rendered and pushed automatically</td></tr>
+<tr><td>Network-wide view</td><td>None built in; engineer assembles it</td><td>Controller has inventory, topology and health for all devices</td></tr>
+<tr><td>Consistency and drift</td><td>Hard to maintain</td><td>Templates and compliance checks</td></tr>
+<tr><td>Programmability</td><td>Screen-scraping CLI output</td><td>Structured APIs (REST with JSON/XML)</td></tr>
+<tr><td>Troubleshooting</td><td>Device-by-device <code>show</code> and <code>debug</code></td><td>Central assurance, health scores, analytics</td></tr>
+<tr><td>Examples</td><td>Classic campus managed by SSH</td><td>Catalyst Center, Meraki dashboard, Cisco ACI (APIC), Catalyst SD-WAN Manager, WLC</td></tr>
+</tbody>
+</table>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> "Controller-based" does not mean the controller forwards packets. If the controller fails in a Cisco SD-Access, SD-WAN, Meraki or WLC FlexConnect design, existing forwarding generally continues; you lose the ability to make changes and see assurance data. Watch for answers that put user traffic through the controller.</p></div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Traditional networks: per-device CLI management and a distributed control plane on every box.</li>
+<li>Controller-based networks: a central controller with a network-wide view, northbound REST APIs to apps and southbound protocols to devices.</li>
+<li>Intent-based networking: translation, activation, assurance; you state the goal, the controller renders and verifies it.</li>
+<li>Catalyst Center (formerly DNA Center): discovery/inventory, topology, design, policy, provisioning with templates and PnP, SWIM, Assurance, compliance, Intent API.</li>
+<li>Meraki: cloud-managed, out-of-band management, user traffic never goes through the cloud, devices keep forwarding if the cloud is unreachable.</li>
+<li>The data plane always stays on the network devices.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-6-3" data-topics="6.3,6.3.a,6.3.b">
+<h2>6.3 Controller-based, software-defined architecture (overlay, underlay, fabric)</h2>
+
+<p>Software-defined networking (SDN) is an architecture that separates the decision-making part of the network (control) from the packet-moving part (data), centralizes control and management in software (a controller), and exposes the network to programs through APIs. To answer SDN questions you need three building blocks: the planes, the controller with its northbound and southbound interfaces, and the fabric terms underlay and overlay.</p>
+
+<h3>The three planes</h3>
+<p>Every network device's work can be split into three logical planes. Cisco asks you to place a given function in the right plane, so learn the examples.</p>
+<table>
+<thead><tr><th>Plane</th><th>Job</th><th>Examples on a Cisco router or switch</th></tr></thead>
+<tbody>
+<tr><td><strong>Data plane</strong> (forwarding plane)</td><td>Moves user packets and frames from an ingress interface to an egress interface. Works per packet, at high speed, usually in hardware (ASICs and TCAM on switches, CEF on routers).</td><td>Looking up the destination in the MAC address table or the FIB (CEF) and forwarding; rewriting the Layer 2 header; decrementing TTL; applying ACL permit/deny decisions to traffic; NAT translation of packets; QoS marking and queuing; encapsulating and de-encapsulating (802.1Q tags, VXLAN, GRE, IPsec).</td></tr>
+<tr><td><strong>Control plane</strong></td><td>Builds the information the data plane uses: routes, neighbor tables, Layer 2 topology. Runs on the device CPU.</td><td>Routing protocols (OSPF, EIGRP, BGP), building the routing table and FIB; ARP (IPv4) and NDP (IPv6) to build adjacency tables; STP/RSTP to decide forwarding/blocking ports; MAC address learning (Cisco study material usually groups it with the control plane, even though switch hardware performs it); LACP negotiation; CDP/LLDP neighbor discovery.</td></tr>
+<tr><td><strong>Management plane</strong></td><td>Lets administrators and systems configure, monitor and manage the device itself.</td><td>SSH and Telnet CLI sessions; console; SNMP; syslog; the HTTPS GUI; NETCONF and RESTCONF API access; AAA for administrator logins (TACACS+, RADIUS).</td></tr>
+</tbody>
+</table>
+
+<div class="callout key"><p><strong>Remember:</strong> forwarding a packet, ACL filtering of transit traffic, NAT and encapsulation are <em>data plane</em>. OSPF, ARP, STP and building the routing table are <em>control plane</em>. SSH, SNMP, syslog and NETCONF/RESTCONF are <em>management plane</em>. A protocol packet such as an OSPF hello is itself received by the device, but the <em>function</em> it serves is control plane.</p></div>
+
+<h3 id="t-6-3-a">6.3.a Separation of control plane and data plane</h3>
+<p>In a traditional device both planes live in the same box: the CPU runs OSPF and programs the forwarding hardware a few centimeters away. Every device computes its own view of the network, which is the <strong>distributed control plane</strong> from topic 6.2.</p>
+<p>The classic SDN idea (formalized around OpenFlow) is to <strong>move the control plane off the devices into a central controller</strong>. The controller computes forwarding behavior for the whole network and programs each device's flow tables. The devices become simpler forwarding elements that only run the data plane (and a small agent to talk to the controller).</p>
+<p>Why separate them:</p>
+<ul>
+<li>The controller has a complete network-wide view, so it can make decisions (paths, policies) that consider the whole network rather than one device's neighbors.</li>
+<li>Policy and forwarding behavior can be changed in one place by software instead of on every box.</li>
+<li>Forwarding hardware can be simpler and the control software can evolve independently.</li>
+</ul>
+<p>Trade-offs: the controller becomes critical infrastructure (it is usually deployed as a cluster for redundancy), and the devices depend on reaching it for changes.</p>
+<p>Most Cisco controller-based solutions use a <strong>hybrid</strong> model rather than pure separation. In SD-Access, switches still run IS-IS and LISP; in SD-WAN, routers still forward and run local protocols while the SD-WAN Controller centralizes overlay routing (OMP) and policy; in ACI, the APIC defines policy while the switches run the fabric protocols. What is centralized in all of them is management, policy and a network-wide view. On the exam, if a question asks what SDN "separates," the answer is the control plane from the data plane; if it asks what the controller centralizes, think control (and management) functions, never the data plane.</p>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> the data plane is never moved to the controller. Packets are always forwarded by the network devices. An answer that says "the controller forwards traffic between hosts" or "SDN centralizes the data plane" is wrong.</p></div>
+
+<h3 id="t-6-3-b">6.3.b Northbound and southbound APIs</h3>
+<p>Picture the controller in the middle of a vertical stack: applications above it, network devices below it. The interfaces are named by direction.</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 430" role="img" aria-label="SDN architecture: applications use a northbound REST API to the controller, which uses southbound protocols to network devices that keep their data planes">
+<rect class="d-fill" stroke="currentColor" x="20" y="15" width="210" height="44" rx="6"/>
+<text class="d-text" x="125" y="42" text-anchor="middle">Python script / Postman</text>
+<rect class="d-fill" stroke="currentColor" x="255" y="15" width="210" height="44" rx="6"/>
+<text class="d-text" x="360" y="42" text-anchor="middle">Ansible / Terraform</text>
+<rect class="d-fill" stroke="currentColor" x="490" y="15" width="210" height="44" rx="6"/>
+<text class="d-text" x="595" y="42" text-anchor="middle">ITSM / monitoring app</text>
+<text class="d-muted" x="10" y="85">Application layer</text>
+<line x1="125" y1="59" x2="125" y2="70" stroke="currentColor"/>
+<line x1="360" y1="59" x2="360" y2="70" stroke="currentColor"/>
+<line x1="595" y1="59" x2="595" y2="70" stroke="currentColor"/>
+<line x1="125" y1="70" x2="595" y2="70" stroke="currentColor"/>
+<line x1="360" y1="70" x2="360" y2="128" stroke="currentColor"/>
+<polyline points="352,118 360,128 368,118" fill="none" stroke="currentColor"/>
+<text class="d-text" x="375" y="100">Northbound API: REST over HTTPS, JSON/XML</text>
+<rect class="d-accent-fill" stroke="currentColor" x="140" y="128" width="440" height="70" rx="8"/>
+<text class="d-text" x="360" y="155" text-anchor="middle">SDN controller (Catalyst Center, APIC, SD-WAN Manager)</text>
+<text class="d-text" x="360" y="178" text-anchor="middle">network-wide view, policy, central control and management</text>
+<text class="d-muted" x="10" y="168">Control layer</text>
+<line x1="360" y1="198" x2="360" y2="262" stroke="currentColor"/>
+<line x1="125" y1="262" x2="595" y2="262" stroke="currentColor"/>
+<line x1="125" y1="262" x2="125" y2="275" stroke="currentColor"/>
+<line x1="360" y1="262" x2="360" y2="275" stroke="currentColor"/>
+<line x1="595" y1="262" x2="595" y2="275" stroke="currentColor"/>
+<polyline points="117,267 125,275 133,267" fill="none" stroke="currentColor"/>
+<polyline points="352,267 360,275 368,267" fill="none" stroke="currentColor"/>
+<polyline points="587,267 595,275 603,267" fill="none" stroke="currentColor"/>
+<text class="d-text" x="375" y="232">Southbound: OpenFlow, NETCONF, RESTCONF,</text>
+<text class="d-text" x="375" y="250">OpFlex, SSH/CLI, SNMP</text>
+<rect class="d-fill" stroke="currentColor" x="20" y="275" width="210" height="120" rx="6"/>
+<text class="d-text" x="125" y="296" text-anchor="middle">Switch</text>
+<rect class="d-fill" stroke="currentColor" x="32" y="306" width="186" height="34" rx="4"/>
+<text class="d-muted" x="125" y="328" text-anchor="middle">Control: OSPF, STP, ARP</text>
+<rect class="d-accent-fill" stroke="currentColor" x="32" y="348" width="186" height="34" rx="4"/>
+<text class="d-text" x="125" y="370" text-anchor="middle">Data: forward, ACL</text>
+<rect class="d-fill" stroke="currentColor" x="255" y="275" width="210" height="120" rx="6"/>
+<text class="d-text" x="360" y="296" text-anchor="middle">Router</text>
+<rect class="d-fill" stroke="currentColor" x="267" y="306" width="186" height="34" rx="4"/>
+<text class="d-muted" x="360" y="328" text-anchor="middle">Control: OSPF, ARP</text>
+<rect class="d-accent-fill" stroke="currentColor" x="267" y="348" width="186" height="34" rx="4"/>
+<text class="d-text" x="360" y="370" text-anchor="middle">Data: CEF, NAT, ACL</text>
+<rect class="d-fill" stroke="currentColor" x="490" y="275" width="210" height="120" rx="6"/>
+<text class="d-text" x="595" y="296" text-anchor="middle">Access point / switch</text>
+<rect class="d-fill" stroke="currentColor" x="502" y="306" width="186" height="34" rx="4"/>
+<text class="d-muted" x="595" y="328" text-anchor="middle">Control: local agent</text>
+<rect class="d-accent-fill" stroke="currentColor" x="502" y="348" width="186" height="34" rx="4"/>
+<text class="d-text" x="595" y="370" text-anchor="middle">Data: forward frames</text>
+<text class="d-muted" x="10" y="420">Infrastructure (device) layer: user traffic is forwarded here, never through the controller</text>
+</svg>
+<figcaption>SDN layers. Applications sit above the controller and use its northbound REST API. The controller manages devices below it through southbound protocols. Devices keep their data planes; how much control plane stays on them depends on the architecture.</figcaption>
+</figure>
+
+<h4>Northbound interface (NBI)</h4>
+<ul>
+<li>Between the controller and the applications, scripts, orchestration tools and dashboards above it.</li>
+<li>Almost always a <strong>REST API</strong> over HTTPS, exchanging <strong>JSON</strong> (sometimes XML). Topic 6.5 covers REST in detail.</li>
+<li>Abstracts the network: an application asks for "all devices," "the health of site Boston," or "apply policy X" without knowing device CLI syntax.</li>
+<li>Examples: the Catalyst Center Intent API (<code>/dna/intent/api/v1/...</code>), the Meraki Dashboard API, the SD-WAN Manager REST API, the APIC REST API. Cisco's documentation describes the Catalyst Center Intent API as a "Northbound REST API."</li>
+</ul>
+
+<h4>Southbound interface (SBI)</h4>
+<ul>
+<li>Between the controller and the network devices below it. Used to push configuration and read state.</li>
+<li>Protocols you must recognize:</li>
+</ul>
+<table>
+<thead><tr><th>Southbound protocol</th><th>What to know</th></tr></thead>
+<tbody>
+<tr><td>OpenFlow</td><td>Open standard (Open Networking Foundation) that lets a controller program flow tables directly in switches. The textbook example of pure control/data plane separation; used by controllers such as OpenDaylight.</td></tr>
+<tr><td>NETCONF</td><td>IETF protocol for configuring devices using YANG data models, XML encoding, over SSH on TCP port <strong>830</strong>. Enabled on IOS XE with <code>netconf-yang</code>.</td></tr>
+<tr><td>RESTCONF</td><td>IETF protocol (RFC 8040) that offers YANG-modeled data through a REST-style HTTPS API, with JSON or XML encoding. Enabled on IOS XE with <code>restconf</code> plus <code>ip http secure-server</code>.</td></tr>
+<tr><td>OpFlex</td><td>Cisco-originated policy protocol used with Cisco ACI. The APIC declares policy and OpFlex carries it to policy elements, which decide how to implement it (a declarative model, unlike OpenFlow's imperative flow programming).</td></tr>
+<tr><td>SSH / CLI</td><td>Many controllers, including Catalyst Center, still configure some devices by sending CLI commands over SSH.</td></tr>
+<tr><td>SNMP</td><td>Used mainly for discovery and monitoring (reading MIB values), less for configuration.</td></tr>
+</tbody>
+</table>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> direction is from the controller's point of view. North = up toward applications (REST). South = down toward devices (OpenFlow, NETCONF, RESTCONF, OpFlex, SSH, SNMP). RESTCONF uses REST principles, but when a controller uses it to configure a router it is acting as a southbound protocol. If a question asks which API "a Python application uses to get the device list from Catalyst Center," the answer is northbound (REST).</p></div>
+
+<p>Cisco documentation also mentions east and westbound interfaces for Catalyst Center (event notifications and IT service management integrations). For the CCNA, focus on north and south.</p>
+
+<h4>Enabling device-level APIs on IOS XE (recognition only)</h4>
+<p>This is beyond what the CCNA configures, but seeing it makes the southbound idea concrete. On a Catalyst 9000 or Catalyst 8000 router running IOS XE:</p>
+<pre class="cli">R1(config)# username netadmin privilege 15 secret Str0ngPass!
+! Cisco's guide also shows AAA (aaa new-model, aaa authentication login default local,
+! aaa authorization exec default local); the API user needs privilege 15
+! NETCONF over SSH, TCP port 830, YANG models, XML encoding
+R1(config)# netconf-yang
+! RESTCONF over HTTPS, YANG models, JSON or XML encoding
+R1(config)# ip http secure-server
+R1(config)# restconf</pre>
+<p>After this, a controller or script can read and change the configuration as structured data, for example with an HTTPS GET to <code>https://R1/restconf/data/ietf-interfaces:interfaces</code> (you will see the JSON this returns in topic 6.7).</p>
+
+<h3>Underlay, overlay and fabric</h3>
+<p>Modern controller-based designs build virtual networks on top of a physical network. Three terms describe this:</p>
+<dl>
+<dt>Underlay</dt><dd>The physical network: the switches, routers, links and the routing protocol that gives every device IP reachability to every other device. Its only job is to carry packets between network devices' loopback addresses reliably and quickly. End-user subnets are not in the underlay.</dd>
+<dt>Overlay</dt><dd>Virtual (logical) networks built on top of the underlay using tunnels. Traffic between endpoints is encapsulated at the ingress device, carried across the underlay as ordinary IP packets, and de-encapsulated at the egress device. The overlay defines the user-facing networks and policy, independent of the physical layout.</dd>
+<dt>Fabric</dt><dd>The combination of underlay and overlay operating as one system, usually managed by a controller. To endpoints and administrators it behaves like one large switch. Cisco uses "fabric" for SD-Access (campus), ACI (data center) and SD-WAN (WAN).</dd>
+</dl>
+<p>Analogy: the underlay is the road system; the overlay is the set of delivery routes, each in sealed trucks, that run over those roads without the roads needing to know what is inside.</p>
+
+<h4>Cisco SD-Access</h4>
+<p>SD-Access is Cisco's campus fabric, managed by Catalyst Center with Cisco ISE providing identity and policy. Learn its terms at a recognition level:</p>
+<table>
+<thead><tr><th>Element</th><th>SD-Access implementation</th></tr></thead>
+<tbody>
+<tr><td>Underlay</td><td>A routed (Layer 3 access) physical network with no spanning tree between switches. When Catalyst Center builds it automatically with <strong>LAN Automation</strong>, the routing protocol is <strong>IS-IS</strong>. A manually built underlay can use another IGP such as OSPF.</td></tr>
+<tr><td>Overlay data plane</td><td><strong>VXLAN</strong>: encapsulates the endpoint's original Ethernet frame in UDP/IP (UDP port 4789) with a 24-bit VXLAN network identifier (VNI), allowing about 16 million segments. Cisco's version also carries the SGT in the header.</td></tr>
+<tr><td>Overlay control plane</td><td><strong>LISP</strong> (Locator/ID Separation Protocol): a mapping database records which fabric device (routing locator, RLOC) each endpoint (endpoint identifier, EID) sits behind, so edges know where to tunnel traffic.</td></tr>
+<tr><td>Policy plane</td><td><strong>Cisco TrustSec</strong> with <strong>Security Group Tags (SGTs)</strong>: endpoints are placed in groups (by ISE after authentication) and access rules are written between groups instead of IP addresses.</td></tr>
+<tr><td>Management plane</td><td>Catalyst Center (automation, policy, assurance).</td></tr>
+</tbody>
+</table>
+<p>SD-Access fabric roles:</p>
+<ul>
+<li><strong>Fabric edge node:</strong> the access switch where endpoints connect. Registers endpoints with the control-plane node, acts as the anycast default gateway for its VLANs, and does VXLAN encapsulation and decapsulation.</li>
+<li><strong>Fabric control-plane node:</strong> runs the LISP map server/map resolver: the host-tracking database of endpoint-to-location mappings.</li>
+<li><strong>Fabric border node:</strong> the gateway between the fabric and everything outside it (data center, WAN, Internet), translating between fabric and non-fabric networks.</li>
+<li><strong>Intermediate node:</strong> underlay-only routers or switches between fabric nodes. They just route IP and need no VXLAN, LISP or SGT awareness.</li>
+<li>Also: <strong>extended node</strong> (Layer 2 switch extending the fabric into places like factory floors) and <strong>fabric WLC</strong> (wireless controller integrated with the fabric).</li>
+</ul>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 380" role="img" aria-label="SD-Access overlay of VXLAN tunnels between fabric nodes running over a physical IS-IS underlay">
+<rect x="10" y="10" width="700" height="150" rx="8" fill="none" stroke="currentColor" stroke-dasharray="6 4"/>
+<text class="d-text" x="22" y="32">Overlay (logical)</text>
+<rect class="d-accent-fill" stroke="currentColor" x="30" y="60" width="130" height="40" rx="6"/>
+<text class="d-text" x="95" y="85" text-anchor="middle">Edge node 1</text>
+<rect class="d-accent-fill" stroke="currentColor" x="200" y="60" width="130" height="40" rx="6"/>
+<text class="d-text" x="265" y="85" text-anchor="middle">Edge node 2</text>
+<rect class="d-accent-fill" stroke="currentColor" x="370" y="60" width="150" height="40" rx="6"/>
+<text class="d-text" x="445" y="85" text-anchor="middle">Control-plane node</text>
+<rect class="d-accent-fill" stroke="currentColor" x="560" y="60" width="130" height="40" rx="6"/>
+<text class="d-text" x="625" y="85" text-anchor="middle">Border node</text>
+<path d="M95,100 C95,132 265,132 265,100" fill="none" stroke="currentColor" stroke-dasharray="5 4"/>
+<text class="d-muted" x="180" y="138" text-anchor="middle">VXLAN tunnel</text>
+<path d="M265,60 C265,28 625,28 625,60" fill="none" stroke="currentColor" stroke-dasharray="5 4"/>
+<text class="d-muted" x="545" y="32" text-anchor="middle">VXLAN tunnel</text>
+<text class="d-muted" x="445" y="120" text-anchor="middle">LISP map server/resolver</text>
+<text class="d-text" x="360" y="152" text-anchor="middle">VXLAN data plane, LISP control plane, TrustSec SGT policy plane</text>
+<rect x="10" y="185" width="700" height="185" rx="8" fill="none" stroke="currentColor"/>
+<text class="d-text" x="22" y="207">Underlay (physical)</text>
+<rect class="d-fill" stroke="currentColor" x="30" y="220" width="130" height="36" rx="6"/>
+<text class="d-text" x="95" y="243" text-anchor="middle">Edge 1</text>
+<rect class="d-fill" stroke="currentColor" x="200" y="220" width="130" height="36" rx="6"/>
+<text class="d-text" x="265" y="243" text-anchor="middle">Edge 2</text>
+<rect class="d-fill" stroke="currentColor" x="380" y="220" width="130" height="36" rx="6"/>
+<text class="d-text" x="445" y="243" text-anchor="middle">CP node</text>
+<rect class="d-fill" stroke="currentColor" x="560" y="220" width="130" height="36" rx="6"/>
+<text class="d-text" x="625" y="243" text-anchor="middle">Border</text>
+<rect class="d-fill" stroke="currentColor" x="295" y="300" width="150" height="36" rx="6"/>
+<text class="d-text" x="370" y="323" text-anchor="middle">Intermediate node</text>
+<line x1="95" y1="256" x2="330" y2="300" stroke="currentColor"/>
+<line x1="265" y1="256" x2="350" y2="300" stroke="currentColor"/>
+<line x1="445" y1="256" x2="390" y2="300" stroke="currentColor"/>
+<line x1="625" y1="256" x2="420" y2="300" stroke="currentColor"/>
+<rect class="d-fill" stroke="currentColor" x="30" y="300" width="110" height="32" rx="6"/>
+<text class="d-text" x="85" y="321" text-anchor="middle">Host A</text>
+<line x1="60" y1="256" x2="60" y2="300" stroke="currentColor"/>
+<text class="d-muted" x="520" y="300">routed point-to-point links</text>
+<text class="d-text" x="360" y="360" text-anchor="middle">IP reachability between loopbacks, IS-IS when built by LAN Automation</text>
+</svg>
+<figcaption>The same physical switches appear in both layers. The underlay is a plain routed network; the overlay tunnels endpoint traffic across it with VXLAN, uses LISP to find which edge an endpoint is behind, and carries SGTs for group-based policy. Catalyst Center manages the fabric and ISE supplies identity and SGTs.</figcaption>
+</figure>
+
+<h4>Cisco Catalyst SD-WAN (recognition level)</h4>
+<p>SD-WAN applies the same controller ideas to the WAN. It builds an overlay of IPsec tunnels between sites across any underlay transport (MPLS, broadband Internet, LTE/5G). Cisco renamed the components in release 20.12 / IOS XE 17.12; know both sets of names:</p>
+<table>
+<thead><tr><th>Current name</th><th>Former name</th><th>Plane</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td>SD-WAN Manager</td><td>vManage</td><td>Management</td><td>Central GUI and REST API: configuration, templates, monitoring, certificates.</td></tr>
+<tr><td>SD-WAN Controller</td><td>vSmart</td><td>Control</td><td>Distributes routes, keys and policy to WAN edges using OMP (Overlay Management Protocol, a BGP-like protocol) over DTLS/TLS control connections.</td></tr>
+<tr><td>SD-WAN Validator</td><td>vBond</td><td>Orchestration</td><td>Authenticates devices joining the fabric and tells them how to reach the Controllers and Manager.</td></tr>
+<tr><td>WAN edge routers</td><td>vEdge / cEdge</td><td>Data</td><td>Branch and data center routers that forward user traffic over the IPsec overlay.</td></tr>
+</tbody>
+</table>
+
+<div class="callout tip"><p><strong>Tip:</strong> pattern for any fabric question: underlay = physical + routing protocol; overlay = tunnels (VXLAN in SD-Access and ACI, IPsec in SD-WAN); fabric = both, managed by a controller. SD-Access trio: VXLAN (data), LISP (control), SGT/TrustSec (policy).</p></div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Data plane forwards packets (MAC/FIB lookup, ACL, NAT, encapsulation); control plane builds the tables (OSPF, ARP, STP); management plane is for admins (SSH, SNMP, syslog, NETCONF/RESTCONF).</li>
+<li>SDN separates the control plane from the data plane and centralizes control in a controller; the data plane stays on the devices.</li>
+<li>Northbound API = controller to applications, typically REST with JSON. Southbound = controller to devices: OpenFlow, NETCONF (SSH 830, XML), RESTCONF (HTTPS, JSON/XML), OpFlex, SSH/CLI, SNMP.</li>
+<li>Underlay = physical routed network; overlay = tunneled virtual networks; fabric = both working together under a controller.</li>
+<li>SD-Access: IS-IS underlay (LAN Automation), VXLAN data plane, LISP control plane, TrustSec SGT policy plane; edge, border and control-plane nodes.</li>
+<li>SD-WAN: Manager (vManage), Controller (vSmart, OMP), Validator (vBond), WAN edges forwarding over IPsec.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-6-4" data-topics="6.4">
+<h2>6.4 AI (generative and predictive) and machine learning in network operations</h2>
+
+<p>This topic was added in blueprint v1.1. Cisco tests concepts here, not product configuration: what the terms mean, which kind of AI fits which operational job, and what the risks are. Keep your answers general; the exam does not expect detailed knowledge of any one product's algorithms.</p>
+
+<h3>The vocabulary</h3>
+<dl>
+<dt>Artificial intelligence (AI)</dt><dd>The broad field of building systems that perform tasks that normally need human intelligence: recognizing patterns, making predictions, understanding language, making decisions.</dd>
+<dt>Machine learning (ML)</dt><dd>A subset of AI in which a system learns patterns from data instead of being explicitly programmed with rules. You give it examples (data), it builds a model, and the model makes predictions or decisions on new data.</dd>
+<dt>Deep learning (DL)</dt><dd>A subset of ML that uses multi-layer neural networks. It powers image and speech recognition and the large language models (LLMs) behind generative AI.</dd>
+<dt>Model</dt><dd>The output of training: the learned function that maps inputs to predictions.</dd>
+<dt>Training vs inference</dt><dd>Training is learning the model from data; inference is using the trained model on new data.</dd>
+</dl>
+<p>The nesting is the classic exam point: <strong>deep learning is a subset of machine learning, which is a subset of AI</strong>.</p>
+
+<h3>Types of machine learning</h3>
+<table>
+<thead><tr><th>Type</th><th>How it learns</th><th>Network operations example</th></tr></thead>
+<tbody>
+<tr><td><strong>Supervised learning</strong></td><td>Trained on <em>labeled</em> data: each example has the correct answer attached. Learns to predict the label for new inputs (classification or regression).</td><td>Classifying traffic flows into applications using flows already labeled by application; predicting whether a device will fail based on historical records labeled "failed / did not fail"; classifying syslog messages as benign or incident-related.</td></tr>
+<tr><td><strong>Unsupervised learning</strong></td><td>Trained on <em>unlabeled</em> data. Finds structure on its own: clusters, groupings, outliers.</td><td>Learning a normal baseline for a site's traffic or client onboarding times and flagging anomalies; clustering endpoints with similar behavior into groups (useful for building segmentation policy); spotting an unusual traffic pattern that might be an attack.</td></tr>
+<tr><td><strong>Reinforcement learning</strong></td><td>An agent takes actions in an environment and learns from rewards or penalties, improving its policy by trial and error.</td><td>Conceptually: an agent that adjusts path selection or radio settings and is rewarded when measured performance improves. Mostly a research and emerging area in networking; know the definition.</td></tr>
+</tbody>
+</table>
+
+<div class="callout key"><p><strong>Remember:</strong> supervised = labeled data, predicts a known kind of answer. Unsupervised = unlabeled data, finds patterns and anomalies. Reinforcement = learns by reward and penalty from its own actions.</p></div>
+
+<h3>Predictive AI in network operations</h3>
+<p><strong>Predictive AI</strong> analyzes historical and real-time data to detect patterns, spot deviations and forecast what will happen. It produces scores, alerts, forecasts and likely causes, not new content. This is the AI that network monitoring and assurance platforms have used for years. Typical uses:</p>
+<ul>
+<li><strong>Baselining:</strong> learning what "normal" looks like for each network, site, device or time of day, instead of using one fixed threshold for everyone. A 300 ms DHCP response may be normal at one site and a problem at another.</li>
+<li><strong>Anomaly detection:</strong> flagging behavior that deviates from the learned baseline, such as a sudden rise in authentication failures, an unusual traffic volume, or a client onboarding time far outside the norm.</li>
+<li><strong>Forecasting and capacity planning:</strong> predicting when a link or a WAN circuit will reach saturation, or when wireless density will exceed capacity.</li>
+<li><strong>Failure prediction:</strong> identifying patterns (rising error counters, temperature, memory leaks) that tend to come before failures, so you can act before an outage.</li>
+<li><strong>Root cause analysis and event correlation:</strong> grouping hundreds of related alarms into one incident and pointing at the most likely cause, which cuts alert noise.</li>
+<li><strong>Security analytics:</strong> spotting compromised hosts or unusual flows by behavior rather than signatures.</li>
+</ul>
+<p>Examples in the Cisco portfolio, described only at the level Cisco's own documentation does:</p>
+<ul>
+<li><strong>Catalyst Center Assurance and AI Network Analytics:</strong> Cisco's data sheet lists AI-driven personalized baselining, AI-driven anomaly detection and AI-enhanced Radio Resource Management (RRM) among Catalyst Center's features. Assurance uses the data it collects to detect issues, compare against baselines, and suggest root causes and fixes.</li>
+<li><strong>Cisco ThousandEyes:</strong> monitors performance and availability from users to applications across networks you own and networks you do not own (ISPs, the Internet, cloud and SaaS providers) using agents and synthetic tests, and applies analytics to that data. Catalyst Center can deploy ThousandEyes agents on supported switches.</li>
+</ul>
+
+<h3>Generative AI in network operations</h3>
+<p><strong>Generative AI</strong> creates new content (text, code, configuration, summaries) in response to a prompt. It is built on large language models trained on huge amounts of text. In network operations it shows up as:</p>
+<ul>
+<li><strong>Natural-language assistants:</strong> asking questions in plain English ("Which access points at the Cambridge site had the most client failures yesterday?") instead of navigating menus or writing queries. Cisco offers an AI Assistant across products such as Catalyst Center and ThousandEyes.</li>
+<li><strong>Configuration and script generation:</strong> drafting an ACL, a VLAN configuration, an Ansible playbook or a Python script from a description.</li>
+<li><strong>Summarization and explanation:</strong> summarizing long logs or incident timelines, explaining what a <code>show</code> output or an error means, translating a configuration from one platform's syntax to another.</li>
+<li><strong>Documentation:</strong> writing change requests, runbooks, design documents and post-incident reports from raw notes.</li>
+</ul>
+
+<h4>Risks and required controls for generative AI</h4>
+<ul>
+<li><strong>Hallucination:</strong> the model can produce confident, plausible output that is wrong: a command that does not exist on this platform, the wrong syntax, a wrong default, or an invented explanation.</li>
+<li><strong>Human validation is mandatory:</strong> treat generated configuration like a junior engineer's draft. Review it, test it in a lab, and push it through normal change control.</li>
+<li><strong>Data privacy and confidentiality:</strong> pasting running configurations, logs or diagrams into a public AI service can leak passwords, keys, IP plans and customer data. Use approved tools, remove secrets, and follow company policy.</li>
+<li><strong>Stale or generic knowledge:</strong> a model may not know your environment, your standards or the latest software version.</li>
+<li><strong>Security of the AI itself:</strong> prompt injection and over-trusting an assistant that can make changes; keep humans in the approval loop for anything that changes the network.</li>
+</ul>
+
+<table>
+<thead><tr><th></th><th>Predictive AI</th><th>Generative AI</th></tr></thead>
+<tbody>
+<tr><td>Output</td><td>Predictions, scores, anomalies, forecasts, likely root causes</td><td>New content: text, code, configs, summaries, answers</td></tr>
+<tr><td>Typical input</td><td>Telemetry, counters, flows, logs, historical incidents</td><td>A natural-language prompt plus context</td></tr>
+<tr><td>Network use</td><td>Baselining, anomaly detection, capacity forecasting, failure prediction, root cause</td><td>Assistants, config/script drafting, log summaries, documentation</td></tr>
+<tr><td>Main risk</td><td>False positives/negatives, bad or biased training data</td><td>Hallucination, data leakage, overtrust</td></tr>
+</tbody>
+</table>
+
+<h3>AIOps</h3>
+<p><strong>AIOps</strong> (AI for IT operations) is the use of AI and ML on operational data (metrics, events, logs, traces, tickets) to automate and improve operations: correlating events, reducing alert noise, detecting anomalies, finding root causes and, in mature setups, triggering automated remediation (for example, running an Ansible playbook when a known issue is detected). It combines topic 6.4 with the automation tools in topics 6.1 and 6.6: analytics decide <em>what</em> is wrong, automation does <em>something</em> about it, and humans approve and supervise.</p>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> do not mix the two kinds of AI. "Detects that a site's latency is abnormal compared with its baseline" is predictive. "Writes a VLAN configuration from a plain-English request" is generative. Also, ML needs data: a question asking what a model requires before it can find anomalies is looking for "a baseline built from historical data."</p></div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>AI contains ML, which contains deep learning; LLMs behind generative AI are deep learning models.</li>
+<li>Supervised learning uses labeled data; unsupervised finds patterns in unlabeled data; reinforcement learns from rewards.</li>
+<li>Predictive AI: baselining, anomaly detection, forecasting, failure prediction, root cause (for example Catalyst Center Assurance, ThousandEyes).</li>
+<li>Generative AI: natural-language assistants, config and script drafts, summaries, documentation.</li>
+<li>Generative AI risks: hallucination, data privacy, overtrust; always validate and test before deploying.</li>
+<li>AIOps applies AI/ML to operations data to correlate, detect and remediate.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-6-5" data-topics="6.5">
+<h2>6.5 REST-based APIs (authentication types, CRUD, HTTP verbs, data encoding)</h2>
+
+<p>An <strong>API</strong> (application programming interface) is a defined way for one program to ask another program to do something or return data. <strong>REST</strong> (Representational State Transfer) is an architectural style for APIs, defined by Roy Fielding in his 2000 dissertation. REST is not a protocol, but in practice REST APIs use <strong>HTTP/HTTPS</strong> as their transport, identify things with URIs, and exchange data as JSON or XML. Catalyst Center, Meraki, SD-WAN Manager, APIC and IOS XE (through RESTCONF) all expose REST APIs.</p>
+
+<h3>REST constraints</h3>
+<p>An API is "RESTful" when it follows these architectural constraints. Cisco's materials list them, so learn the names:</p>
+<table>
+<thead><tr><th>Constraint</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Client-server</td><td>The client (script, app) and the server (controller, device) are separate. The client handles the user side; the server stores data and does the work. Either can change independently as long as the interface stays the same.</td></tr>
+<tr><td>Stateless</td><td>Every request carries everything the server needs to process it. The server keeps no client session state between requests. This is why a token or credentials travel in <em>every</em> request.</td></tr>
+<tr><td>Cacheable</td><td>Responses must say whether they can be cached. Cacheable responses can be reused by the client or an intermediary, reducing load.</td></tr>
+<tr><td>Uniform interface</td><td>Resources are identified by URIs and manipulated through representations (such as JSON) using a standard set of methods; messages are self-descriptive (headers say what format the body is in); responses can include links to related resources (hypermedia).</td></tr>
+<tr><td>Layered system</td><td>The client cannot tell whether it is talking to the end server or to an intermediary such as a load balancer, proxy or API gateway.</td></tr>
+<tr><td>Code on demand (optional)</td><td>The server may send executable code (such as JavaScript) to the client. This is the only optional constraint.</td></tr>
+</tbody>
+</table>
+
+<div class="callout key"><p><strong>Remember:</strong> six REST constraints: client-server, stateless, cacheable, uniform interface, layered system, code on demand (optional). "Stateless" is the most tested one.</p></div>
+
+<h3>URI structure</h3>
+<p>A REST resource is identified by a URI. Take this Catalyst Center request:</p>
+<pre class="cli">https://catc.example.com:443/dna/intent/api/v1/network-device?family=Switches%20and%20Hubs&amp;limit=5
+^----   ^---------------^---^-------------------------------- ^-----------------------------------
+scheme
+        host
+                        port
+                            resource path
+                                                              query parameters</pre>
+<dl>
+<dt>Scheme</dt><dd>The protocol: <code>https</code> (TCP 443 by default) or <code>http</code> (TCP 80). Production APIs use HTTPS.</dd>
+<dt>Host (authority)</dt><dd>The server's DNS name or IP address, optionally followed by <code>:port</code>.</dd>
+<dt>Resource path</dt><dd>Identifies the resource or collection: here <code>/dna/intent/api/v1/network-device</code>, the device inventory. Paths often contain a version (<code>v1</code>) and can identify one item, such as <code>/network-device/{id}</code>.</dd>
+<dt>Query parameters</dt><dd>Start after <code>?</code>, are <code>key=value</code> pairs separated by <code>&amp;</code>, and filter, sort or page the results. Spaces and special characters are percent-encoded (<code>%20</code> is a space).</dd>
+</dl>
+
+<h3>CRUD and HTTP verbs</h3>
+<p>CRUD stands for <strong>Create, Read, Update, Delete</strong>, the four basic operations on data. REST maps them to HTTP methods (verbs):</p>
+<table>
+<thead><tr><th>CRUD</th><th>HTTP method</th><th>Typical use</th><th>Safe?</th><th>Idempotent?</th></tr></thead>
+<tbody>
+<tr><td>Create</td><td><strong>POST</strong></td><td>Create a new resource in a collection (the server usually assigns the ID); also used to trigger actions, such as requesting a token</td><td>No</td><td>No</td></tr>
+<tr><td>Read</td><td><strong>GET</strong></td><td>Retrieve a resource or collection; no body is sent</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Update</td><td><strong>PUT</strong></td><td>Replace the whole resource with the representation sent (or create it at a client-chosen URI)</td><td>No</td><td>Yes</td></tr>
+<tr><td>Update</td><td><strong>PATCH</strong></td><td>Partially modify a resource: only the fields sent change</td><td>No</td><td>Not guaranteed</td></tr>
+<tr><td>Delete</td><td><strong>DELETE</strong></td><td>Remove the resource</td><td>No</td><td>Yes</td></tr>
+</tbody>
+</table>
+<p><strong>Safe</strong> means the method does not change server state (read-only). <strong>Idempotent</strong> means sending the same request once or ten times leaves the server in the same state. Two POSTs to create a VLAN can create two objects or return an error; two identical PUTs leave one resource with the same content.</p>
+
+<h4>PUT vs PATCH</h4>
+<p>Suppose the resource for interface Gi1/0/5 is <code>{"description": "Printer", "enabled": true, "mtu": 1500}</code>.</p>
+<ul>
+<li><code>PATCH</code> with <code>{"description": "Lab printer"}</code> changes only the description. <code>enabled</code> and <code>mtu</code> keep their values.</li>
+<li><code>PUT</code> with <code>{"description": "Lab printer"}</code> replaces the whole resource with what you sent, so fields you left out may be removed or reset to defaults. With PUT you send the complete representation.</li>
+</ul>
+<p>PUT, POST, GET and DELETE are defined in RFC 9110 (HTTP Semantics); PATCH is defined separately in RFC 5789, which states that PATCH is "neither safe nor idempotent" in general. RESTCONF on IOS XE follows the same pattern: GET reads, POST creates, PUT creates or replaces, PATCH updates (merges), DELETE deletes.</p>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> "Update" maps to two verbs: PUT (replace) and PATCH (partial). "Create" is POST. GET never carries a body and never changes data. If a question asks which method retrieves the device list, the answer is GET, not POST, even though POST is what you use to get a Catalyst Center token.</p></div>
+
+<h3>HTTP response status codes</h3>
+<p>Every response begins with a three-digit status code. The first digit gives the class:</p>
+<table>
+<thead><tr><th>Class</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>1xx Informational</td><td>Request received, processing continues (for example 100 Continue). Rarely seen in API work.</td></tr>
+<tr><td>2xx Success</td><td>The request was received, understood and accepted.</td></tr>
+<tr><td>3xx Redirection</td><td>The client must take further action, usually go to another URI.</td></tr>
+<tr><td>4xx Client error</td><td>The request was wrong: bad syntax, bad credentials, no permission, unknown resource. Fix the request.</td></tr>
+<tr><td>5xx Server error</td><td>The request may be fine, but the server failed to fulfil it.</td></tr>
+</tbody>
+</table>
+<table>
+<thead><tr><th>Code</th><th>Reason phrase</th><th>When you see it in API work</th></tr></thead>
+<tbody>
+<tr><td>200</td><td>OK</td><td>Successful GET (data in the body), or a successful PUT/PATCH/POST that returns data.</td></tr>
+<tr><td>201</td><td>Created</td><td>A POST (or PUT) created a new resource; the <code>Location</code> header often gives its URI.</td></tr>
+<tr><td>202</td><td>Accepted</td><td>Request accepted for processing but not finished. Catalyst Center returns this for many configuration calls and gives you a task ID to poll.</td></tr>
+<tr><td>204</td><td>No Content</td><td>Success with no body, common after DELETE or an update.</td></tr>
+<tr><td>301</td><td>Moved Permanently</td><td>The resource has a new permanent URI (in the <code>Location</code> header).</td></tr>
+<tr><td>304</td><td>Not Modified</td><td>Cached copy is still valid (conditional GET).</td></tr>
+<tr><td>400</td><td>Bad Request</td><td>Malformed request: invalid JSON, missing required field, wrong parameter.</td></tr>
+<tr><td>401</td><td>Unauthorized</td><td><strong>Authentication</strong> failed or missing: no token, wrong password, expired token.</td></tr>
+<tr><td>403</td><td>Forbidden</td><td>Authenticated, but not <strong>authorized</strong>: your account lacks permission for this action.</td></tr>
+<tr><td>404</td><td>Not Found</td><td>The URI does not exist: typo in the path or wrong resource ID.</td></tr>
+<tr><td>405</td><td>Method Not Allowed</td><td>The resource exists but does not support this verb (for example DELETE on a read-only resource).</td></tr>
+<tr><td>409</td><td>Conflict</td><td>Request conflicts with the current state, such as creating an object that already exists.</td></tr>
+<tr><td>415</td><td>Unsupported Media Type</td><td>The body format (Content-Type) is not one the server accepts.</td></tr>
+<tr><td>500</td><td>Internal Server Error</td><td>Generic failure on the server side.</td></tr>
+<tr><td>503</td><td>Service Unavailable</td><td>Server overloaded or down for maintenance; try later.</td></tr>
+</tbody>
+</table>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> 401 "Unauthorized" actually means <em>unauthenticated</em> (who are you?). 403 "Forbidden" means authenticated but not permitted (I know who you are, and the answer is no). An expired Catalyst Center token returns 401.</p></div>
+
+<h3>HTTP headers that matter</h3>
+<table>
+<thead><tr><th>Header</th><th>Direction</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>Content-Type</code></td><td>Request and response</td><td>Format of the body being sent, such as <code>application/json</code>, <code>application/xml</code>, <code>application/yang-data+json</code> (RESTCONF).</td></tr>
+<tr><td><code>Accept</code></td><td>Request</td><td>Format the client wants back. A RESTCONF client sends <code>Accept: application/yang-data+json</code> to get JSON instead of XML.</td></tr>
+<tr><td><code>Authorization</code></td><td>Request</td><td>Credentials: <code>Basic &lt;base64&gt;</code> or <code>Bearer &lt;token&gt;</code>.</td></tr>
+<tr><td><code>X-Auth-Token</code></td><td>Request</td><td>Custom header that carries the Catalyst Center token on every API call after login.</td></tr>
+<tr><td><code>Location</code></td><td>Response</td><td>URI of a newly created resource or a redirect target.</td></tr>
+</tbody>
+</table>
+
+<h3>Authentication types</h3>
+<dl>
+<dt>Basic authentication</dt><dd>The client sends <code>Authorization: Basic</code> followed by base64 of <code>username:password</code>. Base64 is encoding, not encryption: anyone who captures it can decode it. Use only over HTTPS. Example: <code>admin:cisco123</code> becomes <code>YWRtaW46Y2lzY28xMjM=</code>.</dd>
+<dt>Bearer / token authentication</dt><dd>The client first authenticates once (often with Basic) and receives a token, then sends the token in each request, typically <code>Authorization: Bearer &lt;token&gt;</code>. Tokens expire, can be revoked, and keep the password off the wire for most requests.</dd>
+<dt>API key</dt><dd>A long secret string issued to a user or application, sent in a header (or less safely a query parameter) on every request. Simple, but a leaked key works until it is revoked. The Meraki Dashboard API uses an API key generated in the dashboard.</dd>
+<dt>OAuth 2.0</dt><dd>An authorization framework in which an authorization server issues limited, scoped access tokens to a client application, often on behalf of a user who approves access, without giving the application the user's password. The client then presents the access token (as a bearer token) to the API. Common for cloud and SaaS APIs.</dd>
+</dl>
+
+<h4>Catalyst Center: token via POST, then X-Auth-Token</h4>
+<p>Cisco's Catalyst Center API documentation describes this two-step flow:</p>
+<ol>
+<li>Send <strong>POST</strong> to <code>/dna/system/api/v1/auth/token</code> with HTTP Basic authentication (username and password).</li>
+<li>The response body is JSON with a <code>Token</code> field.</li>
+<li>Send that token in the <strong><code>X-Auth-Token</code></strong> header of every subsequent request.</li>
+<li>The token lifetime is 60 minutes; after that, calls return 401 and you request a new token.</li>
+</ol>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 320" role="img" aria-label="REST request and response sequence: POST for a token, then GET with X-Auth-Token header">
+<rect class="d-fill" stroke="currentColor" x="10" y="20" width="140" height="280" rx="8"/>
+<text class="d-text" x="80" y="45" text-anchor="middle">REST client</text>
+<text class="d-muted" x="80" y="65" text-anchor="middle">curl, Python,</text>
+<text class="d-muted" x="80" y="82" text-anchor="middle">Postman, Ansible</text>
+<rect class="d-accent-fill" stroke="currentColor" x="570" y="20" width="140" height="280" rx="8"/>
+<text class="d-text" x="640" y="45" text-anchor="middle">REST server</text>
+<text class="d-muted" x="640" y="65" text-anchor="middle">Catalyst Center</text>
+<text class="d-muted" x="640" y="82" text-anchor="middle">Intent API</text>
+<text class="d-text" x="165" y="100">1 POST /dna/system/api/v1/auth/token</text>
+<text class="d-muted" x="165" y="116">Authorization: Basic YWRtaW46...</text>
+<line x1="155" y1="126" x2="565" y2="126" stroke="currentColor"/>
+<polyline points="555,120 565,126 555,132" fill="none" stroke="currentColor"/>
+<text class="d-text" x="165" y="152">2 200 OK  {"Token": "eyJ0eXAi..."}</text>
+<line x1="155" y1="162" x2="565" y2="162" stroke="currentColor"/>
+<polyline points="165,156 155,162 165,168" fill="none" stroke="currentColor"/>
+<text class="d-text" x="165" y="190">3 GET /dna/intent/api/v1/network-device</text>
+<text class="d-muted" x="165" y="206">X-Auth-Token: eyJ0eXAi...  Accept: application/json</text>
+<line x1="155" y1="216" x2="565" y2="216" stroke="currentColor"/>
+<polyline points="555,210 565,216 555,222" fill="none" stroke="currentColor"/>
+<text class="d-text" x="165" y="244">4 200 OK  Content-Type: application/json</text>
+<text class="d-muted" x="165" y="260">{"response": [ {...}, {...} ], "version": "1.0"}</text>
+<line x1="155" y1="270" x2="565" y2="270" stroke="currentColor"/>
+<polyline points="165,264 155,270 165,276" fill="none" stroke="currentColor"/>
+</svg>
+<figcaption>A REST conversation with Catalyst Center. Each request is self-contained (stateless): after logging in, the client must send the token in every request. Request = method + URI + headers + optional body; response = status code + headers + optional body.</figcaption>
+</figure>
+
+<h3>Data encoding: JSON, XML, YAML</h3>
+<p>REST bodies need a structured, machine-readable format. Three appear on the exam:</p>
+<ul>
+<li><strong>JSON</strong> (JavaScript Object Notation): the default for most REST APIs, including Catalyst Center and Meraki. Media type <code>application/json</code>. Covered in depth in topic 6.7.</li>
+<li><strong>XML</strong> (Extensible Markup Language): tag-based, used by NETCONF and supported by RESTCONF. Media type <code>application/xml</code>.</li>
+<li><strong>YAML</strong> (YAML Ain't Markup Language): indentation-based and very readable; used mainly for Ansible playbooks and inventories rather than as an API body format.</li>
+</ul>
+
+<h3>A full request and response</h3>
+<p>Here is the whole exchange using curl. Lines starting with <code>&gt;</code> are what curl sent and lines starting with <code>&lt;</code> are what came back (curl's verbose view, trimmed). The device data is illustrative and shortened.</p>
+<pre class="cli">umar@lab:~$ curl -v -X POST https://catc.example.com/dna/system/api/v1/auth/token \
+    -u admin:C1sco12345
+&gt; POST /dna/system/api/v1/auth/token HTTP/1.1
+&gt; Host: catc.example.com
+&gt; Authorization: Basic YWRtaW46QzFzY28xMjM0NQ==
+&lt; HTTP/1.1 200 OK
+&lt; Content-Type: application/json
+{"Token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIi...truncated"}
+
+umar@lab:~$ curl -v https://catc.example.com/dna/intent/api/v1/network-device?limit=2 \
+    -H "X-Auth-Token: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIi...truncated" \
+    -H "Accept: application/json"
+&gt; GET /dna/intent/api/v1/network-device?limit=2 HTTP/1.1
+&gt; Host: catc.example.com
+&gt; X-Auth-Token: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIi...truncated
+&gt; Accept: application/json
+&lt; HTTP/1.1 200 OK
+&lt; Content-Type: application/json
+{
+  "response": [
+    {
+      "hostname": "CAM-ACC-SW1",
+      "managementIpAddress": "10.10.20.11",
+      "platformId": "C9300-48P",
+      "softwareVersion": "17.12.4",
+      "role": "ACCESS",
+      "reachabilityStatus": "Reachable"
+    },
+    {
+      "hostname": "CAM-DIST-SW1",
+      "managementIpAddress": "10.10.20.2",
+      "platformId": "C9500-24Y4C",
+      "softwareVersion": "17.12.4",
+      "role": "DISTRIBUTION",
+      "reachabilityStatus": "Reachable"
+    }
+  ],
+  "version": "1.0"
+}</pre>
+<p>Read it the way the exam does: the method is GET (read), the resource is <code>network-device</code>, the query parameter <code>limit=2</code> restricts the result, authentication is a token in <code>X-Auth-Token</code>, the status is 200 OK, and the body is JSON whose top-level object has two keys: <code>response</code> (an array of two device objects) and <code>version</code> (a string).</p>
+
+<div class="lab" id="lab-6-5-1">
+<h4>Lab: REST verbs, status codes and headers with curl</h4>
+<p class="lab-meta">Tool: any browser/terminal | Time: ~30 min</p>
+<p>Topology: your laptop or a Linux VM on the Proxmox homelab with <code>curl</code> and outbound HTTPS. Target: <a href="https://httpbin.org/" target="_blank" rel="noopener">httpbin.org</a>, a free public HTTP request and response test service that echoes back what you send. It is a third-party site: never send real credentials or company data to it. If it answers 502 or 503, that is a live example of a 5xx server error; try again later.</p>
+<ol>
+<li>Send a GET to <code>https://httpbin.org/get?site=cambridge&amp;role=access</code> with <code>-i</code> to show response headers. Identify the status line, the <code>Content-Type</code> header, and where your query parameters appear in the JSON body.</li>
+<li>POST a JSON body <code>{"hostname": "R1", "vlans": [10, 20]}</code> to <code>https://httpbin.org/post</code> with the header <code>Content-Type: application/json</code>. Find your data under the <code>json</code> key of the response.</li>
+<li>Send PUT, PATCH and DELETE requests to <code>/put</code>, <code>/patch</code> and <code>/delete</code>. Then send a DELETE to <code>/get</code> and note the status code.</li>
+<li>Request <code>/status/201</code>, <code>/status/204</code>, <code>/status/401</code>, <code>/status/404</code> and <code>/status/503</code>, printing only the code each time.</li>
+<li>Test Basic authentication against <code>/basic-auth/admin/cisco123</code>: once with no credentials, once with <code>-u admin:cisco123</code>, and once with a wrong password. Use <code>-v</code> once to see the <code>Authorization: Basic</code> header curl builds, and decode it with <code>base64 -d</code>.</li>
+<li>Test bearer tokens against <code>/bearer</code>: once without a token and once with <code>-H "Authorization: Bearer lab-token-123"</code>.</li>
+<li>Request <code>/json</code> and <code>/xml</code> and compare the <code>Content-Type</code> headers and body formats.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>Task 1 returns <code>HTTP/2 200</code> (or <code>HTTP/1.1 200 OK</code>), <code>content-type: application/json</code>, and an <code>args</code> object containing <code>"role": "access"</code> and <code>"site": "cambridge"</code>.</li>
+<li>Task 2 returns 200 and the body's <code>json</code> key holds your object with <code>"vlans": [10, 20]</code>.</li>
+<li>Task 3: <code>/put</code>, <code>/patch</code>, <code>/delete</code> return 200; DELETE on <code>/get</code> returns <strong>405</strong> Method Not Allowed.</li>
+<li>Task 4 prints 201, 204, 401, 404, 503.</li>
+<li>Task 5: no credentials and wrong password give <strong>401</strong>; correct credentials give 200 with <code>"authenticated": true</code>. The decoded header is <code>admin:cisco123</code>, proving Basic is only encoding.</li>
+<li>Task 6: no token gives 401; with a token gives 200 and echoes the token.</li>
+<li>Task 7: <code>application/json</code> vs <code>application/xml</code>.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">umar@lab:~$ curl -i "https://httpbin.org/get?site=cambridge&amp;role=access"
+HTTP/2 200
+content-type: application/json
+...
+{
+  "args": {
+    "role": "access",
+    "site": "cambridge"
+  },
+  ...
+  "url": "https://httpbin.org/get?site=cambridge&amp;role=access"
+}
+
+umar@lab:~$ curl -s -X POST https://httpbin.org/post \
+    -H "Content-Type: application/json" \
+    -d '{"hostname": "R1", "vlans": [10, 20]}'
+{
+  ...
+  "json": {
+    "hostname": "R1",
+    "vlans": [10, 20]
+  },
+  ...
+}
+
+umar@lab:~$ curl -s -o /dev/null -w "%{http_code}\n" -X PUT https://httpbin.org/put
+200
+umar@lab:~$ curl -s -o /dev/null -w "%{http_code}\n" -X PATCH https://httpbin.org/patch
+200
+umar@lab:~$ curl -s -o /dev/null -w "%{http_code}\n" -X DELETE https://httpbin.org/delete
+200
+umar@lab:~$ curl -s -o /dev/null -w "%{http_code}\n" -X DELETE https://httpbin.org/get
+405
+
+umar@lab:~$ for c in 201 204 401 404 503; do curl -s -o /dev/null -w "%{http_code}\n" https://httpbin.org/status/$c; done
+201
+204
+401
+404
+503
+
+umar@lab:~$ curl -s -o /dev/null -w "%{http_code}\n" https://httpbin.org/basic-auth/admin/cisco123
+401
+umar@lab:~$ curl -s -u admin:cisco123 https://httpbin.org/basic-auth/admin/cisco123
+{
+  "authenticated": true,
+  "user": "admin"
+}
+umar@lab:~$ curl -s -o /dev/null -w "%{http_code}\n" -u admin:wrong https://httpbin.org/basic-auth/admin/cisco123
+401
+umar@lab:~$ curl -sv -u admin:cisco123 https://httpbin.org/basic-auth/admin/cisco123 2&gt;&amp;1 | grep -i "authorization"
+&gt; Authorization: Basic YWRtaW46Y2lzY28xMjM=
+umar@lab:~$ echo 'YWRtaW46Y2lzY28xMjM=' | base64 -d; echo
+admin:cisco123
+
+umar@lab:~$ curl -s -o /dev/null -w "%{http_code}\n" https://httpbin.org/bearer
+401
+umar@lab:~$ curl -s -H "Authorization: Bearer lab-token-123" https://httpbin.org/bearer
+{
+  "authenticated": true,
+  "token": "lab-token-123"
+}
+
+umar@lab:~$ curl -sI https://httpbin.org/json | grep -i content-type
+content-type: application/json
+umar@lab:~$ curl -sI https://httpbin.org/xml | grep -i content-type
+content-type: application/xml</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-6-5-2">
+<h4>Lab: Read the Catalyst Center Intent API documentation like an engineer</h4>
+<p class="lab-meta">Tool: any browser/terminal | Time: ~25 min</p>
+<p>Topology: none; this is a documentation lab. Cisco's DevNet Sandbox platform, which hosted the free Catalyst Center sandboxes, is being rebuilt: Cisco <a href="https://community.cisco.com/t5/devnet-sandbox/a-new-chapter-for-devnet-sandbox/m-p/5557128" target="_blank" rel="noopener">announced</a> it would go offline from August 1, 2026 with a target return in early 2027, so live calls may not be possible during your study weeks. The API documentation itself is free and online. If the sandbox is back when you do this lab, run the commands in the solution against it.</p>
+<ol>
+<li>Open the <a href="https://developer.cisco.com/docs/catalyst-center/" target="_blank" rel="noopener">Catalyst Center API introduction</a>. Find how Cisco classifies the Intent API (which direction) and what transport and data format it uses.</li>
+<li>Open the <a href="https://developer.cisco.com/docs/catalyst-center/authentication/" target="_blank" rel="noopener">Catalyst Center authentication page</a>. Write down: the token URI, the HTTP method, the authentication used to get the token, the name of the JSON field holding the token, the header used afterward, and the token lifetime.</li>
+<li>Write the two curl commands (token request, then GET of <code>/dna/intent/api/v1/network-device</code>) using a placeholder host <code>catc.example.com</code>.</li>
+<li>Predict the status code for each case: valid token; no token; a token obtained 61 minutes ago; a valid token but the account has only an Observer role and you send a POST that changes configuration; a GET to <code>/dna/intent/api/v1/network-devices</code> (extra "s").</li>
+<li>Simulate the flow with httpbin: POST to <code>https://httpbin.org/post</code> with Basic credentials, then call <code>https://httpbin.org/bearer</code> with a made-up token, noting how statelessness forces you to resend the token.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>Intent API = northbound REST API, HTTPS with JSON.</li>
+<li>Token: POST <code>/dna/system/api/v1/auth/token</code>, HTTP Basic auth, response field <code>Token</code>, then header <code>X-Auth-Token</code>, lifetime 60 minutes.</li>
+<li>Predicted codes: 200; 401; 401; 403; 404.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! Step 1: get a token (Basic auth carried by -u)
+umar@lab:~$ curl -s -X POST https://catc.example.com/dna/system/api/v1/auth/token \
+    -u admin:C1sco12345
+{"Token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...truncated"}
+
+! Step 2: save the token, then send it in X-Auth-Token on every call
+umar@lab:~$ TOKEN='eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...truncated'
+umar@lab:~$ curl -s https://catc.example.com/dna/intent/api/v1/network-device \
+    -H "X-Auth-Token: $TOKEN" -H "Accept: application/json"
+
+! Predictions
+! valid token, GET .............................. 200 OK
+! no X-Auth-Token header ........................ 401 Unauthorized
+! token older than 60 minutes ................... 401 Unauthorized (get a new token)
+! authenticated but role lacks write permission . 403 Forbidden
+! wrong path /network-devices ................... 404 Not Found
+
+! Step 5: httpbin simulation
+umar@lab:~$ curl -s -u admin:cisco123 -X POST https://httpbin.org/post | grep -i authorization
+    "Authorization": "Basic YWRtaW46Y2lzY28xMjM=",
+umar@lab:~$ curl -s -H "Authorization: Bearer lab-token-123" https://httpbin.org/bearer
+{
+  "authenticated": true,
+  "token": "lab-token-123"
+}</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>REST is an architectural style (client-server, stateless, cacheable, uniform interface, layered, optional code on demand) usually carried over HTTPS.</li>
+<li>URI = scheme + host[:port] + resource path + ?query parameters joined by &amp;.</li>
+<li>CRUD: Create = POST, Read = GET, Update = PUT (replace) or PATCH (partial), Delete = DELETE. GET, PUT and DELETE are idempotent; POST is not.</li>
+<li>Status codes: 2xx success (200, 201, 202, 204), 3xx redirect, 4xx client error (400, 401 unauthenticated, 403 forbidden, 404, 405, 409), 5xx server error (500, 503).</li>
+<li>Content-Type describes the body sent; Accept requests a response format; Authorization carries Basic or Bearer credentials.</li>
+<li>Auth types: Basic (base64, needs HTTPS), bearer token, API key, OAuth 2.0. Catalyst Center: POST to /dna/system/api/v1/auth/token with Basic, then X-Auth-Token on every call, 60-minute lifetime.</li>
+<li>Encodings: JSON (most REST APIs), XML (NETCONF, RESTCONF option), YAML (Ansible).</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-6-6" data-topics="6.6">
+<h2>6.6 Configuration management mechanisms such as Ansible and Terraform</h2>
+
+<p>The exam verb here is "recognize the capabilities." You will not write playbooks on the exam, but you must know what each tool is, how it connects to devices, what language its files use, and whether it is agent-based or agentless, push or pull, declarative or procedural.</p>
+
+<h3>The concepts that distinguish the tools</h3>
+<dl>
+<dt>Agent-based vs agentless</dt><dd>An agent-based tool needs its own software (an agent) installed and running on every managed node. An agentless tool uses access methods the node already has: SSH, NETCONF, or a REST API. Most network devices cannot run third-party agents, which is a big reason Ansible became the default network automation tool.</dd>
+<dt>Push vs pull</dt><dd>In a push model the central server connects out to the nodes and pushes changes when an administrator runs the job. In a pull model the agent on each node periodically contacts the server, pulls its desired configuration and applies it.</dd>
+<dt>Declarative vs procedural (imperative)</dt><dd>Declarative: describe the end state and let the tool figure out the steps (Terraform, Puppet). Procedural: describe the ordered steps (Ansible playbooks run tasks in order, although each module aims for a declared state).</dd>
+<dt>Idempotency</dt><dd>Running the same automation repeatedly produces the same end state; when nothing needs changing, nothing is changed and the tool reports no changes.</dd>
+<dt>Configuration management vs provisioning</dt><dd>Configuration management maintains the settings of devices and servers that already exist (Ansible, Puppet, Chef). Provisioning creates the infrastructure itself: VMs, cloud networks, controller objects (Terraform's main strength). The tools overlap, and teams often use Terraform to build and Ansible to configure.</dd>
+</dl>
+
+<h3>Ansible</h3>
+<p>Ansible is an open-source automation tool, sponsored by Red Hat and written in Python.</p>
+<ul>
+<li><strong>Agentless:</strong> nothing is installed on managed nodes. For network devices it connects with SSH (the <code>network_cli</code> connection), NETCONF, or the device's HTTP/REST API.</li>
+<li><strong>Push model:</strong> the administrator runs a playbook on the <strong>control node</strong>, which connects out to the managed nodes and pushes the changes.</li>
+<li><strong>Control node:</strong> the machine where Ansible is installed and run (Linux, macOS, or Windows only through WSL). Requires Python. Managed Linux hosts need Python; network devices do not.</li>
+<li><strong>Inventory:</strong> the list of managed nodes and groups, in INI or YAML format, with per-host or per-group variables (address, platform, credentials).</li>
+<li><strong>Playbook:</strong> a <strong>YAML</strong> file containing one or more <strong>plays</strong>. A play maps a group of hosts to an ordered list of <strong>tasks</strong>. Each task calls one <strong>module</strong>.</li>
+<li><strong>Modules:</strong> the units of work. Network modules are delivered in <strong>collections</strong> and named by fully qualified collection name, for example <code>cisco.ios.ios_config</code> (push configuration lines), <code>cisco.ios.ios_command</code> (run show/exec commands; it cannot enter configuration mode), <code>cisco.ios.ios_facts</code>, and resource modules such as <code>cisco.ios.ios_vlans</code> and <code>cisco.ios.ios_interfaces</code>.</li>
+<li><strong>Templates and variables:</strong> Jinja2 templates plus per-device variables generate device-specific configurations from one template.</li>
+<li><strong>Idempotent:</strong> <code>ios_config</code> compares the lines you want against the running configuration and only sends what is missing; the second run reports <code>changed=0</code>. The module's documentation (Ansible's cisco.ios collection) warns that abbreviated commands (such as <code>int g1</code>) are not idempotent, because lines must match the running configuration exactly.</li>
+<li><strong>Check mode:</strong> <code>ansible-playbook --check --diff</code> reports what would change without changing it, which is a drift report.</li>
+<li><strong>Secrets:</strong> Ansible Vault encrypts passwords stored in variable files.</li>
+</ul>
+<p>An inventory and playbook for IOS routers (from the structure in Ansible's IOS platform guide):</p>
+<pre class="cli"># inventory.yml
+all:
+  children:
+    ios:
+      vars:
+        ansible_connection: ansible.netcommon.network_cli
+        ansible_network_os: cisco.ios.ios
+        ansible_user: netadmin
+        ansible_become: true
+        ansible_become_method: enable
+      hosts:
+        R1:
+          ansible_host: 10.10.20.1
+        R2:
+          ansible_host: 10.10.20.2
+
+# baseline.yml
+---
+- name: Apply NTP and syslog baseline
+  hosts: ios
+  gather_facts: false
+  tasks:
+    - name: Global baseline lines
+      cisco.ios.ios_config:
+        lines:
+          - ntp server 10.10.20.5
+          - logging host 10.10.20.6
+        save_when: modified
+
+    - name: Uplink description
+      cisco.ios.ios_config:
+        parents: interface GigabitEthernet0/0/0
+        lines:
+          - description Uplink to WAN</pre>
+
+<h3>Terraform</h3>
+<p>Terraform is HashiCorp's infrastructure-as-code tool.</p>
+<ul>
+<li><strong>Declarative:</strong> configuration files describe the desired end state. HashiCorp's own tutorial says the language "describes the desired end-state for your infrastructure."</li>
+<li><strong>HCL:</strong> files are written in the HashiCorp Configuration Language (<code>.tf</code> files), a human-readable language built from blocks such as <code>terraform</code>, <code>provider</code>, <code>resource</code>, <code>variable</code> and <code>output</code>.</li>
+<li><strong>Providers:</strong> plugins that let Terraform talk to a platform's API: AWS, Azure, Google Cloud, VMware, and Cisco platforms such as Catalyst Center, ACI and Meraki (Cisco's Catalyst Center developer page lists Terraform providers). Providers are downloaded from the Terraform Registry by <code>terraform init</code>.</li>
+<li><strong>Agentless:</strong> Terraform runs on your workstation or a CI server and calls APIs; nothing is installed on the managed infrastructure.</li>
+<li><strong>State file:</strong> Terraform records what it manages in a state file, <code>terraform.tfstate</code> by default (JSON), which maps the resources in your configuration to real-world objects. Each plan compares configuration, state and reality. Teams store state remotely (with locking) so everyone works from the same truth. State can contain secrets, so protect it.</li>
+<li><strong>Workflow:</strong> write configuration, then <code>terraform init</code> (download providers), <code>terraform plan</code> (preview: <code>+</code> create, <code>~</code> update in place, <code>-</code> destroy, <code>-/+</code> replace), <code>terraform apply</code> (make the changes after confirmation), and <code>terraform destroy</code> (remove everything it manages).</li>
+<li><strong>Typical role:</strong> provisioning and lifecycle of infrastructure (cloud VPCs, VMs, controller objects), more than line-by-line device configuration.</li>
+</ul>
+<pre class="cli"># main.tf (shape only; the Catalyst Center provider's resource names are in its own docs)
+terraform {
+  required_providers {
+    local = {
+      source = "hashicorp/local"
+    }
+  }
+}
+
+resource "local_file" "r1_baseline" {
+  filename = "${path.module}/out/R1-baseline.cfg"
+  content  = "ntp server 10.10.20.5\n"
+}</pre>
+
+<h3>Puppet and Chef (context)</h3>
+<p>These older configuration management tools came from server administration. Know their model so you can contrast them with Ansible:</p>
+<ul>
+<li><strong>Puppet:</strong> agent-based, <strong>pull</strong> model. The Puppet agent on each node sends facts to the Puppet primary server (formerly called the master), requests a compiled catalog, and enforces it. By default the agent runs every 30 minutes. Desired state is written in <strong>manifests</strong> using Puppet's own declarative language (Ruby-based), grouped into modules.</li>
+<li><strong>Chef:</strong> agent-based, <strong>pull</strong> model. Chef Infra Client runs on each node and pulls its configuration from Chef Infra Server. Configuration is written as <strong>recipes</strong> grouped into <strong>cookbooks</strong>, using a Ruby DSL. Administrators author and upload cookbooks from a workstation using the <code>knife</code> tool.</li>
+</ul>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 330" role="img" aria-label="Ansible agentless push model compared with Puppet and Chef agent-based pull model">
+<text class="d-text" x="175" y="22" text-anchor="middle">Agentless push (Ansible)</text>
+<text class="d-text" x="545" y="22" text-anchor="middle">Agent-based pull (Puppet, Chef)</text>
+<line x1="360" y1="10" x2="360" y2="320" stroke="currentColor" stroke-dasharray="4 4"/>
+<rect class="d-accent-fill" stroke="currentColor" x="80" y="40" width="190" height="56" rx="6"/>
+<text class="d-text" x="175" y="63" text-anchor="middle">Control node</text>
+<text class="d-muted" x="175" y="83" text-anchor="middle">inventory + playbooks</text>
+<line x1="175" y1="96" x2="65" y2="220" stroke="currentColor"/>
+<polyline points="67,207 65,220 76,213" fill="none" stroke="currentColor"/>
+<line x1="175" y1="96" x2="175" y2="220" stroke="currentColor"/>
+<polyline points="169,210 175,220 181,210" fill="none" stroke="currentColor"/>
+<line x1="175" y1="96" x2="285" y2="220" stroke="currentColor"/>
+<polyline points="274,213 285,220 283,207" fill="none" stroke="currentColor"/>
+<text class="d-muted" x="185" y="160">push when the</text>
+<text class="d-muted" x="185" y="176">admin runs it</text>
+<rect class="d-fill" stroke="currentColor" x="15" y="220" width="100" height="56" rx="6"/>
+<text class="d-text" x="65" y="243" text-anchor="middle">R1</text>
+<text class="d-muted" x="65" y="263" text-anchor="middle">SSH</text>
+<rect class="d-fill" stroke="currentColor" x="125" y="220" width="100" height="56" rx="6"/>
+<text class="d-text" x="175" y="243" text-anchor="middle">SW1</text>
+<text class="d-muted" x="175" y="263" text-anchor="middle">NETCONF</text>
+<rect class="d-fill" stroke="currentColor" x="235" y="220" width="100" height="56" rx="6"/>
+<text class="d-text" x="285" y="243" text-anchor="middle">Linux VM</text>
+<text class="d-muted" x="285" y="263" text-anchor="middle">SSH</text>
+<text class="d-muted" x="175" y="305" text-anchor="middle">no agent on managed nodes</text>
+<rect class="d-accent-fill" stroke="currentColor" x="440" y="40" width="210" height="56" rx="6"/>
+<text class="d-text" x="545" y="63" text-anchor="middle">Puppet / Chef server</text>
+<text class="d-muted" x="545" y="83" text-anchor="middle">manifests / cookbooks</text>
+<line x1="435" y1="220" x2="530" y2="96" stroke="currentColor"/>
+<polyline points="518,101 530,96 527,109" fill="none" stroke="currentColor"/>
+<line x1="545" y1="220" x2="545" y2="96" stroke="currentColor"/>
+<polyline points="539,106 545,96 551,106" fill="none" stroke="currentColor"/>
+<line x1="655" y1="220" x2="560" y2="96" stroke="currentColor"/>
+<polyline points="563,109 560,96 572,101" fill="none" stroke="currentColor"/>
+<text class="d-muted" x="555" y="160">agents check in</text>
+<text class="d-muted" x="555" y="176">and pull config</text>
+<rect class="d-fill" stroke="currentColor" x="385" y="220" width="100" height="56" rx="6"/>
+<text class="d-text" x="435" y="243" text-anchor="middle">Server 1</text>
+<text class="d-muted" x="435" y="263" text-anchor="middle">agent</text>
+<rect class="d-fill" stroke="currentColor" x="495" y="220" width="100" height="56" rx="6"/>
+<text class="d-text" x="545" y="243" text-anchor="middle">Server 2</text>
+<text class="d-muted" x="545" y="263" text-anchor="middle">agent</text>
+<rect class="d-fill" stroke="currentColor" x="605" y="220" width="100" height="56" rx="6"/>
+<text class="d-text" x="655" y="243" text-anchor="middle">Server 3</text>
+<text class="d-muted" x="655" y="263" text-anchor="middle">agent</text>
+<text class="d-muted" x="545" y="305" text-anchor="middle">Puppet agent default: every 30 minutes</text>
+</svg>
+<figcaption>Ansible (left) pushes from a control node over SSH, NETCONF or APIs with nothing installed on the targets. Puppet and Chef (right) install an agent on every node; the agent contacts the server and pulls its desired configuration. Terraform is also agentless and runs from a workstation or pipeline, calling provider APIs.</figcaption>
+</figure>
+
+<h3>Comparison table</h3>
+<table>
+<thead><tr><th></th><th>Ansible</th><th>Terraform</th><th>Puppet</th><th>Chef</th></tr></thead>
+<tbody>
+<tr><td>Vendor</td><td>Red Hat (open source)</td><td>HashiCorp</td><td>Puppet (Perforce)</td><td>Chef (Progress)</td></tr>
+<tr><td>Agent</td><td>Agentless</td><td>Agentless</td><td>Agent-based</td><td>Agent-based</td></tr>
+<tr><td>Model</td><td>Push</td><td>Push (plan/apply via APIs)</td><td>Pull</td><td>Pull</td></tr>
+<tr><td>File language</td><td>YAML playbooks (Jinja2 templates)</td><td>HCL (.tf)</td><td>Puppet DSL manifests</td><td>Ruby DSL recipes and cookbooks</td></tr>
+<tr><td>Written in</td><td>Python</td><td>Go</td><td>Ruby (and Clojure server)</td><td>Ruby</td></tr>
+<tr><td>Style</td><td>Procedural task order, idempotent modules</td><td>Declarative</td><td>Declarative</td><td>Procedural Ruby with declarative resources</td></tr>
+<tr><td>Transport to targets</td><td>SSH, NETCONF, HTTPS APIs</td><td>Provider APIs (HTTPS)</td><td>Agent to server over HTTPS</td><td>Agent to server over HTTPS</td></tr>
+<tr><td>Tracks state in</td><td>The targets themselves (no state file)</td><td>terraform.tfstate</td><td>Server catalog and reports</td><td>Server node objects</td></tr>
+<tr><td>Main use</td><td>Configuration management, network automation</td><td>Provisioning / IaC</td><td>Server configuration management</td><td>Server configuration management</td></tr>
+</tbody>
+</table>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> Ansible is agentless and push; Puppet and Chef are agent-based and pull. Ansible playbooks are YAML, not JSON or Ruby; Terraform files are HCL; Chef uses Ruby. Terraform's distinctive word is "state file"; Ansible's are "playbook," "inventory," "module," "control node."</p></div>
+
+<div class="lab" id="lab-6-6-1">
+<h4>Lab: Idempotency and drift with an Ansible playbook</h4>
+<p class="lab-meta">Tool: Proxmox homelab | Time: ~40 min</p>
+<p>Topology: one Debian or Ubuntu VM on the Proxmox host acting as the Ansible control node and also as its own managed node (<code>localhost</code> with a local connection). The playbook manages a text file that stands in for a device baseline so you can see <code>changed</code>, idempotency and drift without any network gear. An optional extension targets a Cisco IOL router in Cisco Modeling Labs Free.</p>
+<ol>
+<li>Install Ansible as the <a href="https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html" target="_blank" rel="noopener">installation guide</a> describes, for example <code>pipx install --include-deps ansible</code>, and confirm with <code>ansible --version</code>.</li>
+<li>Create <code>~/ansible-lab/inventory.ini</code> with a group <code>lab</code> containing <code>localhost ansible_connection=local</code>.</li>
+<li>Create <code>~/ansible-lab/golden.yml</code> with three tasks: ensure the directory <code>~/netlab</code> exists, deploy <code>R1-baseline.cfg</code> with fixed content, and ensure a line exists in <code>approved-ntp.txt</code>.</li>
+<li>Run the playbook. Record the PLAY RECAP.</li>
+<li>Run it again unchanged. Record the PLAY RECAP and explain the difference.</li>
+<li>Simulate drift: change the NTP server inside <code>R1-baseline.cfg</code> with <code>sed</code>, as if someone made an undocumented change.</li>
+<li>Run the playbook with <code>--check --diff</code> to detect the drift without fixing it, then run it normally to remediate, then once more to confirm.</li>
+<li>Optional (CML Free): install <a href="https://developer.cisco.com/docs/modeling-labs/2-9/cml-free/" target="_blank" rel="noopener">Cisco Modeling Labs Free</a> (no cost, up to 5 running nodes, includes IOL images; Cisco documents bare-metal and VMware installs, so running it on Proxmox is unsupported nesting and may not work on a laptop). Give an IOL router a management IP reachable from the control node, enable SSH with a local privilege-15 user, and run the IOS playbook shown below twice.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>First run: <code>ok=3 changed=3 failed=0</code>.</li>
+<li>Second run: <code>ok=3 changed=0</code>. Nothing changed because the system already matched: idempotency.</li>
+<li><code>--check --diff</code> after the sed edit shows a diff for the baseline task (<code>-ntp server 192.0.2.99</code>, <code>+ntp server 10.10.20.5</code>) and reports <code>changed=1</code>, but the file is unchanged afterward (<code>grep ntp ~/netlab/R1-baseline.cfg</code> still shows 192.0.2.99).</li>
+<li>Normal run fixes it (<code>changed=1</code>); the next run shows <code>changed=0</code>.</li>
+<li>CML option: first run <code>changed=1</code> or more, second run <code>changed=0</code>; <code>show running-config | include ntp|logging</code> on the router shows both lines.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">umar@lab:~$ pipx install --include-deps ansible
+umar@lab:~$ ansible --version | head -1
+umar@lab:~$ mkdir -p ~/ansible-lab &amp;&amp; cd ~/ansible-lab
+
+umar@lab:~/ansible-lab$ cat inventory.ini
+[lab]
+localhost ansible_connection=local
+
+umar@lab:~/ansible-lab$ cat golden.yml
+---
+- name: Enforce golden baseline on the lab host
+  hosts: lab
+  gather_facts: false
+  vars:
+    baseline_dir: "{{ lookup('env', 'HOME') }}/netlab"
+  tasks:
+    - name: Ensure the baseline directory exists
+      ansible.builtin.file:
+        path: "{{ baseline_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Deploy the golden baseline config
+      ansible.builtin.copy:
+        dest: "{{ baseline_dir }}/R1-baseline.cfg"
+        mode: "0644"
+        content: |
+          hostname R1
+          ntp server 10.10.20.5
+          logging host 10.10.20.6
+          ip ssh version 2
+
+    - name: Record the approved NTP server
+      ansible.builtin.lineinfile:
+        path: "{{ baseline_dir }}/approved-ntp.txt"
+        line: "10.10.20.5"
+        create: true
+        mode: "0644"
+
+umar@lab:~/ansible-lab$ ansible-playbook -i inventory.ini golden.yml
+
+PLAY [Enforce golden baseline on the lab host] *********************************
+
+TASK [Ensure the baseline directory exists] ************************************
+changed: [localhost]
+
+TASK [Deploy the golden baseline config] ***************************************
+changed: [localhost]
+
+TASK [Record the approved NTP server] ******************************************
+changed: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+umar@lab:~/ansible-lab$ ansible-playbook -i inventory.ini golden.yml
+...
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+! Simulate an undocumented change (drift)
+umar@lab:~/ansible-lab$ sed -i 's/10.10.20.5/192.0.2.99/' ~/netlab/R1-baseline.cfg
+
+umar@lab:~/ansible-lab$ ansible-playbook -i inventory.ini golden.yml --check --diff
+...
+TASK [Deploy the golden baseline config] ***************************************
+--- before: /home/umar/netlab/R1-baseline.cfg
++++ after: ...
+@@ -1,4 +1,4 @@
+ hostname R1
+-ntp server 192.0.2.99
++ntp server 10.10.20.5
+ logging host 10.10.20.6
+ ip ssh version 2
+
+changed: [localhost]
+...
+PLAY RECAP *********************************************************************
+localhost                  : ok=3    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+umar@lab:~/ansible-lab$ grep ntp ~/netlab/R1-baseline.cfg
+ntp server 192.0.2.99
+umar@lab:~/ansible-lab$ ansible-playbook -i inventory.ini golden.yml | tail -2
+localhost                  : ok=3    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+umar@lab:~/ansible-lab$ ansible-playbook -i inventory.ini golden.yml | tail -2
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+! ---------- Optional: IOL router in CML Free ----------
+! On the router (console):
+R1(config)# hostname R1
+R1(config)# ip domain name lab.local
+R1(config)# crypto key generate rsa modulus 2048
+R1(config)# username netadmin privilege 15 secret Lab-Pass-123
+R1(config)# ip ssh version 2
+R1(config)# line vty 0 4
+R1(config-line)# login local
+R1(config-line)# transport input ssh
+
+umar@lab:~/ansible-lab$ cat ios-inventory.yml
+all:
+  children:
+    ios:
+      vars:
+        ansible_connection: ansible.netcommon.network_cli
+        ansible_network_os: cisco.ios.ios
+        ansible_user: netadmin
+        ansible_password: Lab-Pass-123   # lab only; use Ansible Vault for real devices
+      hosts:
+        R1:
+          ansible_host: 192.168.50.11
+
+umar@lab:~/ansible-lab$ cat ios-baseline.yml
+---
+- name: NTP and syslog baseline on IOS
+  hosts: ios
+  gather_facts: false
+  tasks:
+    - name: Push global lines
+      cisco.ios.ios_config:
+        lines:
+          - ntp server 10.10.20.5
+          - logging host 10.10.20.6
+
+    - name: Show the result
+      cisco.ios.ios_command:
+        commands: show running-config | include ntp|logging
+      register: out
+
+    - name: Print it
+      ansible.builtin.debug:
+        var: out.stdout_lines
+
+! If network_cli complains that no SSH library is available, add one to the
+! same pipx environment:  pipx inject ansible ansible-pylibssh
+umar@lab:~/ansible-lab$ ansible-playbook -i ios-inventory.yml ios-baseline.yml
+umar@lab:~/ansible-lab$ ansible-playbook -i ios-inventory.yml ios-baseline.yml
+! second run: the ios_config task reports ok (not changed)</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-6-6-2">
+<h4>Lab: Terraform plan, apply, state and destroy with the local provider</h4>
+<p class="lab-meta">Tool: Proxmox homelab | Time: ~30 min</p>
+<p>Topology: the same Linux VM. Terraform's <code>hashicorp/local</code> provider manages files on the local disk, so you can watch the whole Terraform lifecycle (init, plan, apply, state, drift, destroy) without a cloud account. The <code>local_file</code> resource is documented in the provider's <a href="https://github.com/hashicorp/terraform-provider-local/blob/main/docs/resources/file.md" target="_blank" rel="noopener">official repository</a>: <code>filename</code> is required and <code>content</code> holds the text.</p>
+<ol>
+<li>Install Terraform using HashiCorp's <a href="https://developer.hashicorp.com/terraform/install" target="_blank" rel="noopener">install page</a> (the apt repository commands for Debian/Ubuntu) and check it with <code>terraform -help</code>.</li>
+<li>In <code>~/tf-lab</code> create <code>main.tf</code> declaring the <code>hashicorp/local</code> provider, one <code>local_file</code> resource that writes <code>out/R1-baseline.cfg</code>, and an output with the file name.</li>
+<li>Run <code>terraform init</code>, then <code>terraform plan</code>. Note the symbol and the plan summary.</li>
+<li>Run <code>terraform apply</code> and confirm with <code>yes</code>. Look at the file, then run <code>terraform state list</code> and <code>ls</code> to find the state file.</li>
+<li>Run <code>terraform plan</code> again without changes.</li>
+<li>Delete <code>out/R1-baseline.cfg</code> by hand (drift) and run <code>terraform plan</code>; then <code>terraform apply</code> to restore it.</li>
+<li>Change the NTP server in <code>main.tf</code> and run <code>terraform plan</code>. Note the action Terraform proposes.</li>
+<li>Run <code>terraform destroy</code>.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>First plan: <code>+ create</code> and <code>Plan: 1 to add, 0 to change, 0 to destroy.</code></li>
+<li>Apply: <code>Apply complete! Resources: 1 added, 0 changed, 0 destroyed.</code>; <code>terraform.tfstate</code> exists; <code>terraform state list</code> prints <code>local_file.r1_baseline</code>.</li>
+<li>Second plan: <code>No changes. Your infrastructure matches the configuration.</code></li>
+<li>After deleting the file, plan proposes to create it again (Terraform noticed reality no longer matches state).</li>
+<li>After editing the content, plan shows <code>-/+</code> (must be replaced) and <code>Plan: 1 to add, 0 to change, 1 to destroy.</code></li>
+<li>Destroy: <code>Destroy complete! Resources: 1 destroyed.</code> and the file is gone.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">umar@lab:~$ mkdir -p ~/tf-lab &amp;&amp; cd ~/tf-lab
+umar@lab:~/tf-lab$ cat main.tf
+terraform {
+  required_providers {
+    local = {
+      source = "hashicorp/local"
+    }
+  }
+}
+
+resource "local_file" "r1_baseline" {
+  filename        = "${path.module}/out/R1-baseline.cfg"
+  file_permission = "0644"
+  content         = &lt;&lt;-EOT
+    hostname R1
+    ntp server 10.10.20.5
+    logging host 10.10.20.6
+  EOT
+}
+
+output "baseline_path" {
+  value = local_file.r1_baseline.filename
+}
+
+umar@lab:~/tf-lab$ terraform init
+Initializing the backend...
+Initializing provider plugins...
+- Finding latest version of hashicorp/local...
+- Installing hashicorp/local vX.Y.Z...
+...
+Terraform has been successfully initialized!
+
+umar@lab:~/tf-lab$ terraform plan
+...
+  # local_file.r1_baseline will be created
+  + resource "local_file" "r1_baseline" {
+      + content              = &lt;&lt;-EOT
+            hostname R1
+            ntp server 10.10.20.5
+            logging host 10.10.20.6
+        EOT
+      + content_base64sha256 = (known after apply)
+      ...
+      + directory_permission = "0777"
+      + file_permission      = "0644"
+      + filename             = "./out/R1-baseline.cfg"
+      + id                   = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+umar@lab:~/tf-lab$ terraform apply
+...
+  Enter a value: yes
+
+local_file.r1_baseline: Creating...
+local_file.r1_baseline: Creation complete after 0s [id=...]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+baseline_path = "./out/R1-baseline.cfg"
+
+umar@lab:~/tf-lab$ ls
+main.tf  out  terraform.tfstate
+umar@lab:~/tf-lab$ terraform state list
+local_file.r1_baseline
+
+umar@lab:~/tf-lab$ terraform plan
+...
+No changes. Your infrastructure matches the configuration.
+
+! Drift: someone deletes the file
+umar@lab:~/tf-lab$ rm out/R1-baseline.cfg
+umar@lab:~/tf-lab$ terraform plan
+...
+  # local_file.r1_baseline will be created
+...
+Plan: 1 to add, 0 to change, 0 to destroy.
+umar@lab:~/tf-lab$ terraform apply -auto-approve
+...
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+! Change the desired state: edit main.tf, ntp server 10.10.20.5 -&gt; 10.10.20.7
+umar@lab:~/tf-lab$ terraform plan
+...
+  # local_file.r1_baseline must be replaced
+-/+ resource "local_file" "r1_baseline" {
+      ~ content              = &lt;&lt;-EOT # forces replacement
+            hostname R1
+          - ntp server 10.10.20.5
+          + ntp server 10.10.20.7
+            logging host 10.10.20.6
+        EOT
+      ...
+    }
+
+Plan: 1 to add, 0 to change, 1 to destroy.
+
+umar@lab:~/tf-lab$ terraform destroy
+...
+  Enter a value: yes
+...
+Destroy complete! Resources: 1 destroyed.</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Ansible: Red Hat, Python, agentless, push from a control node over SSH/NETCONF/APIs, YAML playbooks with plays, tasks and modules (cisco.ios.ios_config, ios_command), inventory, idempotent.</li>
+<li>Terraform: HashiCorp, declarative HCL, providers, terraform.tfstate state file, init/plan/apply/destroy, agentless, mainly provisioning.</li>
+<li>Puppet: agent-based pull, manifests in a declarative Ruby-based DSL, agent checks in every 30 minutes by default.</li>
+<li>Chef: agent-based pull, recipes and cookbooks in Ruby, Chef Infra Server and Client.</li>
+<li>Idempotent automation reports no changes on a second run; check mode and terraform plan both reveal drift.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-6-7" data-topics="6.7">
+<h2>6.7 Components of JSON-encoded data</h2>
+
+<p>JSON (JavaScript Object Notation) is the data format of almost every REST API you will meet, and it is defined by RFC 8259. Exam questions show a JSON exhibit and ask you to identify a value's type, count objects, arrays or key/value pairs, find a value, or spot why a snippet is invalid. These are easy points if you know the rules exactly.</p>
+
+<h3>The building blocks</h3>
+<p>A JSON text is a single value. There are six value types: two structured types and four primitive types (counting <code>true</code>/<code>false</code> as one boolean type).</p>
+<table>
+<thead><tr><th>Type</th><th>Syntax</th><th>Example</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><strong>Object</strong></td><td><code>{ }</code></td><td><code>{"vlan": 10, "name": "USERS"}</code></td><td>An unordered collection of zero or more key/value pairs (RFC 8259 calls them name/value pairs or members). Keys are strings. Pairs are separated by commas; key and value are separated by a colon.</td></tr>
+<tr><td><strong>Array</strong></td><td><code>[ ]</code></td><td><code>[10, 20, 30]</code></td><td>An ordered list of zero or more values, separated by commas. Values can be of mixed types, including objects and arrays.</td></tr>
+<tr><td><strong>String</strong></td><td><code>" "</code></td><td><code>"GigabitEthernet1/0/1"</code></td><td>Unicode text in <strong>double quotes</strong> only. Special characters are escaped with a backslash: <code>\"</code>, <code>\\</code>, <code>\n</code>, <code>\t</code>, and <code>\u00e9</code> for the character é.</td></tr>
+<tr><td><strong>Number</strong></td><td>digits</td><td><code>1500</code>, <code>-3</code>, <code>0.75</code>, <code>1e3</code></td><td>No quotes. Integer or decimal, optional minus sign and exponent. No leading zeros (<code>007</code> is invalid), no leading or trailing dot (<code>.5</code> and <code>5.</code> are invalid), no hex, no <code>NaN</code> or <code>Infinity</code>.</td></tr>
+<tr><td><strong>Boolean</strong></td><td>literal</td><td><code>true</code>, <code>false</code></td><td>Lowercase, no quotes. <code>True</code> and <code>"true"</code> are not booleans (the first is invalid, the second is a string).</td></tr>
+<tr><td><strong>Null</strong></td><td>literal</td><td><code>null</code></td><td>Lowercase, no quotes. Means "no value."</td></tr>
+</tbody>
+</table>
+
+<div class="callout key"><p><strong>Remember:</strong> curly braces <code>{}</code> = object (key/value pairs). Square brackets <code>[]</code> = array (ordered list of values). Keys are always double-quoted strings. The value type is decided by syntax, not meaning: <code>"10.1.1.1"</code> and <code>"1500"</code> are strings; <code>1500</code> is a number.</p></div>
+
+<h3>Syntax rules (what makes JSON valid)</h3>
+<ol>
+<li>Keys must be strings in <strong>double quotes</strong>. <code>{hostname: "R1"}</code> and <code>{'hostname': 'R1'}</code> are invalid.</li>
+<li>Strings use double quotes only. Single quotes are not JSON.</li>
+<li>A colon separates each key from its value; a comma separates pairs in an object and values in an array.</li>
+<li><strong>No trailing comma</strong> after the last pair or element: <code>[1, 2, 3,]</code> is invalid.</li>
+<li><strong>No comments</strong>. JSON has no comment syntax (<code>//</code> and <code>#</code> are invalid).</li>
+<li><code>true</code>, <code>false</code>, <code>null</code> are lowercase literals.</li>
+<li>Every <code>{</code> needs a matching <code>}</code> and every <code>[</code> a matching <code>]</code>, correctly nested.</li>
+<li>Whitespace (spaces, tabs, newlines) between tokens is insignificant; indentation is only for humans. Unlike YAML, indentation never changes meaning.</li>
+<li>Keys within one object should be unique (duplicates make behavior unpredictable).</li>
+<li>The top level can be any value, usually an object or an array. Media type: <code>application/json</code>.</li>
+</ol>
+
+<h3>Nesting</h3>
+<p>Objects and arrays can contain each other to any depth. This is how JSON represents structured network data: a device has a list of interfaces, each interface has a list of addresses, each address has an IP and a mask.</p>
+<p>Here is the kind of response a RESTCONF GET to <code>/restconf/data/ietf-interfaces:interfaces</code> returns from an IOS XE router (using the standard IETF YANG model, trimmed to two interfaces), with <code>Accept: application/yang-data+json</code>:</p>
+<pre class="cli">{
+  "ietf-interfaces:interfaces": {
+    "interface": [
+      {
+        "name": "GigabitEthernet1",
+        "description": "Uplink to ISP",
+        "type": "iana-if-type:ethernetCsmacd",
+        "enabled": true,
+        "ietf-ip:ipv4": {
+          "address": [
+            {
+              "ip": "203.0.113.2",
+              "netmask": "255.255.255.252"
+            }
+          ]
+        }
+      },
+      {
+        "name": "Loopback0",
+        "description": "Router ID",
+        "type": "iana-if-type:softwareLoopback",
+        "enabled": true,
+        "ietf-ip:ipv4": {
+          "address": [
+            {
+              "ip": "10.255.0.1",
+              "netmask": "255.255.255.255"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}</pre>
+<p>Reading it from the outside in:</p>
+<ul>
+<li>The whole text is an <strong>object</strong> with one key, <code>"ietf-interfaces:interfaces"</code> (the colon inside the quotes is part of the key: module name, colon, container name).</li>
+<li>Its value is an object with one key, <code>"interface"</code>, whose value is an <strong>array</strong> of two objects, one per interface.</li>
+<li>Each interface object has five keys: <code>name</code> (string), <code>description</code> (string), <code>type</code> (string), <code>enabled</code> (boolean <code>true</code>), and <code>ietf-ip:ipv4</code> (object).</li>
+<li><code>ietf-ip:ipv4</code> holds <code>address</code>, an array (an interface can have several addresses) containing one object with <code>ip</code> and <code>netmask</code>, both strings.</li>
+</ul>
+<p>To reach Loopback0's IP address you follow the path: key <code>ietf-interfaces:interfaces</code> → key <code>interface</code> → array index 1 (second element; indexes start at 0) → key <code>ietf-ip:ipv4</code> → key <code>address</code> → index 0 → key <code>ip</code> = <code>"10.255.0.1"</code>. In Python that is <code>data["ietf-interfaces:interfaces"]["interface"][1]["ietf-ip:ipv4"]["address"][0]["ip"]</code>.</p>
+
+<h3>How to count objects, arrays and key/value pairs</h3>
+<p>Exhibit questions often ask "how many objects / arrays / key-value pairs are shown?" Use a mechanical method:</p>
+<ul>
+<li><strong>Objects:</strong> count the opening curly braces <code>{</code> (outside of strings). Include the outermost one.</li>
+<li><strong>Arrays:</strong> count the opening square brackets <code>[</code>.</li>
+<li><strong>Key/value pairs:</strong> count the keys, that is, the quoted strings followed by a colon, at every level. A key whose value is an object or array still counts as one pair; the pairs inside it count separately.</li>
+<li><strong>Elements of an array:</strong> count the comma-separated values at that array's top level only.</li>
+</ul>
+<p>Applying this to the interface exhibit above:</p>
+<table>
+<thead><tr><th>Item</th><th>Count</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td>Objects</td><td><strong>8</strong></td><td>outer object; value of <code>ietf-interfaces:interfaces</code>; 2 interface objects; 2 <code>ietf-ip:ipv4</code> objects; 2 address objects</td></tr>
+<tr><td>Arrays</td><td><strong>3</strong></td><td>the <code>interface</code> array; one <code>address</code> array per interface</td></tr>
+<tr><td>Key/value pairs</td><td><strong>18</strong></td><td>1 (top) + 1 (<code>interface</code>) + 2 interfaces × (5 interface keys + 1 <code>address</code> + 2 address keys)</td></tr>
+<tr><td>Elements in the <code>interface</code> array</td><td><strong>2</strong></td><td>two objects</td></tr>
+</tbody>
+</table>
+
+<div class="callout tip"><p><strong>Tip:</strong> when counting quickly on the exam, scan once for <code>{</code>, once for <code>[</code>, and once for <code>":</code> (a closing quote followed by a colon marks a key). Be careful with values that contain colons, such as <code>"iana-if-type:ethernetCsmacd"</code> or a time like <code>"10:42:07"</code>; those colons are inside a string and are not key separators.</p></div>
+
+<h3>Valid vs invalid JSON: worked examples</h3>
+<table>
+<thead><tr><th>Snippet</th><th>Valid?</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><code>{"vlan": 10, "name": "USERS"}</code></td><td>Valid</td><td>Object with a number and a string.</td></tr>
+<tr><td><code>{"vlan": 10, "name": 'USERS'}</code></td><td>Invalid</td><td>Single quotes.</td></tr>
+<tr><td><code>{vlan: 10}</code></td><td>Invalid</td><td>Unquoted key.</td></tr>
+<tr><td><code>{"vlans": [10, 20, 30,]}</code></td><td>Invalid</td><td>Trailing comma in the array.</td></tr>
+<tr><td><code>{"vlan": 10 "name": "USERS"}</code></td><td>Invalid</td><td>Missing comma between pairs.</td></tr>
+<tr><td><code>{"enabled": True}</code></td><td>Invalid</td><td>Boolean must be lowercase <code>true</code>.</td></tr>
+<tr><td><code>{"mtu": 01500}</code></td><td>Invalid</td><td>Leading zero in a number.</td></tr>
+<tr><td><code>{"ports": [1, 2}</code></td><td>Invalid</td><td>Array opened with <code>[</code> closed with <code>}</code>.</td></tr>
+<tr><td><code>["Gi1/0/1", "Gi1/0/2"]</code></td><td>Valid</td><td>A top-level array is allowed.</td></tr>
+<tr><td><code>{"desc": null, "speed": 1e3}</code></td><td>Valid</td><td><code>null</code> and an exponent number.</td></tr>
+</tbody>
+</table>
+
+<h3>JSON compared with XML and YAML</h3>
+<p>The same data (one VLAN) in three encodings:</p>
+<pre class="cli">JSON
+{
+  "vlan": {
+    "id": 10,
+    "name": "USERS",
+    "ports": ["Gi1/0/1", "Gi1/0/2"]
+  }
+}
+
+XML
+&lt;vlan&gt;
+  &lt;id&gt;10&lt;/id&gt;
+  &lt;name&gt;USERS&lt;/name&gt;
+  &lt;ports&gt;Gi1/0/1&lt;/ports&gt;
+  &lt;ports&gt;Gi1/0/2&lt;/ports&gt;
+&lt;/vlan&gt;
+
+YAML
+vlan:
+  id: 10
+  name: USERS
+  ports:
+    - Gi1/0/1
+    - Gi1/0/2</pre>
+<table>
+<thead><tr><th></th><th>JSON</th><th>XML</th><th>YAML</th></tr></thead>
+<tbody>
+<tr><td>Structure markers</td><td><code>{}</code> objects, <code>[]</code> arrays</td><td>Opening and closing tags, attributes</td><td>Indentation, <code>key: value</code>, <code>-</code> for list items</td></tr>
+<tr><td>Whitespace significant?</td><td>No</td><td>No (between elements)</td><td><strong>Yes</strong>: indentation defines nesting (spaces, not tabs)</td></tr>
+<tr><td>Comments</td><td>Not allowed</td><td><code>&lt;!-- --&gt;</code></td><td><code>#</code></td></tr>
+<tr><td>Quoting strings</td><td>Always double quotes</td><td>Text between tags</td><td>Usually optional</td></tr>
+<tr><td>Typical use</td><td>REST APIs (Catalyst Center, Meraki), RESTCONF</td><td>NETCONF, RESTCONF, SOAP and older APIs</td><td>Ansible playbooks and inventories, many config files</td></tr>
+<tr><td>Readability</td><td>Good</td><td>Verbose</td><td>Most human-friendly</td></tr>
+</tbody>
+</table>
+<p>YAML is a superset of JSON in practice: valid JSON can usually be read by a YAML parser, which is why Ansible variable files sometimes contain JSON-looking blocks.</p>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> a value in quotes is always a string, even if it looks like a number, a boolean or an IP address: <code>"80"</code>, <code>"true"</code>, <code>"10.1.1.1"</code> are strings. And a key/value pair whose value is <code>[]</code> is an array value, while <code>{}</code> is an object value; empty ones still count when you count objects or arrays.</p></div>
+
+<h3>Practice: is it valid, and what type is it?</h3>
+<p>Decide for each one, then open the answer.</p>
+<ol>
+<li><code>{"hostname": "SW1", "stack": false, "members": 2}</code>: valid? Type of <code>stack</code>?</li>
+<li><code>{"acl": "PERMIT_WEB", "entries": [ {"seq": 10, "action": "permit"}, {"seq": 20, "action": "deny"}, ]}</code>: valid?</li>
+<li><code>{"ntp": ["10.10.20.5", "10.10.20.6"]}</code>: type of the value of <code>ntp</code>, and type of its elements?</li>
+<li><code>{"uptime": "12:04:33", "reload_reason": null}</code>: how many key/value pairs, and what type is <code>reload_reason</code>?</li>
+<li><code>{"vlan": 20, // voice
+"name": "VOICE"}</code>: valid?</li>
+<li><code>{"temperature": .45}</code>: valid?</li>
+<li><code>{"neighbors": [{"id": "1.1.1.1", "state": "FULL"}, {"id": "2.2.2.2", "state": "2WAY"}]}</code>: count objects, arrays and key/value pairs.</li>
+<li><code>[]</code>: valid JSON?</li>
+<li><code>{"poe": {"budget_w": 740.0, "used_w": 213.5, "ports": []}}</code>: type of <code>poe</code>, of <code>budget_w</code>, and of <code>ports</code>?</li>
+<li><code>{"Interface": "Gi1/0/1", "interface": "Gi1/0/2"}</code>: valid? Are these duplicate keys?</li>
+</ol>
+<details><summary>Answers</summary>
+<ol>
+<li>Valid. <code>stack</code> is a boolean (<code>false</code>).</li>
+<li>Invalid: trailing comma after the second object in <code>entries</code>.</li>
+<li><code>ntp</code> is an array; its elements are strings (the addresses are quoted).</li>
+<li>2 pairs. <code>reload_reason</code> is null. <code>"12:04:33"</code> is a string; its colons are inside the string.</li>
+<li>Invalid: JSON does not allow comments.</li>
+<li>Invalid: a number needs a digit before the decimal point (<code>0.45</code>).</li>
+<li>3 objects (outer + 2 neighbors), 1 array, 5 key/value pairs (<code>neighbors</code> + 2 × <code>id</code>/<code>state</code>).</li>
+<li>Valid: an empty array is a complete JSON text.</li>
+<li><code>poe</code> is an object; <code>budget_w</code> is a number; <code>ports</code> is an (empty) array.</li>
+<li>Valid. Keys are case-sensitive, so <code>Interface</code> and <code>interface</code> are different keys.</li>
+</ol>
+</details>
+
+<div class="lab" id="lab-6-7-1">
+<h4>Lab: Validate, pretty-print and query JSON with python3 and jq</h4>
+<p class="lab-meta">Tool: Proxmox homelab | Time: ~30 min</p>
+<p>Topology: any Linux VM (or macOS terminal) with Python 3. Install <code>jq</code> from your distribution's packages (<code>sudo apt install jq</code> on Debian/Ubuntu); it is the free command-line JSON processor from the <a href="https://github.com/jqlang/jq" target="_blank" rel="noopener">jqlang project</a>. Python's built-in <code>json</code> module validates and pretty-prints JSON from the command line, as described in the <a href="https://docs.python.org/3/library/json.html" target="_blank" rel="noopener">Python json documentation</a> (Python 3.14 adds <code>python -m json</code>; <code>python3 -m json.tool</code> still works).</p>
+<ol>
+<li>Save the interface exhibit from this section as <code>interfaces.json</code>. Validate and pretty-print it with <code>python3 -m json.tool</code>.</li>
+<li>Write a compact one-line version to <code>bad.json</code> and introduce a trailing comma after Loopback0's netmask <code>"255.255.255.255"</code> (the last pair in its object). Run the validator and read the error position.</li>
+<li>Repeat with single quotes around one value, and with <code>True</code> instead of <code>true</code>. Note each error message.</li>
+<li>With jq, print: the interface names; Loopback0's IP; the number of interfaces; the type (<code>jq type</code>) of <code>enabled</code>, of <code>interface</code>, and of <code>ietf-ip:ipv4</code>.</li>
+<li>Use jq to count every object and every array in the file, and compare the answer with the counting table in this section.</li>
+<li>Pull a live JSON document: <code>curl -s https://httpbin.org/json | jq 'keys'</code>, and find the type of the top-level value and of <code>.slideshow.slides</code>.</li>
+<li>Edge case: run <code>echo '{"x": NaN}' | python3 -m json.tool</code> and the same through <code>jq .</code>, and explain the result.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>Task 1 prints the document re-indented with exit status 0 (<code>echo $?</code> shows 0).</li>
+<li>Task 2 prints <code>Illegal trailing comma before end of object: line 1 column 435 (char 434)</code> on Python 3.13 and later (earlier versions report <code>Expecting property name enclosed in double quotes</code> instead) and exit status 1.</li>
+<li>Task 3: single quotes and <code>True</code> are both rejected (<code>Expecting value</code>).</li>
+<li>Task 4: names <code>"GigabitEthernet1"</code>, <code>"Loopback0"</code>; IP <code>"10.255.0.1"</code>; length 2; types <code>"boolean"</code>, <code>"array"</code>, <code>"object"</code>.</li>
+<li>Task 5: 8 objects and 3 arrays.</li>
+<li>Task 6: top-level <code>"object"</code> with the key <code>slideshow</code>; <code>.slideshow.slides</code> is an <code>"array"</code>.</li>
+<li>Task 7: Python's parser accepts <code>NaN</code> by default (its docs say the module is not strictly RFC-compliant here), and jq 1.7 accepts it and outputs <code>null</code>, yet RFC 8259 does not allow <code>NaN</code>. Do not treat one lenient parser as proof that JSON is valid.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">umar@lab:~$ python3 -m json.tool interfaces.json &gt; /dev/null; echo $?
+0
+umar@lab:~$ python3 -m json.tool interfaces.json | head -6
+{
+    "ietf-interfaces:interfaces": {
+        "interface": [
+            {
+                "name": "GigabitEthernet1",
+                "description": "Uplink to ISP",
+
+umar@lab:~$ python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1]))))' interfaces.json &gt; one.json
+umar@lab:~$ sed 's/"255.255.255.255"/"255.255.255.255",/' one.json &gt; bad.json
+umar@lab:~$ python3 -m json.tool bad.json; echo $?
+Illegal trailing comma before end of object: line 1 column 435 (char 434)
+1
+! Python 3.13 output. Python 3.12 and earlier report the same mistake as
+! "Expecting property name enclosed in double quotes". A trailing comma in an
+! array is "Illegal trailing comma before end of array" in 3.13.
+
+umar@lab:~$ echo "{\"name\": 'R1'}" | python3 -m json.tool
+Expecting value: line 1 column 10 (char 9)
+umar@lab:~$ echo '{"enabled": True}' | python3 -m json.tool
+Expecting value: line 1 column 13 (char 12)
+
+umar@lab:~$ jq '."ietf-interfaces:interfaces".interface[].name' interfaces.json
+"GigabitEthernet1"
+"Loopback0"
+umar@lab:~$ jq '."ietf-interfaces:interfaces".interface[1]."ietf-ip:ipv4".address[0].ip' interfaces.json
+"10.255.0.1"
+umar@lab:~$ jq '."ietf-interfaces:interfaces".interface | length' interfaces.json
+2
+umar@lab:~$ jq '."ietf-interfaces:interfaces".interface[0].enabled | type' interfaces.json
+"boolean"
+umar@lab:~$ jq '."ietf-interfaces:interfaces".interface | type' interfaces.json
+"array"
+umar@lab:~$ jq '."ietf-interfaces:interfaces".interface[0]."ietf-ip:ipv4" | type' interfaces.json
+"object"
+
+umar@lab:~$ jq '[.. | objects] | length' interfaces.json
+8
+umar@lab:~$ jq '[.. | arrays] | length' interfaces.json
+3
+
+umar@lab:~$ curl -s https://httpbin.org/json | jq 'type, keys, (.slideshow.slides | type)'
+"object"
+[
+  "slideshow"
+]
+"array"
+
+umar@lab:~$ echo '{"x": NaN}' | python3 -m json.tool
+{
+    "x": NaN
+}
+umar@lab:~$ echo '{"x": NaN}' | jq .
+{
+  "x": null
+}
+! jq 1.7 also accepts NaN and silently turns it into null.
+! A strict check that follows RFC 8259:
+umar@lab:~$ echo '{"x": NaN}' | python3 -c 'import json,sys; json.loads(sys.stdin.read(), parse_constant=lambda c: (_ for _ in ()).throw(ValueError("not RFC 8259 JSON: " + c)))' 2&gt;&amp;1 | tail -1
+ValueError: not RFC 8259 JSON: NaN</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Six JSON value types: object <code>{}</code>, array <code>[]</code>, string (double quotes), number, boolean (<code>true</code>/<code>false</code>), <code>null</code>.</li>
+<li>Objects hold key/value pairs; keys are double-quoted strings; arrays are ordered lists of values.</li>
+<li>Invalid JSON: single quotes, unquoted keys, trailing commas, comments, capitalized <code>True</code>/<code>Null</code>, leading zeros, mismatched brackets.</li>
+<li>Count objects by <code>{</code>, arrays by <code>[</code>, key/value pairs by keys at every level.</li>
+<li>Anything in quotes is a string, even <code>"10"</code> or <code>"true"</code>.</li>
+<li>JSON: REST APIs; XML: NETCONF (and RESTCONF option); YAML: Ansible, indentation-sensitive.</li>
+</ul></div>
+</section>
+
+<section class="topic-sources" data-for="6">
+<h2>Sources for Domain 6</h2>
+<ul>
+<li><a href="https://learningcontent.cisco.com/documents/marketing/exam-topics/200-301-CCNA-v1.1.pdf" target="_blank" rel="noopener">Cisco CCNA 200-301 v1.1 exam topics (PDF)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/products/collateral/cloud-systems-management/dna-center/catalyst-center-3-1-6-ds.html" target="_blank" rel="noopener">Cisco Catalyst Center 3.1.6 data sheet</a></li>
+<li><a href="https://blogs.cisco.com/developer/cisco-dna-center-has-a-new-name-and-new-features" target="_blank" rel="noopener">Cisco blog: Cisco DNA Center has a new name (Catalyst Center)</a></li>
+<li><a href="https://developer.cisco.com/docs/catalyst-center/" target="_blank" rel="noopener">Catalyst Center API introduction (Cisco DevNet)</a></li>
+<li><a href="https://developer.cisco.com/docs/catalyst-center/authentication/" target="_blank" rel="noopener">Catalyst Center API authentication (token and X-Auth-Token)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/solutions/CVD/Campus/cisco-sda-design-guide.html" target="_blank" rel="noopener">Cisco SD-Access Solution Design Guide (underlay, overlay, fabric roles)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/routers/sdwan/configuration/sdwan-xe-gs-book/system-overview.html" target="_blank" rel="noopener">Cisco Catalyst SD-WAN Getting Started Guide: solution overview (Manager, Controller, Validator)</a></li>
+<li><a href="https://documentation.meraki.com/Platform_Management/Dashboard_Administration/Design_and_Configure/Architectures_and_Best_Practices/Cisco_Meraki_Best_Practice_Design/Meraki_Cloud_Architecture" target="_blank" rel="noopener">Meraki Cloud Architecture (out-of-band management)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/prog/configuration/1717/b_1717_programmability_cg/m_1717_prog_yang_netconf.html" target="_blank" rel="noopener">IOS XE 17.17 Programmability Guide: NETCONF</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/prog/configuration/1717/b_1717_programmability_cg/m_1717_prog_restconf.html" target="_blank" rel="noopener">IOS XE 17.17 Programmability Guide: RESTCONF</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/datacenter/aci/apic/sw/policy-model-guide/b-Cisco-ACI-Policy-Model-Guide.html" target="_blank" rel="noopener">Cisco ACI Policy Model Guide (APIC, OpFlex)</a></li>
+<li><a href="https://www.thousandeyes.com/" target="_blank" rel="noopener">Cisco ThousandEyes</a></li>
+<li><a href="https://rfc-editor.org/rfc/rfc9110.html" target="_blank" rel="noopener">RFC 9110: HTTP Semantics</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc5789" target="_blank" rel="noopener">RFC 5789: PATCH Method for HTTP</a></li>
+<li><a href="https://rfc-editor.org/rfc/rfc8259.html" target="_blank" rel="noopener">RFC 8259: The JSON Data Interchange Format</a></li>
+<li><a href="https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style" target="_blank" rel="noopener">Fielding dissertation, chapter 5: REST architectural style</a></li>
+<li><a href="https://docs.ansible.com/projects/ansible/latest/network/getting_started/basic_concepts.html" target="_blank" rel="noopener">Ansible network automation basic concepts</a></li>
+<li><a href="https://docs.ansible.com/projects/ansible/latest/getting_started/get_started_playbook.html" target="_blank" rel="noopener">Ansible: creating a playbook</a></li>
+<li><a href="https://docs.ansible.com/projects/ansible/13/network/user_guide/platform_ios.html" target="_blank" rel="noopener">Ansible IOS platform options (network_cli)</a></li>
+<li><a href="https://docs.ansible.com/projects/ansible/13/collections/cisco/ios/ios_config_module.html" target="_blank" rel="noopener">cisco.ios.ios_config module</a></li>
+<li><a href="https://docs.ansible.com/projects/ansible/13/collections/cisco/ios/ios_command_module.html" target="_blank" rel="noopener">cisco.ios.ios_command module</a></li>
+<li><a href="https://developer.hashicorp.com/terraform/tutorials/aws-get-started/infrastructure-as-code" target="_blank" rel="noopener">HashiCorp: What is Infrastructure as Code with Terraform?</a></li>
+<li><a href="https://developer.hashicorp.com/terraform/language/state" target="_blank" rel="noopener">Terraform state</a></li>
+<li><a href="https://developer.hashicorp.com/terraform/cli/commands/plan" target="_blank" rel="noopener">terraform plan command reference</a></li>
+<li><a href="https://help.puppet.com/pe/2023.8/topics/run_puppet_on_nodes.htm" target="_blank" rel="noopener">Puppet: running Puppet on nodes (agent run interval)</a></li>
+<li><a href="https://docs.chef.io/client/19/overview/chef_overview/" target="_blank" rel="noopener">Chef Infra overview</a></li>
+</ul>
+</section>

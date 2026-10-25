@@ -1,0 +1,987 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>CCNA Study Hub</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Layout: sticky top nav over one reading column; lessons get a sticky topic rail on wide screens.
+   Look: a field manual for network engineers. Cool slate paper, cobalt accent, amber for exam traps,
+   blueprint numbers (1.6, 3.4.c) set in condensed type as the recurring signature. */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --sunk:#e9edf1; --ink:#14202b; --muted:#566676; --line:#d3dbe3;
+  --accent:#1b5aa6; --accent-ink:#ffffff; --accent-soft:#e2ebf6;
+  --trap:#8f5400; --trap-soft:#fbefd9; --key:#4b3a92; --key-soft:#ece8f8;
+  --good:#1c7347; --good-soft:#dff1e7; --bad:#ad2a22; --bad-soft:#f9e3e1;
+  --cli-bg:#101b25; --cli-ink:#d6e2ec; --cli-dim:#7f95a8;
+  --d1:#1b5aa6; --d2:#0f7c80; --d3:#7a4bb8; --d4:#a35f0c; --d5:#b23a48; --d6:#4d7a1f;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-display:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  --f-read:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d141b; --surface:#141e28; --sunk:#1b2733; --ink:#e2e9ef; --muted:#93a4b3; --line:#283643;
+  --accent:#6aa5e8; --accent-ink:#0d141b; --accent-soft:#18293b;
+  --trap:#f0b35c; --trap-soft:#2c2213; --key:#b3a2f0; --key-soft:#221d36;
+  --good:#5cc78e; --good-soft:#132a1f; --bad:#f08178; --bad-soft:#2f1716;
+  --cli-bg:#070c11; --cli-ink:#d6e2ec; --cli-dim:#7f95a8;
+  --d1:#6aa5e8; --d2:#4fc1c4; --d3:#b493ea; --d4:#e3a24f; --d5:#ef8592; --d6:#93c45d;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d141b; --surface:#141e28; --sunk:#1b2733; --ink:#e2e9ef; --muted:#93a4b3; --line:#283643;
+  --accent:#6aa5e8; --accent-ink:#0d141b; --accent-soft:#18293b;
+  --trap:#f0b35c; --trap-soft:#2c2213; --key:#b3a2f0; --key-soft:#221d36;
+  --good:#5cc78e; --good-soft:#132a1f; --bad:#f08178; --bad-soft:#2f1716;
+  --cli-bg:#070c11; --cli-ink:#d6e2ec; --cli-dim:#7f95a8;
+  --d1:#6aa5e8; --d2:#4fc1c4; --d3:#b493ea; --d4:#e3a24f; --d5:#ef8592; --d6:#93c45d;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-ui);-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button,select,input{font:inherit;color:inherit}
+h1,h2,h3,h4{text-wrap:balance;line-height:1.2}
+.num{font-family:var(--f-display);font-weight:600;letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.tab{font-variant-numeric:tabular-nums}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:16px;padding-block:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.brand{font-family:var(--f-display);font-weight:700;font-size:17px;white-space:nowrap;text-decoration:none;color:var(--ink);display:flex;align-items:baseline;gap:8px}
+.brand small{font:500 12px var(--f-mono);color:var(--muted)}
+.nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1}
+.nav::-webkit-scrollbar{display:none}
+.nav a{padding:6px 10px;border-radius:6px;text-decoration:none;color:var(--muted);font-weight:500;white-space:nowrap}
+.nav a:hover{background:var(--sunk);color:var(--ink)}
+.nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+.sync{font:12px var(--f-mono);color:var(--muted);white-space:nowrap}
+@media (max-width:640px){.brand small,.sync{display:none}.top-in{gap:8px}}
+
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 64px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.eyebrow{font:600 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lead{color:var(--muted);max-width:68ch}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 12px;cursor:pointer;font-weight:500;text-decoration:none;color:var(--ink)}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{padding:4px 9px;font-size:13px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.grid{display:grid;gap:16px}
+.chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--surface);white-space:nowrap}
+.chip .num{font-size:12.5px}
+.chip.done{background:var(--good-soft);border-color:transparent;color:var(--good)}
+.dom-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+select,input[type=text],input[type=number]{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 10px}
+.muted{color:var(--muted)}
+.hidden{display:none!important}
+
+/* home */
+.hero{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:20px;align-items:stretch;margin-bottom:22px}
+.hero h1{font-family:var(--f-display);font-size:clamp(28px,4.4vw,44px);margin:6px 0 10px;font-weight:700}
+.count{display:flex;align-items:baseline;gap:10px}
+.count .big{font-family:var(--f-display);font-size:56px;font-weight:700;line-height:1;color:var(--accent)}
+.thisweek h3{margin:4px 0 8px;font-size:18px}
+@media (max-width:820px){.hero{grid-template-columns:1fr}}
+.bp{display:grid;gap:10px}
+.bp-row{display:grid;grid-template-columns:minmax(0,15em) 1fr auto;gap:12px;align-items:center}
+.bp-row a{text-decoration:none;color:var(--ink);font-weight:500;display:flex;gap:8px;align-items:center;min-width:0}
+.bar{height:10px;background:var(--sunk);border-radius:5px;overflow:hidden;position:relative}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:5px}
+.bp-meta{font:12px var(--f-mono);color:var(--muted);white-space:nowrap}
+@media (max-width:560px){.bp-row{grid-template-columns:1fr auto}.bp-row .bar{grid-column:1/-1;order:3}}
+.weeks{display:grid;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.wk{display:grid;grid-template-columns:7.5em minmax(0,1fr) auto;gap:14px;padding:14px 16px;border-top:1px solid var(--line);align-items:start}
+.wk:first-child{border-top:0}
+.wk.now{background:var(--accent-soft)}
+.wk .when{font:600 13px var(--f-mono)}
+.wk .when span{display:block;font-weight:400;color:var(--muted)}
+.wk .topics{display:flex;flex-wrap:wrap;gap:6px}
+.wk .note{font-size:13px;color:var(--muted);margin-top:6px}
+@media (max-width:640px){.wk{grid-template-columns:1fr}.wk>div:last-child{justify-self:start}}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:820px){.two{grid-template-columns:1fr}}
+.stat{display:flex;gap:18px;flex-wrap:wrap}
+.stat div b{display:block;font-family:var(--f-display);font-size:26px}
+.stat div{font-size:12.5px;color:var(--muted)}
+section.block{margin-top:30px}
+section.block>h2{font-family:var(--f-display);font-size:22px;margin:0 0 12px}
+
+/* lessons */
+.lesson{display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px}
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 64px);align-self:start;max-height:calc(100vh - 90px);overflow:auto;font-size:13.5px}
+.rail a{display:flex;gap:8px;padding:5px 8px;border-radius:6px;text-decoration:none;color:var(--muted)}
+.rail a:hover{background:var(--sunk);color:var(--ink)}
+.rail a.done::after{content:"✓";margin-left:auto;color:var(--good)}
+.rail .num{min-width:2.6em;color:var(--ink)}
+.dom-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+@media (max-width:900px){.lesson{grid-template-columns:1fr}.rail{position:static;max-height:none;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:8px}}
+.doc{font-family:var(--f-read);font-size:17px;line-height:1.65;max-width:76ch;min-width:0}
+.doc section.topic{padding-bottom:28px;margin-bottom:28px;border-bottom:1px solid var(--line);scroll-margin-top:80px}
+.doc h2{font-family:var(--f-display);font-size:28px;margin:0 0 14px}
+.doc h3{font-family:var(--f-ui);font-size:19px;margin:28px 0 8px;scroll-margin-top:80px}
+.doc h4{font-family:var(--f-ui);font-size:16px;margin:20px 0 6px}
+.doc p,.doc li{max-width:72ch}
+.doc code{font-family:var(--f-mono);font-size:.84em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+.doc pre{font-family:var(--f-mono);font-size:13.5px;line-height:1.5;overflow-x:auto;padding:14px 16px;border-radius:var(--r);background:var(--cli-bg);color:var(--cli-ink);max-width:100%}
+.doc pre code{background:none;padding:0;color:inherit;font-size:inherit}
+.doc table{border-collapse:collapse;font-family:var(--f-ui);font-size:14px;width:100%}
+.doc .tbl{overflow-x:auto;margin:14px 0}
+.doc th,.doc td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+.doc th{background:var(--sunk)}
+.doc dl{font-family:var(--f-ui);font-size:15px}
+.doc dt{font-weight:600;margin-top:8px}
+.doc dd{margin:2px 0 0 0;color:var(--ink)}
+.callout{border-radius:var(--r);padding:12px 16px;margin:16px 0;font-family:var(--f-ui);font-size:15px}
+.callout p{margin:4px 0}
+.callout.trap{background:var(--trap-soft);border-left:4px solid var(--trap)}
+.callout.trap strong:first-child{color:var(--trap)}
+.callout.tip{background:var(--accent-soft);border-left:4px solid var(--accent)}
+.callout.key{background:var(--key-soft);border-left:4px solid var(--key)}
+.callout.key strong:first-child{color:var(--key)}
+.lab{border:1px solid var(--line);border-radius:var(--r);padding:4px 18px 14px;margin:20px 0;background:var(--surface);font-family:var(--f-ui);font-size:15px}
+.lab h4{margin-top:14px}
+.lab .lab-meta{font:12.5px var(--f-mono);color:var(--muted)}
+.lab details{margin-top:10px}
+.lab summary{cursor:pointer;font-weight:600;color:var(--accent)}
+.lab-done{display:flex;gap:8px;align-items:center;font-size:14px;margin-top:10px}
+.recap{background:var(--sunk);border-radius:var(--r);padding:6px 18px 10px;margin-top:20px;font-family:var(--f-ui);font-size:15px}
+figure.diagram{margin:20px 0;overflow-x:auto}
+figure.diagram svg{max-width:100%;height:auto;display:block;font-family:var(--f-ui);color:var(--ink)}
+figure.diagram figcaption{font:13px var(--f-ui);color:var(--muted);margin-top:6px}
+.d-line{stroke:var(--ink);fill:none}
+.d-fill{fill:var(--sunk);stroke:var(--ink)}
+.d-accent{stroke:var(--accent);fill:none}
+.d-accent-fill{fill:var(--accent-soft);stroke:var(--accent)}
+.d-muted{stroke:var(--muted);fill:none}
+svg text,.d-text{fill:var(--ink);font-size:13px}
+svg text.d-muted{fill:var(--muted);stroke:none}
+.topic-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:18px;font-family:var(--f-ui);font-size:14px}
+.topic-sources{font-family:var(--f-ui);font-size:15px}
+
+/* quiz */
+.qcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;max-width:860px}
+.qmeta{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font:12.5px var(--f-mono);color:var(--muted);margin-bottom:10px}
+.stem{font-size:17px;margin:0 0 12px;white-space:pre-wrap}
+.exhibit{font-family:var(--f-mono);font-size:13px;line-height:1.45;background:var(--cli-bg);color:var(--cli-ink);padding:12px 14px;border-radius:var(--r);overflow-x:auto;white-space:pre;margin:0 0 14px}
+.choices{display:grid;gap:8px}
+.choice{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:6px;padding:10px 12px;cursor:pointer;background:var(--surface)}
+.choice:hover{border-color:var(--accent)}
+.choice input{margin-top:4px;flex:none}
+.choice.ok{border-color:var(--good);background:var(--good-soft)}
+.choice.no{border-color:var(--bad);background:var(--bad-soft)}
+.choice span{white-space:pre-wrap;min-width:0;overflow-wrap:anywhere}
+.ord{display:grid;gap:6px}
+.ord-item{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--surface)}
+.ord-item .n{font:600 13px var(--f-mono);color:var(--muted);min-width:1.6em}
+.ord-item .t{flex:1;min-width:0;overflow-wrap:anywhere}
+.ord-item button{border:1px solid var(--line);background:var(--sunk);border-radius:5px;width:30px;height:28px;cursor:pointer}
+.match{display:grid;gap:8px}
+.match-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.match-row select{width:100%;min-width:0}
+@media (max-width:560px){.match-row{grid-template-columns:1fr}}
+.answer-input{width:100%;max-width:420px;font-family:var(--f-mono)}
+.fb{margin-top:14px;border-radius:var(--r);padding:12px 16px}
+.fb.ok{background:var(--good-soft)}
+.fb.no{background:var(--bad-soft)}
+.fb h4{margin:0 0 6px}
+.fb .expl{white-space:pre-wrap}
+.qnav{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}
+.progress-line{height:6px;background:var(--sunk);border-radius:3px;overflow:hidden;margin:6px 0 14px;max-width:860px}
+.progress-line i{display:block;height:100%;background:var(--accent)}
+.timer{font:600 15px var(--f-mono)}
+.timer.low{color:var(--bad)}
+.builder{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;max-width:900px}
+.builder label{display:grid;gap:5px;font-size:13px;font-weight:600;color:var(--muted)}
+.result-head{display:flex;gap:24px;flex-wrap:wrap;align-items:baseline}
+.result-head .big{font-family:var(--f-display);font-size:52px;font-weight:700}
+.review-item{border-top:1px solid var(--line);padding:14px 0}
+.review-item .stem{font-size:15.5px}
+.tag-ok{color:var(--good);font-weight:600}.tag-no{color:var(--bad);font-weight:600}
+
+/* drills */
+.drill{max-width:760px}
+.drill .prob{font:600 22px var(--f-mono);margin:6px 0 14px;overflow-wrap:anywhere}
+.drill-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.drill-grid label{display:grid;gap:4px;font-size:13px;color:var(--muted);font-weight:600}
+.drill-grid input{font-family:var(--f-mono)}
+input.ok{border-color:var(--good);background:var(--good-soft)}
+input.no{border-color:var(--bad);background:var(--bad-soft)}
+.work{font:13.5px/1.55 var(--f-mono);background:var(--sunk);border-radius:var(--r);padding:12px 14px;white-space:pre-wrap;margin-top:12px;overflow-x:auto}
+
+/* flashcards */
+.fc{max-width:640px;min-height:220px;display:grid;place-items:center;text-align:center;padding:28px;background:var(--surface);border:1px solid var(--line);border-radius:12px;cursor:pointer;font-size:19px}
+.fc .side{font:600 12px var(--f-mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.fc.back{background:var(--accent-soft)}
+
+/* tables */
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table.data{border-collapse:collapse;width:100%;font-size:14px}
+table.data th,table.data td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.data th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--sunk);position:sticky;top:0}
+table.data td.n{font-variant-numeric:tabular-nums;text-align:right}
+.res-list{display:grid;gap:10px}
+.res{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.res a{font-weight:600;text-decoration:none;overflow-wrap:anywhere}
+.res .kind{font:12px var(--f-mono);color:var(--muted);white-space:nowrap}
+.res p{grid-column:1/-1;margin:0;color:var(--muted);font-size:14px}
+.loading{padding:40px 0;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:14px;z-index:20}
+@media (prefers-reduced-motion:no-preference){.fc{transition:background .15s}}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#home">CCNA Study Hub <small>200-301 v1.1</small></a>
+    <nav class="nav" id="nav" aria-label="Sections">
+      <a href="#home" data-v="home">Plan</a>
+      <a href="#d1" data-v="lesson">Lessons</a>
+      <a href="#quiz" data-v="quiz">Quizzes</a>
+      <a href="#exam" data-v="exam">Practice exams</a>
+      <a href="#drills" data-v="drills">Drills</a>
+      <a href="#cards" data-v="cards">Flashcards</a>
+      <a href="#sources" data-v="sources">Free sources</a>
+      <a href="#coverage" data-v="coverage">Coverage</a>
+    </nav>
+    <span class="sync" id="sync">saved on this device</span>
+  </div>
+</header>
+<main class="wrap" id="app"><p class="loading">Loading the study hub…</p></main>
+<div class="toast hidden" id="toast" role="status"></div>
+
+<script>
+"use strict";
+/* ============================================================ data + state */
+const EXAM_DATE = new Date(2026, 11, 12, 9, 0, 0); // Sat Dec 12, 2026
+const WEEKS = [
+  {n:1, start:"2026-10-22", end:"2026-10-25", hours:6,  note:"Set up Packet Tracer and the daily 10-minute subnetting drill."},
+  {n:2, start:"2026-10-26", end:"2026-11-01", hours:10, note:"Study Mon to Wed. Ecem is here Oct 30 to Nov 1, so flashcards only that weekend."},
+  {n:3, start:"2026-11-02", end:"2026-11-08", hours:15, note:"Lab every topic."},
+  {n:4, start:"2026-11-09", end:"2026-11-15", hours:15, note:"Heavy labs. Checkpoint 1 on Sun Nov 15."},
+  {n:5, start:"2026-11-16", end:"2026-11-22", hours:18, note:"The big week. ACLs come here so they sit next to NAT."},
+  {n:6, start:"2026-11-23", end:"2026-11-29", hours:5,  note:"Mon and Tue only. Flashcards and recaps on the flights."},
+  {n:7, start:"2026-11-30", end:"2026-12-06", hours:15, note:"Light Monday after the red-eye. Checkpoint 2 on Sat Dec 5."},
+  {n:8, start:"2026-12-07", end:"2026-12-11", hours:9,  note:"Weak areas only, Practice Exam B, mistakes review. Light review Friday, no new material."}
+];
+const DOMAIN_SHORT = {1:"Fundamentals",2:"Network Access",3:"IP Connectivity",4:"IP Services",5:"Security",6:"Automation"};
+let OUT = null, QS = [], CARDS = [], RES = [], COV = [];
+const TOPIC = {};          // id -> {id,title,domain,parent}
+const lessonCache = {};
+
+const blank = () => ({v:1, studied:{}, labs:{}, q:{}, exams:[], cards:{}, updated:0});
+let S = blank();
+let db = null, docRef = null, saveTimer = null, saving = false, dirty = false;
+
+function loadLocal(){ try{ const raw = localStorage.getItem("ccna-hub-v1"); if(raw) S = Object.assign(blank(), JSON.parse(raw)); }catch(e){} }
+function saveLocal(){ try{ localStorage.setItem("ccna-hub-v1", JSON.stringify(S)); }catch(e){} }
+function merge(a, b){
+  const m = blank();
+  m.studied = Object.assign({}, a.studied, b.studied);
+  m.labs = Object.assign({}, a.labs, b.labs);
+  for (const k of new Set([...Object.keys(a.q), ...Object.keys(b.q)])){
+    const x = a.q[k], y = b.q[k];
+    m.q[k] = !x ? y : !y ? x : (y[3] > x[3] ? y : x);
+  }
+  for (const k of new Set([...Object.keys(a.cards), ...Object.keys(b.cards)])){
+    const x = a.cards[k], y = b.cards[k];
+    m.cards[k] = !x ? y : !y ? x : (y[1] > x[1] ? y : x);
+  }
+  const ex = {}; for (const e of [...a.exams, ...b.exams]) ex[e.id] = e;
+  m.exams = Object.values(ex).sort((p,q)=>p.at-q.at);
+  m.updated = Math.max(a.updated||0, b.updated||0);
+  return m;
+}
+function touch(){
+  S.updated = Date.now(); saveLocal(); dirty = true;
+  clearTimeout(saveTimer); saveTimer = setTimeout(flush, 1500);
+}
+async function flush(){
+  if (!docRef || saving || !dirty) return;
+  saving = true; dirty = false;
+  try { await docRef.set(JSON.parse(JSON.stringify(S))); setSync("synced to your account"); }
+  catch(e){ setSync("saved on this device"); if (e && e.code === "invalid_argument") docRef = null; }
+  saving = false;
+  if (dirty) { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 1500); }
+}
+function setSync(t){ const el = document.getElementById("sync"); if (el) el.textContent = t; }
+async function connectDb(){
+  try{
+    if (!window.claude || !window.claude.use) return;
+    const [d, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if (!d || !user) return;
+    const uid = await user.id();
+    if (!uid) return;
+    db = d; docRef = db.doc("data/users/" + uid + "/progress"); // private to each viewer
+    const snap = await docRef.get();
+    if (snap.exists){ S = merge(S, snap.data()); saveLocal(); }
+    setSync("synced to your account");
+    dirty = true; flush();
+    route();
+  }catch(e){ docRef = null; }
+}
+
+/* ============================================================ helpers */
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const sid = t => "t-" + t.replace(/\./g, "-");
+const domOf = t => +String(t).split(".")[0];
+const topOf = t => t.split(".").slice(0,2).join(".");
+const dcol = d => `var(--d${d})`;
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.remove("hidden"); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.add("hidden"),2200); }
+function ymd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function currentWeek(){ const t = ymd(new Date()); for (const w of WEEKS) if (t >= w.start && t <= w.end) return w.n; if (t < WEEKS[0].start) return 1; return t > "2026-12-11" ? 9 : 1; }
+function fmtDate(s){ const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d).toLocaleDateString("en-US",{month:"short",day:"numeric"}); }
+function weekTopics(n){ const w = OUT.weeks.find(x=>x.n===n); return w ? w.topics : []; }
+function qStats(filter){
+  let n=0,c=0,seen=0; for (const q of QS){ if (!filter(q)) continue; n++; const r=S.q[q.id]; if (r){ seen++; if (r[2]) c++; } }
+  return {n, seen, correct:c, acc: seen ? c/seen : null};
+}
+function topicAcc(t){ // accuracy over attempts on questions whose topics include t (or sub-items)
+  let a=0,c=0; for (const q of QS){ if (!q.topics.some(x=>x===t||x.startsWith(t+"."))) continue; const r=S.q[q.id]; if (r){ a+=r[0]; c+=r[1]; } }
+  return {attempts:a, correct:c, acc: a ? c/a : null};
+}
+function weakTopics(limit=8){
+  const out=[]; for (const d of OUT.domains) for (const t of d.topics){ const s=topicAcc(t.id); if (s.attempts>=3 && s.acc<0.75) out.push({id:t.id,title:t.title,...s}); }
+  return out.sort((a,b)=>a.acc-b.acc).slice(0,limit);
+}
+
+/* ============================================================ router */
+function route(){
+  const h = (location.hash || "#home").slice(1);
+  const app = $("#app");
+  let v = "home";
+  if (/^d[1-6]$/.test(h) || /^t-\d/.test(h) || /^lab-/.test(h)) v = "lesson";
+  else if (/^quiz(-|$)/.test(h)) v = "quiz";
+  else if (/^exam/.test(h)) v = "exam";
+  else if (["drills","cards","sources","coverage"].includes(h)) v = h;
+  for (const a of document.querySelectorAll("#nav a")) { if (a.dataset.v === v) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); }
+  if (RUN && v !== "quiz" && v !== "exam") { RUN = null; clearTimeout(tick.h); }
+  if (v !== "lesson") delete app.dataset.lesson;
+  if (!OUT){ return; }
+  if (v === "home") renderHome(app);
+  else if (v === "lesson") renderLesson(app, h);
+  else if (v === "quiz") { if (RUN && RUN.kind==="quiz" && h==="quiz-run") renderRun(app); else renderQuizBuilder(app, h); }
+  else if (v === "exam") { if (RUN && RUN.kind==="exam" && h==="exam-run") renderRun(app); else renderExamHome(app); }
+  else if (v === "drills") renderDrills(app);
+  else if (v === "cards") renderCards(app);
+  else if (v === "sources") renderSources(app);
+  else if (v === "coverage") renderCoverage(app);
+}
+window.addEventListener("hashchange", () => { route(); if (!/^#t-|^#lab-/.test(location.hash)) window.scrollTo(0,0); });
+
+/* ============================================================ home */
+function renderHome(app){
+  const now = new Date();
+  const days = Math.max(0, Math.ceil((EXAM_DATE - now) / 86400000));
+  const cw = currentWeek();
+  const allTop = OUT.domains.flatMap(d=>d.topics.map(t=>t.id));
+  const studiedN = allTop.filter(t=>S.studied[t]).length;
+  const qs = qStats(q=>q.pool==="quiz");
+  const lastExam = S.exams[S.exams.length-1];
+  const wk = WEEKS.find(w=>w.n===cw);
+  const weak = weakTopics(6);
+  const thisWeek = cw <= 8 ? `
+      <div class="eyebrow">This week · ${fmtDate(wk.start)} to ${fmtDate(wk.end)} · about ${wk.hours} h</div>
+      <h3>Week ${cw}: ${cw===8 ? "Final review" : esc(weekTitle(cw))}</h3>
+      <p class="muted" style="margin:0 0 10px">${esc(wk.note)}</p>
+      <div class="row" style="margin-bottom:12px">${weekTopics(cw).map(t=>topicChip(t)).join("")}</div>
+      <div class="row">
+        ${cw<8 ? `<a class="btn primary" href="#${sid(weekTopics(cw)[0])}">Open the lesson</a><a class="btn" href="#quiz-w${cw}">Quiz this week</a>`
+               : `<a class="btn primary" href="#exam">Practice exam B</a><a class="btn" href="#quiz-mistakes">Review mistakes</a>`}
+      </div>` : `<h3>Exam week</h3><p class="muted">Light review only. Flashcards and the mistakes quiz.</p>`;
+  app.innerHTML = `
+  <div class="hero">
+    <div class="panel">
+      <div class="eyebrow">Cisco CCNA 200-301 · blueprint v1.1</div>
+      <h1>Pass on Saturday, December 12</h1>
+      <div class="count"><span class="big tab">${days}</span><span class="muted">days to go · fallback Dec 19, last resort Dec 22</span></div>
+      <p class="lead" style="margin-top:12px">Every topic on Cisco's v1.1 outline, taught in the order of your eight-week plan, with labs, ${QS.filter(q=>q.pool==="quiz").length} study questions, two timed 100-question practice exams, drills and flashcards. Your progress follows you between devices.</p>
+      <div class="stat" style="margin-top:14px">
+        <div><b class="tab">${studiedN}/${allTop.length}</b>topics studied</div>
+        <div><b class="tab">${qs.seen}</b>questions answered</div>
+        <div><b class="tab">${qs.acc==null?"–":Math.round(qs.acc*100)+"%"}</b>latest accuracy</div>
+        <div><b class="tab">${lastExam?Math.round(lastExam.score*100)+"%":"–"}</b>last practice exam</div>
+      </div>
+    </div>
+    <div class="panel thisweek">${thisWeek}</div>
+  </div>
+
+  <section class="block">
+    <h2>What the exam weighs</h2>
+    <div class="panel bp">${OUT.domains.map(d=>{
+      const tops=d.topics.map(t=>t.id); const st=tops.filter(t=>S.studied[t]).length;
+      const acc=qStats(q=>q.domain===d.id && q.pool==="quiz");
+      return `<div class="bp-row">
+        <a href="#d${d.id}"><span class="dom-dot" style="background:${dcol(d.id)}"></span><span class="num">${d.id}.0</span> ${esc(d.name)}</a>
+        <div class="bar" title="${d.weight}% of the exam"><i style="width:${d.weight*4}%;background:${dcol(d.id)}"></i></div>
+        <span class="bp-meta">${d.weight}% · ${st}/${tops.length} studied · ${acc.acc==null?"no quiz yet":Math.round(acc.acc*100)+"% right"}</span>
+      </div>`;}).join("")}
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Week by week</h2>
+    <div class="weeks">${WEEKS.map(w=>{
+      const tops = weekTopics(w.n);
+      const ck = w.n===4 ? `<div class="note"><strong>Checkpoint 1, Sun Nov 15:</strong> <a href="#quiz-cp1">Checkpoint quiz</a> (50 questions from weeks 1 to 4, exam conditions). Below 60% means adding 3 or 4 hours a week through Dec 6.</div>`
+             : w.n===7 ? `<div class="note"><strong>Checkpoint 2, Sat Dec 5:</strong> <a href="#exam">Practice Exam A</a>, timed. 80% or more keeps Dec 12; 70 to 79% moves you to Dec 19; below 70% to Dec 22.</div>`
+             : w.n===8 ? `<div class="note">Practice Exam B early in the week, then the <a href="#quiz-mistakes">mistakes quiz</a> and weak topics.</div>` : "";
+      return `<div class="wk ${w.n===cw?"now":""}">
+        <div class="when">Week ${w.n}<span>${fmtDate(w.start)} to ${fmtDate(w.end)}</span><span>${w.hours} h</span></div>
+        <div><div class="topics">${tops.length?tops.map(t=>topicChip(t)).join(""):'<span class="muted">Review, practice exams, weak areas</span>'}</div>
+          <div class="note">${esc(w.note)}</div>${ck}</div>
+        <div>${tops.length?`<a class="btn small" href="#quiz-w${w.n}">Quiz week ${w.n}</a>`:`<a class="btn small" href="#exam">Exams</a>`}</div>
+      </div>`;}).join("")}
+    </div>
+  </section>
+
+  <div class="two block" style="margin-top:30px">
+    <div class="panel">
+      <h3 style="margin-top:0">Weak spots</h3>
+      ${weak.length ? `<ul style="padding-left:18px;margin:0 0 12px">${weak.map(w=>`<li><a href="#${sid(w.id)}"><span class="num">${w.id}</span> ${esc(w.title)}</a> <span class="muted">· ${Math.round(w.acc*100)}% of ${w.attempts}</span></li>`).join("")}</ul>
+        <a class="btn small" href="#quiz-weak">Quiz my weak spots</a>` : `<p class="muted">Topics you get below 75% on (after 3 or more answers) show up here.</p>`}
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Every day</h3>
+      <ul style="padding-left:18px;margin:0">
+        <li><a href="#drills">10 minutes of subnetting drills</a>, aiming for under 30 seconds a problem.</li>
+        <li><a href="#cards">Flashcards</a> for the week's numbers and defaults.</li>
+        <li>One lab from the current lesson in Packet Tracer.</li>
+        <li><a href="#quiz-mistakes">Re-take questions you missed</a> until they stick.</li>
+      </ul>
+    </div>
+  </div>`;
+}
+function weekTitle(n){
+  return ({1:"Network components, topologies, cabling, TCP and UDP",2:"Addressing, IPv6, wireless principles, virtualization, switching",
+    3:"VLANs, trunks, CDP/LLDP, EtherChannel, Rapid PVST+",4:"Routing table, static routes, OSPFv2",
+    5:"OSPF wrap-up, FHRP, IP services, ACLs, management access",6:"Security concepts, VPNs, Layer 2 security, AAA, wireless security",
+    7:"Wireless architectures and WLC GUI, automation and programmability"})[n] || "";
+}
+function topicChip(t){
+  const T = TOPIC[t]; const done = S.studied[t];
+  return `<a class="chip ${done?"done":""}" href="#${sid(t)}" title="${esc(T?T.title:t)}"><span class="dom-dot" style="background:${dcol(domOf(t))}"></span><span class="num">${t}</span> ${esc(shortTitle(T?T.title:""))}</a>`;
+}
+function shortTitle(s){ s = s.replace(/^Configure and verify /i,"").replace(/^(Interpret|Describe|Explain) /i,""); return s.length>34 ? s.slice(0,32)+"…" : s.charAt(0).toUpperCase()+s.slice(1); }
+
+/* ============================================================ lessons */
+async function getLesson(d){
+  if (lessonCache[d]) return lessonCache[d];
+  const r = await fetch(`lessons/d${d}.html`); if (!r.ok) throw new Error("lesson " + d);
+  lessonCache[d] = await r.text(); return lessonCache[d];
+}
+async function renderLesson(app, h){
+  let d, target = null;
+  if (/^d[1-6]$/.test(h)) d = +h[1];
+  else if (/^t-/.test(h)) { d = +h.split("-")[1]; target = h; }
+  else if (/^lab-/.test(h)) { d = +h.split("-")[1]; target = h; }
+  if (!(d>=1 && d<=6)) d = 1;
+  const dom = OUT.domains.find(x=>x.id===d);
+  if (!app.dataset.lesson || app.dataset.lesson !== String(d)) {
+    app.dataset.lesson = String(d);
+    app.innerHTML = `<div class="dom-tabs">${OUT.domains.map(x=>`<a class="chip" href="#d${x.id}" ${x.id===d?'style="border-color:var(--accent);color:var(--accent)"':""}><span class="dom-dot" style="background:${dcol(x.id)}"></span><span class="num">${x.id}.0</span> ${esc(DOMAIN_SHORT[x.id])}</a>`).join("")}</div>
+      <div class="lesson"><nav class="rail" id="rail" aria-label="Topics"></nav><article class="doc" id="doc"><p class="loading">Loading ${esc(dom.name)}…</p></article></div>`;
+    try{
+      const html = await getLesson(d);
+      if (app.dataset.lesson !== String(d)) return;
+      const docEl = $("#doc");
+      docEl.innerHTML = `<div class="eyebrow">Domain ${d}.0 · ${dom.weight}% of the exam</div>` + html;
+      enhanceLesson(docEl, d);
+    }catch(e){ $("#doc").innerHTML = `<p>This lesson didn't load. Reload the page to try again.</p>`; return; }
+  }
+  renderRail(d);
+  if (target){
+    let el = document.getElementById(target);
+    if (!el && /^t-\d+-\d+-[a-z]$/.test(target)) el = document.getElementById(target.replace(/-[a-z]$/,""));
+    if (el) el.scrollIntoView({block:"start"});
+  } else window.scrollTo(0,0);
+}
+function renderRail(d){
+  const rail = $("#rail"); if (!rail) return;
+  const dom = OUT.domains.find(x=>x.id===d);
+  const secs = [...document.querySelectorAll("#doc section.topic")];
+  rail.innerHTML = `<div class="eyebrow" style="padding:4px 8px">${esc(dom.name)}</div>` + secs.map(s=>{
+    const h2 = s.querySelector("h2"); const t = s.id.replace(/^t-/,"").replace(/-/g,".");
+    const txt = h2 ? h2.textContent.replace(/^\s*[\d.]+\s*/,"") : s.id;
+    return `<a href="#${s.id}" class="${S.studied[t]?"done":""}"><span class="num">${/^\d/.test(t)&&t!==d+".0"?t:"·"}</span><span>${esc(txt)}</span></a>`;
+  }).join("") + `<div style="padding:10px 8px" class="row"><a class="btn small" href="#quiz-d${d}">Quiz domain ${d}</a></div>`;
+}
+function enhanceLesson(docEl, d){
+  for (const t of docEl.querySelectorAll("table")) { if (!t.parentElement.classList.contains("tbl")) { const w=document.createElement("div"); w.className="tbl"; t.replaceWith(w); w.appendChild(t); } }
+  for (const a of docEl.querySelectorAll("a[href^='http']")) { a.target="_blank"; a.rel="noopener"; }
+  for (const lab of docEl.querySelectorAll(".lab[id]")) {
+    const row = document.createElement("label"); row.className = "lab-done";
+    row.innerHTML = `<input type="checkbox" id="labchk-${esc(lab.id)}"> I've done this lab`;
+    const cb = row.querySelector("input"); cb.checked = !!S.labs[lab.id];
+    cb.addEventListener("change", ()=>{ if (cb.checked) S.labs[lab.id]=Date.now(); else delete S.labs[lab.id]; touch(); });
+    lab.appendChild(row);
+  }
+  for (const s of docEl.querySelectorAll("section.topic")) {
+    const t = s.id.replace(/^t-/,"").replace(/-/g,".");
+    if (!TOPIC[t]) continue;
+    const n = QS.filter(q=>q.pool==="quiz" && q.topics.some(x=>x===t||x.startsWith(t+"."))).length;
+    const tools = document.createElement("div"); tools.className = "topic-tools";
+    tools.innerHTML = `<label class="row"><input type="checkbox" id="st-${esc(s.id)}"> Mark ${esc(t)} as studied</label>
+      ${n?`<a class="btn small primary" href="#quiz-t${t.replace(/\./g,"-")}">Quiz me on ${esc(t)} (${n})</a>`:""}`;
+    const cb = tools.querySelector("input"); cb.checked = !!S.studied[t];
+    cb.addEventListener("change", ()=>{ if (cb.checked) S.studied[t]=Date.now(); else delete S.studied[t]; touch(); renderRail(d); });
+    s.appendChild(tools);
+  }
+}
+
+/* ============================================================ quiz builder */
+let RUN = null;
+function scopeFromHash(h){
+  let m;
+  if ((m = h.match(/^quiz-d([1-6])$/))) return {scope:"domain", val:m[1]};
+  if ((m = h.match(/^quiz-w([1-7])$/))) return {scope:"week", val:m[1]};
+  if ((m = h.match(/^quiz-t([\d-]+)$/))) return {scope:"topic", val:m[1].replace(/-/g,".")};
+  if (h === "quiz-weak") return {scope:"weak"};
+  if (h === "quiz-mistakes") return {scope:"mistakes"};
+  if (h === "quiz-cp1") return {scope:"cp1"};
+  if (h === "quiz-new") return {scope:"new"};
+  return {scope:"domain", val:"1"};
+}
+function selectQuestions(sc){
+  const quiz = QS.filter(q=>q.pool==="quiz");
+  const inTopics = (q, list) => q.topics.some(x=>list.some(t=>x===t||x.startsWith(t+".")));
+  switch(sc.scope){
+    case "domain": return quiz.filter(q=>q.domain===+sc.val);
+    case "week": return quiz.filter(q=>inTopics(q, weekTopics(+sc.val)));
+    case "topic": return quiz.filter(q=>inTopics(q, [sc.val]));
+    case "weak": { const w = weakTopics(10).map(x=>x.id); return quiz.filter(q=>inTopics(q, w)); }
+    case "mistakes": return QS.filter(q=>S.q[q.id] && !S.q[q.id][2] && (q.pool==="quiz" || S.q[q.id]));
+    case "cp1": { const t=[1,2,3,4].flatMap(weekTopics); return quiz.filter(q=>inTopics(q,t)); }
+    case "new": return quiz.filter(q=>!S.q[q.id]);
+    case "all": return quiz;
+  }
+  return quiz;
+}
+function renderQuizBuilder(app, h){
+  const sc = scopeFromHash(h);
+  const topicOpts = OUT.domains.flatMap(d=>d.topics.map(t=>`<option value="${t.id}" ${sc.scope==="topic"&&sc.val===t.id?"selected":""}>${t.id} ${esc(t.title)}</option>`)).join("");
+  const isCp = sc.scope === "cp1";
+  app.innerHTML = `
+    <div class="eyebrow">Quizzes</div>
+    <h1 class="num" style="font-size:32px;margin:6px 0 8px">${isCp?"Checkpoint 1":"Build a quiz"}</h1>
+    <p class="lead">${isCp?"Fifty questions from weeks 1 to 4 under exam conditions: no feedback until the end. Use the domain breakdown to rebalance the next three weeks."
+      :"Study mode shows the answer and explanation after each question. Test mode holds everything until the end. Practice exam questions stay out of quizzes so the exams stay fresh."}</p>
+    <div class="panel builder" style="margin:16px 0">
+      <label>Questions from
+        <select id="b-scope">
+          <option value="domain">A domain</option><option value="week">A plan week</option><option value="topic">One outline topic</option>
+          <option value="weak">My weak spots</option><option value="mistakes">Questions I got wrong</option><option value="new">Questions I haven't seen</option>
+          <option value="cp1">Checkpoint 1 (weeks 1 to 4)</option><option value="all">Everything</option>
+        </select></label>
+      <label id="l-domain">Domain <select id="b-domain">${OUT.domains.map(d=>`<option value="${d.id}">${d.id}.0 ${esc(d.name)}</option>`).join("")}</select></label>
+      <label id="l-week">Week <select id="b-week">${[1,2,3,4,5,6,7].map(n=>`<option value="${n}">Week ${n}: ${esc(weekTitle(n))}</option>`).join("")}</select></label>
+      <label id="l-topic">Topic <select id="b-topic">${topicOpts}</select></label>
+      <label>How many <select id="b-count"><option>10</option><option selected>20</option><option>30</option><option>50</option><option value="999">All</option></select></label>
+      <label>Mode <select id="b-mode"><option value="study">Study: feedback each question</option><option value="test">Test: feedback at the end</option></select></label>
+    </div>
+    <div class="row"><button class="btn primary" id="b-go">Start</button><span class="muted" id="b-n"></span></div>`;
+  const sel = id => document.getElementById(id);
+  sel("b-scope").value = sc.scope;
+  if (sc.scope==="domain") sel("b-domain").value = sc.val;
+  if (sc.scope==="week") sel("b-week").value = sc.val;
+  if (isCp){ sel("b-count").value = "50"; sel("b-mode").value = "test"; }
+  const cur = () => ({scope: sel("b-scope").value, val: ({domain:sel("b-domain").value, week:sel("b-week").value, topic:sel("b-topic").value})[sel("b-scope").value]});
+  const upd = () => {
+    const s = cur();
+    sel("l-domain").classList.toggle("hidden", s.scope!=="domain");
+    sel("l-week").classList.toggle("hidden", s.scope!=="week");
+    sel("l-topic").classList.toggle("hidden", s.scope!=="topic");
+    const n = selectQuestions(s).length;
+    sel("b-n").textContent = n ? `${n} questions available` : (s.scope==="weak" ? "No weak spots yet. Answer a few quizzes first." : s.scope==="mistakes" ? "Nothing to review: no wrong answers on record." : "No questions here yet.");
+    sel("b-go").disabled = !n;
+  };
+  for (const id of ["b-scope","b-domain","b-week","b-topic"]) sel(id).addEventListener("change", upd);
+  upd();
+  sel("b-go").addEventListener("click", ()=>{
+    const s = cur(); let list = selectQuestions(s);
+    const count = +sel("b-count").value;
+    // unseen and missed first, then the rest
+    list = shuffle(list).sort((a,b)=>score(a)-score(b)).slice(0, count);
+    if (s.scope!=="cp1" && s.scope!=="all" && s.scope!=="weak" && s.scope!=="mistakes") list.sort((a,b)=>a.id.localeCompare(b.id));
+    startRun({kind:"quiz", mode: sel("b-mode").value, list: s.scope==="topic"||s.scope==="domain"||s.scope==="week" ? list : shuffle(list),
+      title: s.scope==="cp1" ? "Checkpoint 1" : s.scope==="domain" ? `Domain ${s.val} quiz` : s.scope==="week" ? `Week ${s.val} quiz` : s.scope==="topic" ? `Topic ${s.val} quiz` : s.scope==="weak" ? "Weak spots" : s.scope==="mistakes" ? "Mistakes review" : "Mixed quiz"});
+  });
+  function score(q){ const r = S.q[q.id]; return !r ? 0 : r[2] ? 2 : 1; }
+}
+
+/* ============================================================ runner */
+function prepare(q){
+  const p = {q, resp:null, done:false, ok:null};
+  if (q.type==="single"||q.type==="multi") p.order = shuffle(q.choices.map((_,i)=>i));
+  if (q.type==="order") { let o; do { o = shuffle(q.items.map((_,i)=>i)); } while (q.items.length>1 && o.every((v,i)=>v===i)); p.cur = o; }
+  if (q.type==="match") p.rights = shuffle([...q.pairs.map(x=>x[1]), ...(q.distractors||[])]);
+  return p;
+}
+function startRun(cfg){
+  RUN = Object.assign({i:0, started:Date.now(), items: cfg.list.map(prepare)}, cfg);
+  if (cfg.kind==="exam") { RUN.deadline = Date.now() + cfg.minutes*60000; }
+  const target = cfg.kind==="exam" ? "exam-run" : "quiz-run";
+  if (location.hash === "#" + target) { route(); window.scrollTo(0,0); } else location.hash = target;
+}
+function readResp(p, box){
+  const q = p.q;
+  if (q.type==="single"){ const c = box.querySelector("input:checked"); return c ? [ +c.value ] : null; }
+  if (q.type==="multi"){ const c=[...box.querySelectorAll("input:checked")].map(x=>+x.value); return c.length ? c.sort((a,b)=>a-b) : null; }
+  if (q.type==="order") return p.cur.slice();
+  if (q.type==="match"){ const v=[...box.querySelectorAll("select")].map(s=>s.value); return v.some(x=>!x) ? null : v; }
+  if (q.type==="input"){ const v = box.querySelector("input").value.trim(); return v ? v : null; }
+}
+const norm = s => String(s).toLowerCase().replace(/[\u2010-\u2015]/g,"-").replace(/\s+/g,"").replace(/\.$/,"");
+function grade(p){
+  const q = p.q, r = p.resp; if (r==null) return false;
+  if (q.type==="single"||q.type==="multi"){ const a=q.answer.slice().sort((x,y)=>x-y); return a.length===r.length && a.every((v,i)=>v===r[i]); }
+  if (q.type==="order") return r.every((v,i)=>v===i);
+  if (q.type==="match") return q.pairs.every((pr,i)=>r[i]===pr[1]);
+  if (q.type==="input") return q.accept.some(a=>norm(a)===norm(r));
+  return false;
+}
+function record(p){
+  const prev = S.q[p.q.id] || [0,0,0,0];
+  S.q[p.q.id] = [prev[0]+1, prev[1]+(p.ok?1:0), p.ok?1:0, Date.now()];
+  touch();
+}
+function renderRun(app){
+  if (!RUN) { location.hash = "quiz"; return; }
+  if (RUN.i >= RUN.items.length) return renderResults(app);
+  const p = RUN.items[RUN.i], q = p.q, isExam = RUN.kind==="exam";
+  const reveal = p.done && RUN.mode==="study";
+  const pct = Math.round(RUN.i / RUN.items.length * 100);
+  app.innerHTML = `
+    <div class="row" style="justify-content:space-between;max-width:860px">
+      <div><div class="eyebrow">${esc(RUN.title)}</div><div class="num" style="font-size:20px">Question ${RUN.i+1} of ${RUN.items.length}</div></div>
+      <div class="row">${isExam?`<span class="timer" id="timer"></span>`:""}<button class="btn small" id="quit">${isExam?"End exam":"End quiz"}</button></div>
+    </div>
+    <div class="progress-line"><i style="width:${pct}%"></i></div>
+    <div class="qcard" id="qcard">
+      <div class="qmeta"><span class="dom-dot" style="background:${dcol(q.domain)}"></span><span>${q.topics.slice(0,2).map(esc).join(" · ")}</span><span>${["","recall","apply","analyze"][q.difficulty]||""}</span>${isExam?"":`<span>${esc(q.id)}</span>`}</div>
+      <p class="stem">${esc(q.stem)}</p>
+      ${q.exhibit?`<pre class="exhibit">${esc(q.exhibit)}</pre>`:""}
+      <div id="resp"></div>
+      <div id="fb"></div>
+      <div class="qnav" id="qnav"></div>
+    </div>`;
+  renderResp(p, $("#resp"), reveal);
+  const nav = $("#qnav");
+  if (!p.done || RUN.mode!=="study") {
+    nav.innerHTML = RUN.mode==="study" ? `<button class="btn primary" id="check">Check answer</button><button class="btn" id="skip">Skip</button>`
+      : `<button class="btn primary" id="next">${RUN.i===RUN.items.length-1?"Finish":"Next"}</button>${isExam?`<span class="muted">Like the real exam, you can't go back.</span>`:(RUN.i>0?`<button class="btn" id="back">Back</button>`:"")}`;
+  } else {
+    showFeedback(p);
+    nav.innerHTML = `<button class="btn primary" id="next">${RUN.i===RUN.items.length-1?"See results":"Next question"}</button>`;
+  }
+  const on = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener("click", fn); };
+  on("check", ()=>{ p.resp = readResp(p, $("#resp")); if (p.resp==null) { toast("Pick an answer first, or skip."); return; } p.done = true; p.ok = grade(p); record(p); renderRun(app); });
+  on("skip", ()=>{ p.done = true; p.ok = false; p.skipped = true; RUN.i++; renderRun(app); });
+  on("next", ()=>{
+    if (!p.done || RUN.mode!=="study") { p.resp = readResp(p, $("#resp")); if (p.resp==null && !confirmBlank(nav)) return; p.done = true; p.ok = grade(p); if (p.resp!=null || isExam) record(p); }
+    RUN.i++; renderRun(app); window.scrollTo(0,0);
+  });
+  on("back", ()=>{ RUN.i = Math.max(0, RUN.i-1); renderRun(app); });
+  on("quit", ()=>{ if (!$("#quit").dataset.armed){ $("#quit").dataset.armed="1"; $("#quit").textContent="Tap again to end"; return; }
+    for (let k=RUN.i;k<RUN.items.length;k++){ const x=RUN.items[k]; if(!x.done){ x.done=true; x.ok=false; x.skipped=true; } }
+    RUN.i = RUN.items.length; renderRun(app); });
+  if (isExam) tick();
+}
+function confirmBlank(nav){
+  if (nav.dataset.blank) return true;
+  nav.dataset.blank = "1"; toast("No answer selected. Tap again to leave it blank."); return false;
+}
+function tick(){
+  clearTimeout(tick.h);
+  const el = document.getElementById("timer"); if (!el || !RUN) return;
+  const left = Math.max(0, RUN.deadline - Date.now());
+  const m = Math.floor(left/60000), s = Math.floor(left%60000/1000);
+  el.textContent = `${m}:${String(s).padStart(2,"0")} left`; el.classList.toggle("low", left < 10*60000);
+  if (left <= 0){ for (const x of RUN.items) if (!x.done){ x.done=true; x.ok=false; x.skipped=true; } RUN.i = RUN.items.length; RUN.timedOut = true; renderRun($("#app")); return; }
+  tick.h = setTimeout(tick, 1000);
+}
+function renderResp(p, box, reveal){
+  const q = p.q;
+  if (q.type==="single"||q.type==="multi"){
+    const multi = q.type==="multi";
+    box.innerHTML = `<div class="choices">${p.order.map((ci,k)=>{
+      const checked = p.resp && p.resp.includes(ci);
+      const cls = reveal ? (q.answer.includes(ci) ? "ok" : checked ? "no" : "") : "";
+      return `<label class="choice ${cls}"><input type="${multi?"checkbox":"radio"}" name="c" value="${ci}" ${checked?"checked":""} ${reveal?"disabled":""}><span>${esc(q.choices[ci])}</span></label>`;}).join("")}</div>`;
+  } else if (q.type==="order"){
+    const draw = () => {
+      box.innerHTML = `<p class="muted" style="margin:0 0 8px">Use the arrows to put these in order, first at the top.</p><div class="ord">${p.cur.map((ii,k)=>{
+        const cls = reveal ? (ii===k ? "choice ok" : "choice no") : "";
+        return `<div class="ord-item ${cls}"><span class="n">${k+1}</span><span class="t">${esc(q.items[ii])}</span>${reveal?"":`<button data-k="${k}" data-d="-1" aria-label="Move up">↑</button><button data-k="${k}" data-d="1" aria-label="Move down">↓</button>`}</div>`;}).join("")}</div>
+        ${reveal && !p.ok ? `<p class="muted" style="margin-top:10px">Correct order: ${q.items.map((x,i)=>`${i+1}. ${esc(x)}`).join("  ")}</p>`:""}`;
+      for (const b of box.querySelectorAll("button[data-k]")) b.addEventListener("click", ()=>{ const k=+b.dataset.k, d=+b.dataset.d, j=k+d; if (j<0||j>=p.cur.length) return; [p.cur[k],p.cur[j]]=[p.cur[j],p.cur[k]]; draw(); });
+    };
+    draw();
+  } else if (q.type==="match"){
+    box.innerHTML = `<div class="match">${q.pairs.map((pr,i)=>{
+      const v = p.resp ? p.resp[i] : "";
+      const cls = reveal ? (v===pr[1] ? "choice ok" : "choice no") : "";
+      return `<div class="match-row ${cls}"><span>${esc(pr[0])}</span><span><select aria-label="Match for ${esc(pr[0])}" ${reveal?"disabled":""}><option value="">Choose…</option>${p.rights.map(r=>`<option ${r===v?"selected":""}>${esc(r)}</option>`).join("")}</select>${reveal && v!==pr[1] ? `<div class="muted" style="font-size:13px;margin-top:4px">Answer: ${esc(pr[1])}</div>`:""}</span></div>`;}).join("")}</div>`;
+  } else if (q.type==="input"){
+    box.innerHTML = `<input type="text" class="answer-input ${reveal?(p.ok?"ok":"no"):""}" id="inp-${esc(q.id)}" placeholder="${esc(q.placeholder||"Type your answer")}" value="${esc(p.resp||"")}" ${reveal?"disabled":""} autocomplete="off" autocapitalize="off" spellcheck="false">`;
+    const inp = box.querySelector("input"); if (!reveal) { inp.addEventListener("keydown", e=>{ if (e.key==="Enter"){ const b = document.getElementById("check")||document.getElementById("next"); if (b) b.click(); } }); setTimeout(()=>inp.focus(),0); }
+  }
+}
+function lessonLink(q){ return q.topics.length ? "#" + sid(q.topics[0]) : "#d" + q.domain; }
+function showFeedback(p){
+  const q = p.q;
+  const ans = q.type==="input" ? `<p style="margin:4px 0">Accepted: <code>${q.accept.map(esc).join("</code>, <code>")}</code></p>` : "";
+  $("#fb").innerHTML = `<div class="fb ${p.ok?"ok":"no"}"><h4>${p.ok?"Correct":"Not quite"}</h4>${ans}<p class="expl" style="margin:0">${esc(q.explanation)}</p>
+    <p style="margin:8px 0 0"><a href="${lessonLink(q)}">Read the lesson: ${esc(q.topics[0])} ${esc((TOPIC[q.topics[0]]||{}).title||"")}</a></p></div>`;
+}
+function renderResults(app){
+  clearTimeout(tick.h);
+  const items = RUN.items, n = items.length, c = items.filter(x=>x.ok).length;
+  const byD = {}; for (const x of items){ const d=x.q.domain; byD[d] = byD[d]||[0,0]; byD[d][1]++; if (x.ok) byD[d][0]++; }
+  if (!RUN.saved){
+    RUN.saved = true;
+    if (RUN.kind==="exam"){ S.exams.push({id: "e"+Date.now(), form: RUN.form, at: Date.now(), score: c/n, n, byDomain: byD, secs: Math.round((Date.now()-RUN.started)/1000), timedOut: !!RUN.timedOut}); touch(); }
+  }
+  const pct = Math.round(c/n*100);
+  const verdict = RUN.kind==="exam" ? (pct>=80 ? "On track for Dec 12." : pct>=70 ? "Close. Your plan says move to Dec 19 and add a week of weak-area work." : "Your plan says move to Dec 22 and tell your supervisor early.") : "";
+  app.innerHTML = `
+    <div class="eyebrow">${esc(RUN.title)} · results</div>
+    <div class="result-head"><span class="big tab">${pct}%</span><span class="muted">${c} of ${n} correct${RUN.timedOut?" · time ran out":""}${RUN.kind==="exam"?` · ${Math.round((Date.now()-RUN.started)/60000)} min`:""}</span></div>
+    ${verdict?`<p class="lead">${verdict} Cisco doesn't publish a pass mark, so treat 80% or more here as ready, the same bar as your plan.</p>`:""}
+    <div class="panel bp" style="margin:16px 0;max-width:860px">${Object.keys(byD).sort().map(d=>{ const [a,b]=byD[d]; return `<div class="bp-row"><a href="#d${d}"><span class="dom-dot" style="background:${dcol(+d)}"></span>${d}.0 ${esc(DOMAIN_SHORT[d])}</a><div class="bar"><i style="width:${Math.round(a/b*100)}%;background:${dcol(+d)}"></i></div><span class="bp-meta">${a}/${b}</span></div>`; }).join("")}</div>
+    <div class="row" style="margin-bottom:16px"><a class="btn primary" href="#quiz-mistakes">Re-take what I missed</a><a class="btn" href="#home">Back to the plan</a></div>
+    <h2 class="num" style="font-size:22px">Review</h2>
+    <div style="max-width:860px">${items.map((x,i)=>`<div class="review-item">
+      <div class="qmeta"><span class="${x.ok?"tag-ok":"tag-no"}">${x.ok?"Correct":x.skipped?"Not answered":"Wrong"}</span><span>Q${i+1}</span><span>${x.q.topics.slice(0,2).map(esc).join(" · ")}</span></div>
+      <p class="stem">${esc(x.q.stem)}</p>${x.q.exhibit?`<pre class="exhibit">${esc(x.q.exhibit)}</pre>`:""}
+      <p style="margin:6px 0"><strong>Answer:</strong> ${esc(correctText(x.q))}</p>
+      ${!x.ok && x.resp!=null ? `<p style="margin:6px 0" class="muted"><strong>You chose:</strong> ${esc(respText(x))}</p>`:""}
+      <p class="muted" style="margin:6px 0">${esc(x.q.explanation)}</p><a href="${lessonLink(x.q)}">Lesson ${esc(x.q.topics[0])}</a></div>`).join("")}</div>`;
+  window.scrollTo(0,0);
+}
+function correctText(q){
+  if (q.type==="single"||q.type==="multi") return q.answer.map(i=>q.choices[i]).join(" | ");
+  if (q.type==="order") return q.items.map((x,i)=>`${i+1}. ${x}`).join("  ");
+  if (q.type==="match") return q.pairs.map(p=>`${p[0]} → ${p[1]}`).join("  |  ");
+  return q.accept[0];
+}
+function respText(x){
+  const q = x.q, r = x.resp;
+  if (q.type==="single"||q.type==="multi") return r.map(i=>q.choices[i]).join(" | ");
+  if (q.type==="order") return r.map((ii,k)=>`${k+1}. ${q.items[ii]}`).join("  ");
+  if (q.type==="match") return q.pairs.map((p,i)=>`${p[0]} → ${r[i]}`).join("  |  ");
+  return r;
+}
+
+/* ============================================================ exams */
+function renderExamHome(app){
+  const hist = S.exams.slice().reverse();
+  const forms = {A: QS.filter(q=>q.pool==="exam"&&q.form==="A"), B: QS.filter(q=>q.pool==="exam"&&q.form==="B")};
+  app.innerHTML = `
+    <div class="eyebrow">Practice exams</div>
+    <h1 class="num" style="font-size:32px;margin:6px 0 8px">Two full-length exams, timed like the real one</h1>
+    <p class="lead">Each form has 100 questions weighted to the v1.1 blueprint (20, 20, 25, 10, 15, 10) and a 120-minute clock. As on Cisco's exam, there's no going back to an earlier question. Take Form A at Checkpoint 2 (Sat Dec 5) and Form B early in the final week. Results land in your weak spots.</p>
+    <div class="two" style="margin:18px 0">
+      ${["A","B"].map(f=>`<div class="panel"><h3 style="margin-top:0">Form ${f}</h3>
+        <p class="muted">${forms[f].length} questions · 120 minutes · ${f==="A"?"Checkpoint 2, Dec 5":"Final week, Dec 7 to 9"}</p>
+        <div class="row"><button class="btn primary" data-form="${f}" ${forms[f].length?"":"disabled"}>Start form ${f}</button><button class="btn" data-form="${f}" data-mode="study" ${forms[f].length?"":"disabled"}>Study this form untimed</button></div></div>`).join("")}
+    </div>
+    <h2 class="num" style="font-size:22px">History</h2>
+    ${hist.length ? `<div class="tblwrap"><table class="data"><thead><tr><th>Date</th><th>Form</th><th>Score</th><th>Time</th>${[1,2,3,4,5,6].map(d=>`<th>${d}.0</th>`).join("")}</tr></thead><tbody>${hist.map(e=>`<tr><td>${new Date(e.at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</td><td>${esc(e.form)}</td><td class="n">${Math.round(e.score*100)}%</td><td class="n">${Math.round(e.secs/60)} min</td>${[1,2,3,4,5,6].map(d=>{ const v=e.byDomain[d]; return `<td class="n">${v?Math.round(v[0]/v[1]*100)+"%":"–"}</td>`; }).join("")}</tr>`).join("")}</tbody></table></div>`
+      : `<p class="muted">No exams taken yet.</p>`}`;
+  for (const b of app.querySelectorAll("button[data-form]")) b.addEventListener("click", ()=>{
+    const f = b.dataset.form, study = b.dataset.mode==="study";
+    const list = shuffle(forms[f]);
+    startRun(study ? {kind:"quiz", mode:"study", list, title:`Practice Exam ${f} (study mode)`} : {kind:"exam", mode:"test", form:f, minutes:120, list, title:`Practice Exam ${f}`});
+  });
+}
+
+/* ============================================================ drills */
+const DR = {mode:"facts", prob:null, streak:0, done:0, t0:0};
+function ip2n(s){ return s.split(".").reduce((a,o)=>a*256+(+o),0); }
+function n2ip(n){ return [24,16,8,0].map(s=>Math.floor(n/2**s)%256).join("."); }
+function maskN(p){ return p===0?0:(2**32 - 2**(32-p)); }
+const rnd = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+function genFacts(){
+  const p = rnd(17, 30);
+  const first = [rnd(1,223), rnd(0,255), rnd(0,255), rnd(0,255)];
+  if (first[0]===127) first[0]=126;
+  const ip = ip2n(first.join("."));
+  const size = 2**(32-p), net = Math.floor(ip/size)*size, bc = net+size-1;
+  let host = ip; if (host===net) host=net+1; if (host===bc) host=bc-1;
+  return {kind:"facts", ask:`${n2ip(host)}/${p}`, p, fields:[["Network address",n2ip(net)],["Broadcast address",n2ip(bc)],["First usable host",n2ip(net+1)],["Last usable host",n2ip(bc-1)],["Usable hosts",String(size-2)],["Subnet mask",n2ip(maskN(p))]],
+    work: workFacts(host,p,net,bc,size)};
+}
+function workFacts(host,p,net,bc,size){
+  const oct = p % 8 === 0 ? p/8 + 1 : Math.ceil(p/8); const block = 2**(8*oct - p);
+  const val = Math.floor(host / 2**(32-8*oct)) % 256;
+  return `/${p} = ${n2ip(maskN(p))}. The interesting octet is octet ${oct} (mask value ${256-block}).
+Block size = 256 - ${256-block} = ${block}.
+Octet ${oct} of the host is ${val}. Multiples of ${block}: ${Math.floor(val/block)*block} ≤ ${val} < ${Math.floor(val/block)*block+block}.
+Network ${n2ip(net)}, next subnet starts at ${n2ip(bc+1)}, so broadcast is ${n2ip(bc)}.
+Hosts = 2^${32-p} - 2 = ${size-2}.`;
+}
+function genHosts(){
+  const need = [2,5,12,25,30,50,60,100,120,200,250,500,1000,2000,4000][rnd(0,14)] + rnd(0,3);
+  let b = 2; while (2**b - 2 < need) b++;
+  const p = 32-b;
+  return {kind:"hosts", ask:`Smallest subnet for ${need} hosts`, fields:[["Prefix length (e.g. /26)","/"+p],["Subnet mask",n2ip(maskN(p))],["Usable hosts in that subnet",String(2**b-2)]],
+    work:`Need ${need} hosts. 2^${b-1} - 2 = ${2**(b-1)-2} is too few; 2^${b} - 2 = ${2**b-2} fits.\n${b} host bits → /${p} → ${n2ip(maskN(p))}.`};
+}
+function genSame(){
+  const p = rnd(20,29), size = 2**(32-p);
+  const base = ip2n([rnd(10,200),rnd(0,255),rnd(0,255),0].join("."));
+  const net = Math.floor(base/size)*size;
+  const a = net + rnd(1, size-2);
+  const other = Math.random()<0.5 ? net + rnd(1,size-2) : net + size + rnd(1, size-2);
+  const same = Math.floor(other/size)*size === net;
+  return {kind:"same", ask:`${n2ip(a)}/${p} and ${n2ip(other)}/${p}: same subnet?`, fields:[["yes or no", same?"yes":"no"],["Network of the first address", n2ip(net)]],
+    work:`Block size for /${p}: ${size<256?size:size/256+" in octet 3"}. First is in ${n2ip(net)}/${p} (broadcast ${n2ip(net+size-1)}). Second is in ${n2ip(Math.floor(other/size)*size)}/${p}. ${same?"Same":"Different"} subnet.`};
+}
+function hex4(n){ return n.toString(16).padStart(4,"0"); }
+function compress6(groups){
+  let best=-1,bl=0; for (let i=0;i<8;){ if (groups[i]===0){ let j=i; while(j<8&&groups[j]===0) j++; if (j-i>bl && j-i>1){bl=j-i;best=i;} i=j; } else i++; }
+  const g = groups.map(x=>x.toString(16));
+  if (best<0) return g.join(":");
+  return (g.slice(0,best).join(":")) + "::" + (g.slice(best+bl).join(":"));
+}
+function genV6(){
+  const g = [0x2001, 0x0db8, rnd(0,1)?0:rnd(1,0xffff), rnd(0,0xff), 0, 0, rnd(0,1)?0:rnd(0,0xff), rnd(1,0xffff)];
+  if (Math.random()<0.5) g[3]=0;
+  const full = g.map(hex4).join(":");
+  return {kind:"v6", ask:full, fields:[["Shortest form", compress6(g)]], work:`Drop leading zeros in each group, then replace the longest run of two or more all-zero groups with :: (leftmost run if tied).\n${full} → ${compress6(g)}`};
+}
+function genEui(){
+  const mac = Array.from({length:6},()=>rnd(0,255)); mac[0] &= 0xfe;
+  const macS = mac.map(b=>b.toString(16).padStart(2,"0")).join("").replace(/(....)(....)(....)/,"$1.$2.$3");
+  const f = mac[0] ^ 0x02;
+  const iid = [ (f<<8)|mac[1], (mac[2]<<8)|0xff, (0xfe<<8)|mac[3], (mac[4]<<8)|mac[5] ];
+  const g = [0x2001,0xdb8,rnd(0,0xffff),rnd(1,0xffff), ...iid];
+  const pref = g.slice(0,4).map(x=>x.toString(16)).join(":");
+  return {kind:"eui", ask:`Prefix ${pref}::/64, MAC ${macS}: EUI-64 address?`, fields:[["Full address (compressed)", compress6(g)]],
+    work:`MAC ${macS} → split: ${mac.slice(0,3).map(b=>b.toString(16).padStart(2,"0")).join("")} | ${mac.slice(3).map(b=>b.toString(16).padStart(2,"0")).join("")}
+Insert FFFE in the middle, flip bit 7 of the first byte: ${mac[0].toString(16).padStart(2,"0")} → ${f.toString(16).padStart(2,"0")}
+Interface ID ${iid.map(x=>x.toString(16)).join(":")} → ${compress6(g)}`};
+}
+function ipv6Equal(a,b){
+  const ex = s => { s=s.toLowerCase().trim(); if (!/^[0-9a-f:]+$/.test(s)) return null; const parts=s.split("::"); if (parts.length>2) return null;
+    const L = parts[0]?parts[0].split(":"):[], R = parts.length===2&&parts[1]?parts[1].split(":"):[];
+    const fill = parts.length===2 ? 8-L.length-R.length : 0; if (fill<0 || (parts.length===1 && L.length!==8)) return null;
+    return [...L, ...Array(fill).fill("0"), ...R].map(x=>parseInt(x||"0",16)).join(","); };
+  const x=ex(a), y=ex(b); return x!==null && x===y;
+}
+function renderDrills(app){
+  const modes = {facts:"Subnet facts", hosts:"Mask for N hosts", same:"Same subnet?", v6:"IPv6 shorthand", eui:"EUI-64"};
+  if (!DR.prob) newProb();
+  app.innerHTML = `
+    <div class="eyebrow">Drills · unlimited, generated fresh</div>
+    <h1 class="num" style="font-size:32px;margin:6px 0 8px">Subnetting and IPv6 speed drills</h1>
+    <p class="lead">The exam won't give you a calculator. Work these until the block-size method is automatic: aim for under 30 seconds for subnet facts.</p>
+    <div class="row" style="margin:14px 0">${Object.entries(modes).map(([k,v])=>`<button class="btn small ${DR.mode===k?"primary":""}" data-m="${k}">${v}</button>`).join("")}</div>
+    <div class="panel drill">
+      <div class="eyebrow">${modes[DR.mode]}</div>
+      <div class="prob">${esc(DR.prob.ask)}</div>
+      <div class="drill-grid">${DR.prob.fields.map((f,i)=>`<label for="dr-${i}">${esc(f[0])}<input type="text" id="dr-${i}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>`).join("")}</div>
+      <div class="row" style="margin-top:14px"><button class="btn primary" id="dr-check">Check</button><button class="btn" id="dr-next">New problem</button><span class="muted" id="dr-stat">Streak ${DR.streak} · solved ${DR.done}</span></div>
+      <div id="dr-work"></div>
+    </div>`;
+  for (const b of app.querySelectorAll("button[data-m]")) b.addEventListener("click", ()=>{ DR.mode=b.dataset.m; newProb(); renderDrills(app); });
+  $("#dr-next").addEventListener("click", ()=>{ newProb(); renderDrills(app); });
+  const inputs = [...app.querySelectorAll(".drill-grid input")];
+  inputs.forEach((inp,i)=>inp.addEventListener("keydown", e=>{ if (e.key==="Enter"){ if (i<inputs.length-1) inputs[i+1].focus(); else $("#dr-check").click(); } }));
+  inputs[0].focus();
+  $("#dr-check").addEventListener("click", ()=>{
+    let all = true;
+    DR.prob.fields.forEach((f,i)=>{
+      const v = inputs[i].value.trim(); let ok;
+      if (DR.prob.kind==="v6") ok = v.toLowerCase()===f[1];
+      else if (DR.prob.kind==="eui") ok = ipv6Equal(v, f[1]);
+      else if (f[0].startsWith("Prefix")) ok = norm(v.replace(/^\//,""))===norm(f[1].replace(/^\//,""));
+      else ok = norm(v)===norm(f[1]);
+      inputs[i].classList.toggle("ok", ok); inputs[i].classList.toggle("no", !ok); if (!ok) all = false;
+    });
+    const secs = Math.round((Date.now()-DR.t0)/1000);
+    if (all){ DR.streak++; DR.done++; } else DR.streak = 0;
+    $("#dr-stat").textContent = `Streak ${DR.streak} · solved ${DR.done}${all?` · ${secs}s`:""}`;
+    $("#dr-work").innerHTML = `<div class="work">${all?"Correct. ":"Answers: "+DR.prob.fields.map(f=>`${f[0]}: ${f[1]}`).join(" · ")+"\n\n"}${esc(DR.prob.work)}</div>`;
+  });
+}
+function newProb(){ DR.prob = ({facts:genFacts, hosts:genHosts, same:genSame, v6:genV6, eui:genEui})[DR.mode](); DR.t0 = Date.now(); }
+
+/* ============================================================ flashcards */
+const FC = {dom:"all", idx:0, deck:[], back:false};
+function buildDeck(){
+  const list = CARDS.filter(c=>FC.dom==="all" || c.domain===+FC.dom);
+  const now = Date.now();
+  const due = c => { const r=S.cards[c.id]; if (!r) return 0; const box=r[0]; const wait=[0, 0, 864e5, 3*864e5, 7*864e5, 14*864e5][box]||0; return (r[1]+wait) - now; };
+  FC.deck = shuffle(list).sort((a,b)=>due(a)-due(b)); FC.idx = 0; FC.back = false;
+}
+function renderCards(app){
+  if (!FC.deck.length) buildDeck();
+  const c = FC.deck[FC.idx];
+  const known = CARDS.filter(x=>(S.cards[x.id]||[0])[0]>=3).length;
+  app.innerHTML = `
+    <div class="eyebrow">Flashcards · ${CARDS.length} cards · ${known} well known</div>
+    <h1 class="num" style="font-size:32px;margin:6px 0 8px">Numbers, defaults and terms</h1>
+    <p class="lead">Tap the card to flip it. "Again" brings it back soon; "Got it" spaces it out over days. Cards you know well sink to the bottom.</p>
+    <div class="row" style="margin:14px 0"><label>Deck <select id="fc-dom"><option value="all">All domains</option>${OUT.domains.map(d=>`<option value="${d.id}" ${String(FC.dom)===String(d.id)?"selected":""}>${d.id}.0 ${esc(d.name)}</option>`).join("")}</select></label></div>
+    ${c ? `<div class="fc ${FC.back?"back":""}" id="fc" role="button" tabindex="0" aria-label="Flip card">
+      <div><div class="side">${FC.back?"Answer":"Prompt"} · ${esc((c.topics||[]).join(", "))}</div><div>${esc(FC.back?c.back:c.front)}</div></div></div>
+      <div class="row" style="margin-top:14px"><button class="btn" id="fc-again">Again</button><button class="btn primary" id="fc-good">Got it</button><span class="muted">${FC.idx+1} of ${FC.deck.length}</span></div>`
+      : `<p class="muted">No cards in this deck yet.</p>`}`;
+  $("#fc-dom").addEventListener("change", e=>{ FC.dom = e.target.value; buildDeck(); renderCards(app); });
+  if (!c) return;
+  const flip = ()=>{ FC.back = !FC.back; renderCards(app); };
+  $("#fc").addEventListener("click", flip);
+  $("#fc").addEventListener("keydown", e=>{ if (e.key===" "||e.key==="Enter"){ e.preventDefault(); flip(); } });
+  const next = good => { const r = S.cards[c.id] || [0,0]; S.cards[c.id] = [good ? Math.min(5, r[0]+1) : 1, Date.now()]; touch(); FC.idx = (FC.idx+1) % FC.deck.length; FC.back=false; if (FC.idx===0) buildDeck(); renderCards(app); };
+  $("#fc-again").addEventListener("click", ()=>next(false));
+  $("#fc-good").addEventListener("click", ()=>next(true));
+}
+
+/* ============================================================ sources */
+function renderSources(app){
+  const kinds = {"official-outline":"Official outline","course":"Free courses","video":"Video","lab-tool":"Lab tools","practice":"Practice","docs":"Cisco and vendor docs","rfc":"RFCs","reference":"Reference"};
+  const groups = [{t:"Start here", f:r=>["official-outline","course","video","lab-tool","practice"].includes(r.kind)}]
+    .concat(OUT.domains.map(d=>({t:`${d.id}.0 ${d.name}`, f:r=>!["official-outline","course","video","lab-tool","practice"].includes(r.kind) && (r.domains||[])[0]===d.id})))
+    .concat([{t:"Everything else", f:r=>!["official-outline","course","video","lab-tool","practice"].includes(r.kind) && !(r.domains||[]).length}]);
+  app.innerHTML = `
+    <div class="eyebrow">Free sources · each link opened and checked on ${esc((RES[0]||{}).verified||"")}</div>
+    <h1 class="num" style="font-size:32px;margin:6px 0 8px">Free, legitimate resources only</h1>
+    <p class="lead">Cisco's own outline and docs, the free Networking Academy tools, Jeremy's IT Lab's free course, and the RFCs behind the protocols. No dumps, no paid material.</p>
+    ${groups.map(g=>{ const list = RES.filter(g.f); if (!list.length) return ""; return `<section class="block"><h2>${esc(g.t)}</h2><div class="res-list">${list.map(r=>`<div class="res"><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a><span class="kind">${esc(kinds[r.kind]||r.kind)} · ${esc(r.provider||"")}</span><p>${esc(r.note||"")}${(r.topics||[]).length?` <span class="num">(${esc(r.topics.join(", "))})</span>`:""}</p></div>`).join("")}</div></section>`; }).join("")}`;
+}
+
+/* ============================================================ coverage */
+function renderCoverage(app){
+  const tq = QS.filter(q=>q.pool==="quiz").length, tx = QS.filter(q=>q.pool==="exam").length;
+  app.innerHTML = `
+    <div class="eyebrow">Coverage against Cisco's outline</div>
+    <h1 class="num" style="font-size:32px;margin:6px 0 8px">Every topic, accounted for</h1>
+    <p class="lead">Each row is one item on the CCNA 200-301 v1.1 outline. It shows where the lesson covers it and how many study questions, practice-exam questions and flashcards test it. ${tq} study questions and ${tx} practice-exam questions in total.</p>
+    <div class="tblwrap" style="margin-top:14px"><table class="data"><thead><tr><th>Topic</th><th>Lesson</th><th>Quiz</th><th>Exam</th><th>Cards</th><th>Studied</th></tr></thead><tbody>
+    ${COV.map(r=>{ const top = !/\.[a-z]$/.test(r.id); return `<tr><td style="${top?"font-weight:600":"padding-left:26px"}"><span class="num">${esc(r.id)}</span> ${esc(r.title)}</td>
+      <td>${r.lesson?`<a href="#${sid(r.id)}">Open</a>`:"missing"}</td><td class="n">${r.quiz}</td><td class="n">${r.exam}</td><td class="n">${r.cards}</td><td>${top?(S.studied[r.id]?"✓":""):""}</td></tr>`; }).join("")}
+    </tbody></table></div>`;
+}
+
+/* ============================================================ boot */
+async function boot(){
+  loadLocal();
+  try{
+    const [o,q,c,r,cv] = await Promise.all(["outline","questions","cards","resources","coverage"].map(n=>fetch(`data/${n}.json`).then(x=>{ if(!x.ok) throw new Error(n); return x.json(); })));
+    OUT=o; QS=q; CARDS=c; RES=r; COV=cv;
+  }catch(e){ $("#app").innerHTML = `<p>The study data didn't load. Reload the page to try again.</p>`; return; }
+  for (const d of OUT.domains) for (const t of d.topics){ TOPIC[t.id] = {id:t.id, title:t.title, domain:d.id, parent:null}; for (const s of t.subs) TOPIC[s[0]] = {id:s[0], title:s[1], domain:d.id, parent:t.id}; }
+  route();
+  connectDb();
+}
+boot();
+</script>
+
+</body></html>

@@ -1,0 +1,1893 @@
+<section class="topic" id="t-2-1" data-topics="2.1,2.1.a,2.1.b,2.1.c">
+<h2>2.1 Configure and verify VLANs (normal range) spanning multiple switches</h2>
+
+<p>A VLAN is a Layer 2 broadcast domain carved out of a switch (or a set of switches). Ports in VLAN 10 only flood broadcasts, unknown unicasts and multicasts to other ports in VLAN 10. Each VLAN is normally one IP subnet, so traffic between VLANs must be routed. On the exam you need to build VLANs, put ports in them, carry them between switches (topic 2.2) and route between them (2.1.c).</p>
+
+<h3>VLAN ID ranges and where they live</h3>
+<table>
+<thead><tr><th>Range</th><th>IDs</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Reserved</td><td>0 and 4095</td><td>Not usable. VID 0 in a tag means "priority tag only, no VLAN".</td></tr>
+<tr><td>Normal range</td><td>1 to 1005</td><td>User-configurable: 2 to 1001. Stored in <code>vlan.dat</code> in flash. Advertised by VTP v1/v2.</td></tr>
+<tr><td>Default VLAN</td><td>1</td><td>Exists from the factory, cannot be deleted or renamed. Every port starts in VLAN 1.</td></tr>
+<tr><td>Legacy reserved</td><td>1002 to 1005</td><td>fddi-default, token-ring-default, fddinet-default, trnet-default. Auto-created, cannot be deleted, shown as <code>act/unsup</code>.</td></tr>
+<tr><td>Extended range</td><td>1006 to 4094</td><td>Not saved in <code>vlan.dat</code> with VTP v1/v2 (kept in the running config, so save it). Older switches required VTP transparent mode to create them; VTP v3 can carry them.</td></tr>
+</tbody>
+</table>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> VLANs are not in <code>startup-config</code> on a switch in VTP server or client mode; they are in <code>flash:vlan.dat</code>. <code>erase startup-config</code> followed by a reload keeps your VLANs. To wipe a lab switch fully you also need <code>delete flash:vlan.dat</code>. The CCNA blueprint says "normal range", so expect IDs 1 to 1005 in questions.</p></div>
+
+<h3 id="t-2-1-b">2.1.b The default VLAN (VLAN 1)</h3>
+<p>Out of the box every switch port is in VLAN 1 (and in dynamic auto mode, see 2.2), the native VLAN on trunks is VLAN 1, and control protocols such as CDP, VTP and PAgP are sent in VLAN 1 on trunks (DTP on an 802.1Q trunk uses the native VLAN, which is also VLAN 1 by default). VLAN 1 cannot be deleted. The interface <code>Vlan1</code> SVI exists by default (shut down) and is often used for management on small switches.</p>
+<p>Security best practice, which Cisco and the exam both reward:</p>
+<ul>
+<li>Move all user ports out of VLAN 1 into named VLANs.</li>
+<li>Use a dedicated management VLAN (for example VLAN 99) for the switch SVI instead of VLAN 1.</li>
+<li>Change the trunk native VLAN to an unused VLAN that carries no users.</li>
+<li>Put unused ports in an unused "parking" VLAN and shut them down.</li>
+</ul>
+
+<h3>Creating and naming VLANs</h3>
+<pre class="cli">SW1# configure terminal
+SW1(config)# vlan 10
+SW1(config-vlan)# name SALES
+SW1(config-vlan)# vlan 20
+SW1(config-vlan)# name ENG
+SW1(config-vlan)# vlan 30
+SW1(config-vlan)# name VOICE
+SW1(config-vlan)# vlan 99
+SW1(config-vlan)# name NATIVE_UNUSED
+SW1(config-vlan)# exit
+! Delete a VLAN (ports left in it become inactive, not moved to VLAN 1)
+SW1(config)# no vlan 20</pre>
+<p>A VLAN with no name gets a default name of <code>VLAN</code> plus the ID padded to four digits (VLAN 10 is <code>VLAN0010</code>). In VLAN configuration mode the change takes effect when you leave the mode. You can also <code>shutdown</code> a VLAN in config-vlan mode (local shutdown) or set <code>state suspend</code>; either stops traffic in that VLAN on this switch.</p>
+
+<h3 id="t-2-1-a">2.1.a Access ports (data and voice)</h3>
+<p>An access port belongs to one data VLAN. Frames enter and leave it untagged; the switch associates the frame with the access VLAN internally. Hard-code access mode so the port never negotiates a trunk:</p>
+<pre class="cli">SW1(config)# interface range fastethernet0/1 - 2
+SW1(config-if-range)# switchport mode access
+SW1(config-if-range)# switchport access vlan 10
+SW1(config-if-range)# exit
+SW1(config)# interface fastethernet0/3
+SW1(config-if)# switchport mode access
+SW1(config-if)# switchport access vlan 20
+! If VLAN 40 does not exist yet, IOS creates it for you:
+SW1(config-if)# switchport access vlan 40
+% Access VLAN does not exist. Creating vlan 40</pre>
+
+<h4>Voice VLAN</h4>
+<p>An IP phone usually sits between the switch and a PC: switch port to the phone's network port, PC into the phone's PC port. One cable now carries two kinds of traffic. Cisco handles this with a voice VLAN (Cisco calls it an auxiliary VLAN):</p>
+<ul>
+<li><code>switchport access vlan 10</code> sets the data VLAN. The PC's frames cross the link <strong>untagged</strong>.</li>
+<li><code>switchport voice vlan 30</code> sets the voice VLAN. The phone sends its own voice frames <strong>tagged</strong> with 802.1Q VID 30 (with CoS 5 in the PCP bits).</li>
+<li>The switch tells the phone which VLAN to use with <strong>CDP</strong> (Cisco phones) or <strong>LLDP-MED</strong> (network policy TLV, multivendor phones). The phone does not need to be configured by hand.</li>
+<li>The port is still an access port, not a trunk. <code>show interfaces trunk</code> does not list it. It does appear under both VLAN 10 and VLAN 30 in <code>show vlan brief</code>.</li>
+</ul>
+<pre class="cli">SW1(config)# interface fastethernet0/5
+SW1(config-if)# switchport mode access
+SW1(config-if)# switchport access vlan 10
+SW1(config-if)# switchport voice vlan 30
+SW1(config-if)# spanning-tree portfast</pre>
+
+<figure class="diagram">
+<svg viewBox="0 0 700 200" role="img" aria-label="Switch port with voice VLAN: phone traffic tagged VLAN 30, PC traffic untagged in VLAN 10">
+<rect x="20" y="70" width="130" height="60" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="85" y="97" text-anchor="middle" class="d-text">SW1</text>
+<text x="85" y="117" text-anchor="middle" class="d-text">Fa0/5</text>
+<rect x="290" y="70" width="130" height="60" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="355" y="97" text-anchor="middle" class="d-text">IP phone</text>
+<text x="355" y="117" text-anchor="middle" class="d-text">(3-port switch)</text>
+<rect x="560" y="70" width="120" height="60" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="620" y="105" text-anchor="middle" class="d-text">PC</text>
+<line x1="150" y1="100" x2="290" y2="100" class="d-line" stroke="currentColor" stroke-width="2"/>
+<line x1="420" y1="100" x2="560" y2="100" class="d-line" stroke="currentColor" stroke-width="2"/>
+<text x="220" y="60" text-anchor="middle" class="d-text">voice: tagged VID 30</text>
+<text x="220" y="150" text-anchor="middle" class="d-text">data: untagged (VLAN 10)</text>
+<text x="490" y="150" text-anchor="middle" class="d-text">untagged</text>
+<text x="350" y="185" text-anchor="middle" class="d-muted">CDP or LLDP-MED tells the phone: voice VLAN = 30</text>
+</svg>
+<figcaption>Voice VLAN: one access port, two VLANs. The phone tags its voice frames; the PC behind it stays untagged in the data VLAN.</figcaption>
+</figure>
+
+<h3>Verifying VLANs and access ports</h3>
+<pre class="cli">SW1# show vlan brief
+
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    Fa0/4, Fa0/6, Fa0/7, Fa0/8
+                                                Fa0/9, Fa0/10, Fa0/11, Fa0/12
+                                                Fa0/13, Fa0/14, Fa0/15, Fa0/16
+                                                Fa0/17, Fa0/18, Fa0/19, Fa0/20
+                                                Fa0/21, Fa0/22, Fa0/23, Fa0/24
+                                                Gi0/2
+10   SALES                            active    Fa0/1, Fa0/2, Fa0/5
+20   ENG                              active    Fa0/3
+30   VOICE                            active    Fa0/5
+99   NATIVE_UNUSED                    active
+1002 fddi-default                     act/unsup
+1003 token-ring-default               act/unsup
+1004 fddinet-default                  act/unsup
+1005 trnet-default                    act/unsup</pre>
+<p>How to read it: the Ports column lists <strong>access ports only</strong>. Gi0/1 is missing because it is an operational trunk (trunks never appear here). Fa0/5 shows in VLAN 10 and VLAN 30 because it has a data and a voice VLAN. VLAN 99 exists but has no access ports, which is what you want for a native VLAN. <code>show vlan</code> (without <code>brief</code>) adds MTU, type and remote-SPAN details; <code>show vlan id 10</code> shows one VLAN.</p>
+
+<pre class="cli">SW1# show interfaces fastethernet0/5 switchport
+Name: Fa0/5
+Switchport: Enabled
+Administrative Mode: static access
+Operational Mode: static access
+Administrative Trunking Encapsulation: dot1q
+Operational Trunking Encapsulation: native
+Negotiation of Trunking: Off
+Access Mode VLAN: 10 (SALES)
+Trunking Native Mode VLAN: 1 (default)
+Administrative Native VLAN tagging: enabled
+Voice VLAN: 30 (VOICE)
+! ...private-VLAN lines trimmed...
+Operational private-vlan: none
+Trunking VLANs Enabled: ALL
+Pruning VLANs Enabled: 2-1001
+Capture Mode Disabled
+Capture VLANs Allowed: ALL
+
+Protected: false
+Unknown unicast blocked: disabled
+Unknown multicast blocked: disabled
+Appliance trust: none</pre>
+<p>Key lines: <em>Administrative Mode</em> is what you configured, <em>Operational Mode</em> is what the port is actually doing (they differ when DTP negotiates). <em>Negotiation of Trunking: Off</em> means DTP is not sent (true for <code>switchport mode access</code>). <em>Access Mode VLAN</em> shows the data VLAN; if it shows <code>10 (Inactive)</code>, VLAN 10 does not exist in the VLAN database and the port drops traffic.</p>
+
+<h3 id="t-2-1-c">2.1.c Inter-VLAN connectivity</h3>
+<p>Hosts in different VLANs are in different subnets, so a Layer 3 device must route between them. The default gateway of each host is that Layer 3 device's address in the host's subnet. There are three CCNA methods.</p>
+
+<h4>Method 1: Router-on-a-stick (ROAS)</h4>
+<p>One router physical interface connects to a switch trunk. The router creates one subinterface per VLAN, each with <code>encapsulation dot1q &lt;vlan-id&gt;</code> and an IP address that acts as the default gateway for that VLAN. Frames arrive tagged; the router strips the tag, routes, and re-tags with the egress subinterface's VLAN.</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 700 300" role="img" aria-label="Router on a stick: R1 G0/0 subinterfaces for VLAN 10 and 20 over an 802.1Q trunk to SW1 with two PCs">
+<rect x="270" y="20" width="160" height="60" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="350" y="47" text-anchor="middle" class="d-text">R1</text>
+<text x="350" y="67" text-anchor="middle" class="d-text">G0/0 (no IP)</text>
+<text x="450" y="35" class="d-text">G0/0.10  192.168.10.1/24</text>
+<text x="450" y="55" class="d-text">G0/0.20  192.168.20.1/24</text>
+<text x="450" y="75" class="d-text">G0/0.99  native, 192.168.99.1/24</text>
+<line x1="350" y1="80" x2="350" y2="170" class="d-accent" stroke="currentColor" stroke-width="4"/>
+<text x="360" y="130" class="d-text">802.1Q trunk (Gi0/1 on SW1)</text>
+<rect x="270" y="170" width="160" height="50" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="350" y="200" text-anchor="middle" class="d-text">SW1</text>
+<line x1="290" y1="220" x2="150" y2="250" class="d-line" stroke="currentColor" stroke-width="2"/>
+<line x1="410" y1="220" x2="550" y2="250" class="d-line" stroke="currentColor" stroke-width="2"/>
+<rect x="60" y="250" width="180" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="150" y="275" text-anchor="middle" class="d-text">PC1 VLAN 10 .10.11</text>
+<rect x="460" y="250" width="180" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="550" y="275" text-anchor="middle" class="d-text">PC2 VLAN 20 .20.11</text>
+<text x="20" y="240" class="d-muted">Fa0/1 access 10</text>
+<text x="560" y="240" class="d-muted">Fa0/3 access 20</text>
+</svg>
+<figcaption>Router-on-a-stick. PC1 to PC2 traffic goes up the trunk tagged 10, is routed on R1, and comes back down tagged 20.</figcaption>
+</figure>
+
+<pre class="cli">R1(config)# interface gigabitethernet0/0
+R1(config-if)# no ip address
+R1(config-if)# no shutdown
+! Subinterfaces inherit the physical interface's up/down state
+R1(config-if)# interface gigabitethernet0/0.10
+R1(config-subif)# encapsulation dot1q 10
+R1(config-subif)# ip address 192.168.10.1 255.255.255.0
+R1(config-subif)# interface gigabitethernet0/0.20
+R1(config-subif)# encapsulation dot1q 20
+R1(config-subif)# ip address 192.168.20.1 255.255.255.0
+R1(config-subif)# interface gigabitethernet0/0.99
+R1(config-subif)# encapsulation dot1q 99 native
+R1(config-subif)# ip address 192.168.99.1 255.255.255.0
+
+SW1(config)# interface gigabitethernet0/1
+SW1(config-if)# switchport mode trunk
+SW1(config-if)# switchport trunk native vlan 99
+SW1(config-if)# switchport trunk allowed vlan 10,20,99</pre>
+<ul>
+<li>The subinterface number (<code>.10</code>) is only a label. The <code>encapsulation dot1q</code> VLAN ID is what matters. Matching them is convention, and mismatching them is a classic exam distractor.</li>
+<li>You must configure <code>encapsulation dot1q</code> before IOS accepts an IP address on a subinterface.</li>
+<li>The native VLAN: either use a subinterface with <code>encapsulation dot1q 99 native</code>, or put the native VLAN's IP address on the physical interface itself. Do not do both. The router's native VLAN must match the switch trunk's native VLAN.</li>
+<li>The router port has no DTP. The switch side must be <code>switchport mode trunk</code> (a dynamic mode never forms a trunk with a router).</li>
+<li>Drawback: all inter-VLAN traffic crosses one link twice (in and out), so the link is a bottleneck and a single point of failure.</li>
+</ul>
+<pre class="cli">R1# show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0     unassigned      YES unset  up                    up
+GigabitEthernet0/0.10  192.168.10.1    YES manual up                    up
+GigabitEthernet0/0.20  192.168.20.1    YES manual up                    up
+GigabitEthernet0/0.99  192.168.99.1    YES manual up                    up
+GigabitEthernet0/1     unassigned      YES unset  administratively down down
+
+R1# show vlans
+
+Virtual LAN ID:  10 (IEEE 802.1Q Encapsulation)
+
+   vLAN Trunk Interface:   GigabitEthernet0/0.10
+
+   Protocols Configured:   Address:              Received:        Transmitted:
+           IP              192.168.10.1                 214              187
+! ...output for VLANs 20 and 99 trimmed...</pre>
+
+<h4>Method 2: Layer 3 switch with SVIs</h4>
+<p>A multilayer switch (Catalyst 3650, 3850, 9300) routes in hardware between VLAN interfaces, called switched virtual interfaces (SVIs). There is no external link bottleneck.</p>
+<pre class="cli">DSW1(config)# ip routing
+! Without ip routing the switch has SVIs but does not route between them
+DSW1(config)# vlan 10
+DSW1(config-vlan)# vlan 20
+DSW1(config-vlan)# exit
+DSW1(config)# interface vlan 10
+DSW1(config-if)# ip address 192.168.10.1 255.255.255.0
+DSW1(config-if)# no shutdown
+DSW1(config-if)# interface vlan 20
+DSW1(config-if)# ip address 192.168.20.1 255.255.255.0
+DSW1(config-if)# no shutdown</pre>
+<p><strong>When is an SVI up/up?</strong> By default (the "autostate" feature) an SVI is up/up only when all of these are true:</p>
+<ol>
+<li>The VLAN exists in the switch's VLAN database (and is not shut down or suspended).</li>
+<li>The SVI itself is not administratively shut down (<code>interface vlan X</code> is shut by default when created on many platforms, so add <code>no shutdown</code>).</li>
+<li>At least one Layer 2 port in that VLAN is up and in the STP forwarding state: an access port in the VLAN, or a trunk that allows the VLAN.</li>
+</ol>
+<pre class="cli">DSW1# show ip interface brief | include Vlan
+Vlan1                  unassigned      YES unset  administratively down down
+Vlan10                 192.168.10.1    YES manual up                    up
+Vlan20                 192.168.20.1    YES manual up                    up
+Vlan30                 192.168.30.1    YES manual up                    down
+! Vlan30 is up/down: VLAN 30 has no active access port or trunk carrying it,
+! or VLAN 30 was never created with the vlan 30 command.
+
+DSW1# show ip route connected
+! (codes trimmed)
+      192.168.10.0/24 is variably subnetted, 2 subnets, 2 masks
+C        192.168.10.0/24 is directly connected, Vlan10
+L        192.168.10.1/32 is directly connected, Vlan10
+      192.168.20.0/24 is variably subnetted, 2 subnets, 2 masks
+C        192.168.20.0/24 is directly connected, Vlan20
+L        192.168.20.1/32 is directly connected, Vlan20</pre>
+
+<h4>Method 3: Routed ports</h4>
+<p>On a Layer 3 switch, <code>no switchport</code> turns a physical port into a routed port: it belongs to no VLAN, runs no STP or DTP, and takes an IP address directly, exactly like a router interface. Use it for point-to-point links between a Layer 3 switch and a router or another Layer 3 switch (for example core uplinks running OSPF).</p>
+<pre class="cli">DSW1(config)# interface gigabitethernet1/0/24
+DSW1(config-if)# no switchport
+DSW1(config-if)# ip address 10.0.0.1 255.255.255.252
+DSW1(config-if)# no shutdown
+
+DSW1# show interfaces gigabitethernet1/0/24 switchport
+Name: Gi1/0/24
+Switchport: Disabled</pre>
+<p>On the CCNA, a Layer 2 access switch such as the 2960 does not route between VLANs. It normally has one management SVI and uses <code>ip default-gateway</code> (not a default route) to reach other subnets. (Some 2960 models running the LAN Base image can do limited static routing between SVIs, but that is outside the exam.)</p>
+
+<h3>Common VLAN and inter-VLAN faults</h3>
+<table>
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>Check with</th></tr></thead>
+<tbody>
+<tr><td>Host can ping its own VLAN, not others</td><td>Wrong or missing default gateway on host; SVI down; <code>ip routing</code> missing on L3 switch</td><td><code>ipconfig</code>/<code>ip route</code> on host, <code>show ip interface brief</code>, <code>show running-config | include ip routing</code></td></tr>
+<tr><td>Host cannot reach anything, link is up</td><td>Port in the wrong access VLAN, or access VLAN does not exist (Inactive)</td><td><code>show vlan brief</code>, <code>show interfaces X switchport</code></td></tr>
+<tr><td>VLAN works on SW1 but not on SW2</td><td>VLAN not created on SW2, or not in the trunk allowed list, or trunk not forming</td><td><code>show vlan brief</code> on SW2, <code>show interfaces trunk</code></td></tr>
+<tr><td>ROAS: one VLAN fails</td><td>Wrong VLAN in <code>encapsulation dot1q</code>, wrong IP/mask on subinterface, VLAN pruned from trunk</td><td><code>show running-config interface g0/0.20</code>, <code>show vlans</code></td></tr>
+<tr><td>ROAS: all VLANs fail</td><td>Physical interface shut down; switch port is access or dynamic instead of trunk</td><td><code>show ip interface brief</code>, <code>show interfaces trunk</code> on the switch</td></tr>
+<tr><td>SVI up/down</td><td>No active port in that VLAN, VLAN missing from database</td><td><code>show vlan id X</code>, <code>show interfaces trunk</code></td></tr>
+</tbody>
+</table>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> deleting a VLAN with <code>no vlan 10</code> does not move its ports to VLAN 1. The ports stay assigned to VLAN 10, which no longer exists, so they go inactive and disappear from <code>show vlan brief</code>. Recreate the VLAN and they come back.</p></div>
+
+<div class="lab" id="lab-2-1-1">
+<h4>Lab: VLANs, trunk and router-on-a-stick across two switches</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~45 min</p>
+<p>Topology: R1 (ISR 4331; on a 2911 the port is G0/0 instead of G0/0/0) G0/0/0 to SW1 Gi0/1. SW1 Gi0/2 to SW2 Gi0/2 (both 2960-24TT). PC1 on SW1 Fa0/1, PC2 on SW1 Fa0/3, PC3 on SW2 Fa0/1, PC4 on SW2 Fa0/3. VLAN 10 SALES 192.168.10.0/24, VLAN 20 ENG 192.168.20.0/24, VLAN 99 native (unused). PC1 .10.11, PC2 .20.11, PC3 .10.12, PC4 .20.12; gateways .1.</p>
+<ol>
+<li>On both switches create VLANs 10, 20 and 99 with names.</li>
+<li>Make Fa0/1 an access port in VLAN 10 and Fa0/3 an access port in VLAN 20 on both switches.</li>
+<li>Make SW1 Gi0/1, SW1 Gi0/2 and SW2 Gi0/2 static trunks with native VLAN 99, allowed VLANs 10,20,99, and DTP disabled on the switch-to-switch link.</li>
+<li>Configure R1 subinterfaces for VLAN 10, 20 and 99 (native).</li>
+<li>Ping PC1 to PC3 (same VLAN, across the trunk) and PC1 to PC4 (inter-VLAN, through R1).</li>
+<li>Break it: change R1's G0/0/0.20 to <code>encapsulation dot1q 21</code>. Predict which pings fail, test, then fix.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li><code>show vlan brief</code>: Fa0/1 in VLAN 10, Fa0/3 in VLAN 20, Gi ports absent (trunks).</li>
+<li><code>show interfaces trunk</code>: Gi0/1 and Gi0/2 trunking, native 99, allowed 10,20,99.</li>
+<li><code>show ip interface brief</code> on R1: three subinterfaces up/up.</li>
+<li>Step 6: PC1 to PC3 still works, PC1 to PC4 fails (R1 now tags VLAN 20 traffic as 21; SW1 drops it).</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! SW1 (SW2 is identical except it has no Gi0/1 link to R1)
+SW1(config)# vlan 10
+SW1(config-vlan)# name SALES
+SW1(config-vlan)# vlan 20
+SW1(config-vlan)# name ENG
+SW1(config-vlan)# vlan 99
+SW1(config-vlan)# name NATIVE_UNUSED
+SW1(config-vlan)# exit
+SW1(config)# interface fastethernet0/1
+SW1(config-if)# switchport mode access
+SW1(config-if)# switchport access vlan 10
+SW1(config-if)# interface fastethernet0/3
+SW1(config-if)# switchport mode access
+SW1(config-if)# switchport access vlan 20
+SW1(config-if)# interface range gigabitethernet0/1 - 2
+SW1(config-if-range)# switchport mode trunk
+SW1(config-if-range)# switchport trunk native vlan 99
+SW1(config-if-range)# switchport trunk allowed vlan 10,20,99
+SW1(config-if-range)# interface gigabitethernet0/2
+SW1(config-if)# switchport nonegotiate
+
+! R1
+R1(config)# interface gigabitethernet0/0/0
+R1(config-if)# no shutdown
+R1(config-if)# interface gigabitethernet0/0/0.10
+R1(config-subif)# encapsulation dot1q 10
+R1(config-subif)# ip address 192.168.10.1 255.255.255.0
+R1(config-subif)# interface gigabitethernet0/0/0.20
+R1(config-subif)# encapsulation dot1q 20
+R1(config-subif)# ip address 192.168.20.1 255.255.255.0
+R1(config-subif)# interface gigabitethernet0/0/0.99
+R1(config-subif)# encapsulation dot1q 99 native
+R1(config-subif)# ip address 192.168.99.1 255.255.255.0</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-2-1-2">
+<h4>Lab: Inter-VLAN routing with SVIs on a 3650</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~30 min</p>
+<p>Topology: DSW1 (3650-24PS, add a power supply module in the Physical tab if it is off) Gi1/0/1 trunk to SW1 (2960) Gi0/1. PC1 VLAN 10 on SW1 Fa0/1, PC2 VLAN 20 on SW1 Fa0/2. DSW1 Gi1/0/24 routed port to R1 G0/0/0, 10.0.0.0/30. R1 has a loopback 172.16.1.1/24.</p>
+<ol>
+<li>Create VLANs 10 and 20 on both switches. Configure the access ports on SW1 and the trunk on both ends.</li>
+<li>On DSW1 create SVIs Vlan10 (192.168.10.1/24) and Vlan20 (192.168.20.1/24). Do not enter <code>ip routing</code> yet.</li>
+<li>Ping PC1 to PC2. Record the result. Then enable <code>ip routing</code> and ping again.</li>
+<li>Make Gi1/0/24 a routed port 10.0.0.1/30, R1 G0/0/0 10.0.0.2/30. Add a default route on DSW1 to 10.0.0.2 and a static route on R1 for 192.168.0.0/16 to 10.0.0.1. Ping 172.16.1.1 from PC1.</li>
+<li>Create SVI Vlan30 with an address, no shutdown, and observe its state. Explain why.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>Step 3: first ping fails (no routing), second succeeds.</li>
+<li><code>show ip route</code> on DSW1: C routes for Vlan10, Vlan20 and Gi1/0/24, S* default.</li>
+<li><code>show interfaces gi1/0/24 switchport</code>: Switchport: Disabled.</li>
+<li>Vlan30 is up/down (if VLAN 30 was never created, or has no forwarding port).</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">DSW1(config)# vlan 10
+DSW1(config-vlan)# vlan 20
+DSW1(config-vlan)# exit
+! SW1: access ports Fa0/1 (VLAN 10) and Fa0/2 (VLAN 20), and
+! switchport mode trunk on Gi0/1, as in lab-2-1-1
+DSW1(config)# interface gigabitethernet1/0/1
+! If IOS rejects the next line with "An interface whose trunk encapsulation
+! is "Auto" can not be configured to "trunk" mode", first enter:
+!   switchport trunk encapsulation dot1q
+DSW1(config-if)# switchport mode trunk
+DSW1(config-if)# interface vlan 10
+DSW1(config-if)# ip address 192.168.10.1 255.255.255.0
+DSW1(config-if)# no shutdown
+DSW1(config-if)# interface vlan 20
+DSW1(config-if)# ip address 192.168.20.1 255.255.255.0
+DSW1(config-if)# no shutdown
+DSW1(config-if)# exit
+DSW1(config)# ip routing
+DSW1(config)# interface gigabitethernet1/0/24
+DSW1(config-if)# no switchport
+DSW1(config-if)# ip address 10.0.0.1 255.255.255.252
+DSW1(config-if)# no shutdown
+DSW1(config-if)# exit
+DSW1(config)# ip route 0.0.0.0 0.0.0.0 10.0.0.2
+
+R1(config)# interface gigabitethernet0/0/0
+R1(config-if)# ip address 10.0.0.2 255.255.255.252
+R1(config-if)# no shutdown
+R1(config-if)# interface loopback0
+R1(config-if)# ip address 172.16.1.1 255.255.255.0
+R1(config-if)# exit
+R1(config)# ip route 192.168.0.0 255.255.0.0 10.0.0.1</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Normal range 1 to 1005 (usable 2 to 1001) lives in <code>vlan.dat</code>; extended 1006 to 4094; VLAN 1 and 1002 to 1005 cannot be deleted.</li>
+<li>Access port: <code>switchport mode access</code> + <code>switchport access vlan X</code>. Voice VLAN: <code>switchport voice vlan Y</code>; phone tags voice, PC untagged; CDP/LLDP-MED tells the phone the VLAN.</li>
+<li><code>show vlan brief</code> lists access ports only; trunks never appear there.</li>
+<li>ROAS: <code>encapsulation dot1q X [native]</code> on subinterfaces; switch side must be a static trunk.</li>
+<li>L3 switch: <code>ip routing</code> + <code>interface vlan X</code>; SVI is up/up only if the VLAN exists and has at least one forwarding port.</li>
+<li>Routed port: <code>no switchport</code> + IP address; no VLAN, no STP.</li>
+</ul></div>
+</section>
+<section class="topic" id="t-2-2" data-topics="2.2,2.2.a,2.2.b,2.2.c">
+<h2>2.2 Configure and verify interswitch connectivity</h2>
+
+<p>When a VLAN spans several switches, the links between them must carry many VLANs at once. A trunk does this by tagging each frame with its VLAN ID. On the CCNA the trunking standard is IEEE 802.1Q; Cisco's old proprietary ISL is gone from current switches and from the blueprint.</p>
+
+<h3 id="t-2-2-b">2.2.b 802.1Q tagging</h3>
+<p>802.1Q inserts a 4-byte tag between the source MAC address and the EtherType/Length field. Because the frame changes, the sender recalculates the FCS. The maximum Ethernet frame grows from 1518 to 1522 bytes (a "baby giant" that 802.1Q-aware switches accept).</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 250" role="img" aria-label="802.1Q tagged Ethernet frame with the 4-byte tag expanded into TPID, PCP, DEI and VID fields">
+<rect x="10" y="30" width="110" height="50" class="d-fill" stroke="currentColor"/>
+<text x="65" y="52" text-anchor="middle" class="d-text">Dest MAC</text>
+<text x="65" y="70" text-anchor="middle" class="d-muted">6 B</text>
+<rect x="120" y="30" width="110" height="50" class="d-fill" stroke="currentColor"/>
+<text x="175" y="52" text-anchor="middle" class="d-text">Src MAC</text>
+<text x="175" y="70" text-anchor="middle" class="d-muted">6 B</text>
+<rect x="230" y="30" width="120" height="50" class="d-accent-fill" stroke="currentColor"/>
+<text x="290" y="52" text-anchor="middle" class="d-text">802.1Q tag</text>
+<text x="290" y="70" text-anchor="middle" class="d-text">4 B</text>
+<rect x="350" y="30" width="100" height="50" class="d-fill" stroke="currentColor"/>
+<text x="400" y="52" text-anchor="middle" class="d-text">Type/Len</text>
+<text x="400" y="70" text-anchor="middle" class="d-muted">2 B</text>
+<rect x="450" y="30" width="170" height="50" class="d-fill" stroke="currentColor"/>
+<text x="535" y="52" text-anchor="middle" class="d-text">Payload</text>
+<text x="535" y="70" text-anchor="middle" class="d-muted">46 to 1500 B</text>
+<rect x="620" y="30" width="90" height="50" class="d-fill" stroke="currentColor"/>
+<text x="665" y="52" text-anchor="middle" class="d-text">FCS</text>
+<text x="665" y="70" text-anchor="middle" class="d-muted">4 B (new)</text>
+<line x1="230" y1="80" x2="20" y2="140" class="d-line" stroke="currentColor"/>
+<line x1="350" y1="80" x2="700" y2="140" class="d-line" stroke="currentColor"/>
+<rect x="20" y="140" width="300" height="55" class="d-fill" stroke="currentColor"/>
+<text x="170" y="163" text-anchor="middle" class="d-text">TPID = 0x8100</text>
+<text x="170" y="183" text-anchor="middle" class="d-muted">16 bits</text>
+<rect x="320" y="140" width="100" height="55" class="d-fill" stroke="currentColor"/>
+<text x="370" y="163" text-anchor="middle" class="d-text">PCP</text>
+<text x="370" y="183" text-anchor="middle" class="d-muted">3 bits</text>
+<rect x="420" y="140" width="70" height="55" class="d-fill" stroke="currentColor"/>
+<text x="455" y="163" text-anchor="middle" class="d-text">DEI</text>
+<text x="455" y="183" text-anchor="middle" class="d-muted">1 bit</text>
+<rect x="490" y="140" width="210" height="55" class="d-accent-fill" stroke="currentColor"/>
+<text x="595" y="163" text-anchor="middle" class="d-text">VID (VLAN ID)</text>
+<text x="595" y="183" text-anchor="middle" class="d-text">12 bits: 0 to 4095</text>
+<text x="360" y="230" text-anchor="middle" class="d-muted">PCP + DEI + VID = 16-bit Tag Control Information (TCI)</text>
+</svg>
+<figcaption>802.1Q tag. The TPID value 0x8100 sits where the EtherType would be, so a receiver knows a tag follows.</figcaption>
+</figure>
+
+<dl>
+<dt>TPID (Tag Protocol Identifier), 16 bits</dt><dd>Always 0x8100 for 802.1Q. Identifies the frame as tagged.</dd>
+<dt>PCP (Priority Code Point), 3 bits</dt><dd>The 802.1p Class of Service (CoS) value 0 to 7. Voice is usually CoS 5. This is the Layer 2 QoS marking covered again in 4.7.</dd>
+<dt>DEI (Drop Eligible Indicator), 1 bit</dt><dd>Marks a frame as eligible to drop under congestion. Formerly called CFI (Canonical Format Indicator).</dd>
+<dt>VID (VLAN Identifier), 12 bits</dt><dd>VLAN ID. 2 to the power 12 = 4096 values; 0 and 4095 are reserved, so 1 to 4094 are usable.</dd>
+</dl>
+
+<h3 id="t-2-2-a">2.2.a Trunk ports and DTP</h3>
+<p>A Cisco switch port's Layer 2 mode is set with <code>switchport mode</code>:</p>
+<table>
+<thead><tr><th>Mode</th><th>Behavior</th></tr></thead>
+<tbody>
+<tr><td><code>access</code></td><td>Always access, whatever the neighbor does. Never trunks.</td></tr>
+<tr><td><code>trunk</code></td><td>Always trunk. Sends DTP to invite the neighbor to trunk too (unless <code>nonegotiate</code> is set).</td></tr>
+<tr><td><code>dynamic desirable</code></td><td>Actively sends DTP and becomes a trunk if the neighbor is trunk, desirable or auto.</td></tr>
+<tr><td><code>dynamic auto</code></td><td>Passive: becomes a trunk only if the neighbor is trunk or desirable. <strong>Default on current Catalyst switches</strong> (2960, 3650, 9200, 9300).</td></tr>
+</tbody>
+</table>
+<p>DTP (Dynamic Trunking Protocol) is Cisco proprietary. It negotiates whether the link trunks (and, on old ISL-capable switches, which encapsulation to use).</p>
+
+<table>
+<thead><tr><th>SW1 \ SW2</th><th>access</th><th>dynamic auto</th><th>dynamic desirable</th><th>trunk</th></tr></thead>
+<tbody>
+<tr><td><strong>access</strong></td><td>access</td><td>access</td><td>access</td><td>mismatch (limited connectivity)</td></tr>
+<tr><td><strong>dynamic auto</strong></td><td>access</td><td><strong>access</strong></td><td>trunk</td><td>trunk</td></tr>
+<tr><td><strong>dynamic desirable</strong></td><td>access</td><td>trunk</td><td>trunk</td><td>trunk</td></tr>
+<tr><td><strong>trunk</strong></td><td>mismatch (limited connectivity)</td><td>trunk</td><td>trunk</td><td>trunk</td></tr>
+</tbody>
+</table>
+<p>"Mismatch" means one side tags and the other does not: only the native VLAN (untagged) happens to work, everything else is dropped. Avoid it.</p>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> two brand-new Catalyst switches cabled together (both dynamic auto) do <strong>not</strong> form a trunk. They form an access link in VLAN 1. Old 3550-era switches defaulted to dynamic desirable, which is why some older material says otherwise; answer with dynamic auto for current Cisco switches.</p></div>
+
+<h4>switchport nonegotiate</h4>
+<p><code>switchport nonegotiate</code> stops the port from sending DTP frames. It is accepted only on a port in <code>access</code> or <code>trunk</code> mode. A trunk with nonegotiate still trunks, but its neighbor must also be statically set to trunk: a neighbor in dynamic auto or dynamic desirable hears no DTP and stays access. Best practice is <code>switchport mode trunk</code> + <code>switchport nonegotiate</code> on every switch-to-switch trunk and <code>switchport mode access</code> on every edge port, so an attacker cannot negotiate a trunk (switch spoofing).</p>
+
+<h4>switchport trunk encapsulation</h4>
+<p>Switches that support both ISL and 802.1Q (for example Catalyst 3560/3750, and the 3560 model in Packet Tracer) default to <code>switchport trunk encapsulation negotiate</code> and reject <code>switchport mode trunk</code> with "Command rejected: An interface whose trunk encapsulation is "Auto" can not be configured to "trunk" mode." Enter <code>switchport trunk encapsulation dot1q</code> first. Switches that support only 802.1Q (2960, 9200, 9300) do not need it, and on many of them the command does not exist.</p>
+
+<h3>Configuring a trunk</h3>
+<pre class="cli">SW1(config)# interface gigabitethernet0/1
+! Next line only on ISL-capable models (3560/3750)
+SW1(config-if)# switchport trunk encapsulation dot1q
+SW1(config-if)# switchport mode trunk
+SW1(config-if)# switchport nonegotiate
+SW1(config-if)# switchport trunk native vlan 99
+SW1(config-if)# switchport trunk allowed vlan 10,20,30,99</pre>
+
+<h4>Allowed VLAN list</h4>
+<p>By default a trunk allows VLANs 1 to 4094. You can restrict it, which also limits flooding and the scope of each VLAN's spanning tree.</p>
+<table>
+<thead><tr><th>Command</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td><code>switchport trunk allowed vlan 10,20</code></td><td><strong>Replaces</strong> the whole list with exactly 10 and 20.</td></tr>
+<tr><td><code>switchport trunk allowed vlan add 30</code></td><td>Adds 30 to the existing list.</td></tr>
+<tr><td><code>switchport trunk allowed vlan remove 20</code></td><td>Removes 20 from the existing list.</td></tr>
+<tr><td><code>switchport trunk allowed vlan except 100-200</code></td><td>Allows everything (1 to 4094) except 100 to 200. Replaces the list.</td></tr>
+<tr><td><code>switchport trunk allowed vlan all</code></td><td>Back to the default.</td></tr>
+<tr><td><code>switchport trunk allowed vlan none</code></td><td>Allows no VLANs (the link still trunks and carries control traffic such as CDP and DTP).</td></tr>
+</tbody>
+</table>
+<div class="callout trap"><p><strong>Exam trap:</strong> a trunk carries VLANs 10,20. Someone types <code>switchport trunk allowed vlan 30</code> intending to add VLAN 30. The list is now only 30, and VLANs 10 and 20 stop working across that link. The correct command was <code>switchport trunk allowed vlan add 30</code>. Exhibit questions love this one.</p></div>
+
+<h3>Reading show interfaces trunk</h3>
+<pre class="cli">SW1# show interfaces trunk
+
+Port        Mode             Encapsulation  Status        Native vlan
+Gi0/1       on               802.1q         trunking      99
+Gi0/2       desirable        n-802.1q       trunking      1
+
+Port        Vlans allowed on trunk
+Gi0/1       10,20,30,99
+Gi0/2       1-4094
+
+Port        Vlans allowed and active in management domain
+Gi0/1       10,20,30,99
+Gi0/2       1,10,20,30,99
+
+Port        Vlans in spanning tree forwarding state and not pruned
+Gi0/1       10,20,30,99
+Gi0/2       1,10,20,99</pre>
+<ol>
+<li><strong>Section 1</strong>: Mode (<code>on</code> = <code>switchport mode trunk</code>; <code>desirable</code>/<code>auto</code> = DTP-negotiated), encapsulation (an <code>n-</code> prefix means negotiated by DTP), status (<code>trunking</code>), native VLAN. Only operational trunks appear at all; a port that failed to trunk is missing from this output.</li>
+<li><strong>Section 2</strong>: the configured allowed list.</li>
+<li><strong>Section 3</strong>: allowed VLANs that also exist (are active) on this switch. A VLAN in section 2 but missing here has not been created locally.</li>
+<li><strong>Section 4</strong>: VLANs actually forwarded: not blocked by STP and not VTP-pruned. Here VLAN 30 is missing on Gi0/2, so STP is discarding on Gi0/2 for VLAN 30; VLAN 30 traffic uses Gi0/1.</li>
+</ol>
+<p>Also useful: <code>show interfaces gi0/1 switchport</code> (Administrative Mode: trunk, Operational Mode: trunk, Negotiation of Trunking: Off/On, Trunking Native Mode VLAN, Trunking VLANs Enabled).</p>
+
+<h3 id="t-2-2-c">2.2.c Native VLAN</h3>
+<p>The native VLAN is the one VLAN whose frames cross an 802.1Q trunk <strong>untagged</strong>. A frame received untagged on a trunk is placed in the native VLAN. The default native VLAN is 1. It exists for backward compatibility with devices that do not understand tags.</p>
+<ul>
+<li>Both ends must use the same native VLAN. It is set per trunk with <code>switchport trunk native vlan X</code>.</li>
+<li><strong>Mismatch symptoms</strong>: the trunk still comes up, but untagged frames sent in SW1's native VLAN arrive in SW2's native VLAN. The two VLANs are silently bridged, and normal connectivity in both breaks. CDP detects it and logs:
+<pre class="cli">%CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/1 (99), with SW2 GigabitEthernet0/1 (1).</pre>
+Rapid PVST+ also notices (its per-VLAN BPDUs carry the sender's VLAN) and blocks the port for the two VLANs involved as "PVID inconsistent", for example <code>%SPANTREE-2-BLOCK_PVID_LOCAL: Blocking GigabitEthernet0/1 on VLAN0099. Inconsistent local vlan.</code></li>
+<li><strong>Security best practice</strong>: set the native VLAN to an unused VLAN (for example 99 or 999) with no access ports and no SVI, the same on both ends. This defeats the double-tagging VLAN-hopping attack, which only works when the attacker's access VLAN equals the trunk's native VLAN.</li>
+<li><strong>Tagging the native VLAN</strong>: the global command <code>vlan dot1q tag native</code> makes the switch tag native-VLAN frames on its trunks too, so user data never crosses a trunk untagged.</li>
+</ul>
+
+<h4>Router-on-a-stick and the native VLAN</h4>
+<p>On a router subinterface, <code>encapsulation dot1q 99 native</code> tells the router to send and expect VLAN 99 untagged. It must match the switch's native VLAN.</p>
+
+<div class="callout tip"><p><strong>Tip:</strong> VTP (VLAN Trunking Protocol) is not on the v1.1 blueprint. Know only that it can synchronize VLANs from a server switch to clients, and that many networks run every switch in VTP <strong>transparent</strong> mode (or VTP off) so each switch keeps its own VLAN list. In transparent mode VLAN configuration is also saved in the running config.</p></div>
+
+<div class="lab" id="lab-2-2-1">
+<h4>Lab: Native VLAN mismatch and allowed-list troubleshooting</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~30 min</p>
+<p>Topology: SW1 Gi0/1 to SW2 Gi0/1 (2960-24TT). PC1 SW1 Fa0/1 VLAN 10 (192.168.10.11/24), PC2 SW2 Fa0/1 VLAN 10 (192.168.10.12/24), PC3 SW1 Fa0/2 VLAN 20 (192.168.20.11/24), PC4 SW2 Fa0/2 VLAN 20 (192.168.20.12/24). Build a working static trunk first: native VLAN 99 on both ends, allowed 10,20,99.</p>
+<ol>
+<li>Confirm PC1 to PC2 and PC3 to PC4 pings work.</li>
+<li>On SW2 change the native VLAN to 1. Wait about a minute (CDP runs every 60 s). Read the console messages on both switches.</li>
+<li>Run <code>show interfaces trunk</code> and <code>show cdp neighbors gi0/1 detail</code> on both. Note the native VLAN each side reports.</li>
+<li>Fix the native VLAN. Then on SW1 enter <code>switchport trunk allowed vlan 30</code> on Gi0/1 (the mistaken "add"). Test both ping pairs.</li>
+<li>Fix it using <code>add</code> so the list becomes 10,20,30,99.</li>
+<li>Set SW2 Gi0/1 to <code>switchport mode dynamic auto</code>, leaving SW1 Gi0/1 as <code>switchport mode trunk</code> with <code>switchport nonegotiate</code>. Does the trunk form? Explain.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>Step 2: <code>%CDP-4-NATIVE_VLAN_MISMATCH</code> messages; STP PVID-inconsistent messages may also appear.</li>
+<li>Step 4: both ping pairs fail; <code>show interfaces trunk</code> shows allowed VLANs 30 only.</li>
+<li>Step 6: SW1 shows Gi0/1 trunking; SW2's <code>show interfaces gi0/1 switchport</code> shows Administrative Mode: dynamic auto, Operational Mode: static access. Nonegotiate suppresses the DTP that dynamic auto waits for, so the link is mismatched.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! Step 2 fault, step 3 fix
+SW2(config)# interface gigabitethernet0/1
+SW2(config-if)# switchport trunk native vlan 99
+
+! Step 4 mistake, step 5 fix
+SW1(config)# interface gigabitethernet0/1
+SW1(config-if)# switchport trunk allowed vlan 10,20,99
+SW1(config-if)# switchport trunk allowed vlan add 30
+
+! Step 6 fix: make both sides static trunks
+SW2(config)# interface gigabitethernet0/1
+SW2(config-if)# switchport mode trunk
+SW2(config-if)# switchport nonegotiate
+
+SW1# show interfaces gigabitethernet0/1 switchport
+Name: Gi0/1
+Switchport: Enabled
+Administrative Mode: trunk
+Operational Mode: trunk
+Administrative Trunking Encapsulation: dot1q
+Operational Trunking Encapsulation: dot1q
+Negotiation of Trunking: Off
+Access Mode VLAN: 1 (default)
+Trunking Native Mode VLAN: 99 (NATIVE_UNUSED)
+! ...remaining lines trimmed...</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>802.1Q tag = 4 bytes after the source MAC: TPID 0x8100 (16 bits), PCP (3), DEI (1), VID (12). FCS is recalculated.</li>
+<li>Default mode on current Catalyst ports: dynamic auto. Auto + auto = access. Desirable + auto/desirable/trunk = trunk.</li>
+<li><code>switchport nonegotiate</code> disables DTP; the other side must then be a static trunk.</li>
+<li><code>allowed vlan X</code> replaces the list; use <code>add</code>/<code>remove</code>/<code>except</code> to edit it.</li>
+<li>Native VLAN is untagged, default 1, must match on both ends; a mismatch triggers CDP <code>NATIVE_VLAN_MISMATCH</code> and merges two VLANs. Best practice: an unused native VLAN.</li>
+<li><code>show interfaces trunk</code>: mode/native, allowed, allowed and active, forwarding and not pruned.</li>
+</ul></div>
+</section>
+<section class="topic" id="t-2-3" data-topics="2.3">
+<h2>2.3 Configure and verify Layer 2 discovery protocols (CDP and LLDP)</h2>
+
+<p>CDP and LLDP let a device announce who it is to its directly connected neighbors. They run at Layer 2, so they work even before IP is configured, and they never cross a router or a switch (each device consumes them, it does not forward them). They are the fastest way to map a network you did not build, and the exam uses their output to ask "which port connects to what".</p>
+
+<h3>CDP versus LLDP</h3>
+<table>
+<thead><tr><th></th><th>CDP</th><th>LLDP</th></tr></thead>
+<tbody>
+<tr><td>Standard</td><td>Cisco proprietary (v2 is the default version)</td><td>IEEE 802.1AB (vendor neutral)</td></tr>
+<tr><td>Default on Cisco IOS</td><td><strong>Enabled</strong> globally and on all supported interfaces</td><td><strong>Disabled</strong> globally</td></tr>
+<tr><td>Send interval</td><td>60 s (<code>cdp timer</code>)</td><td>30 s (<code>lldp timer</code>)</td></tr>
+<tr><td>Holdtime</td><td>180 s (<code>cdp holdtime</code>)</td><td>120 s (<code>lldp holdtime</code>)</td></tr>
+<tr><td>Other timer</td><td></td><td>Reinitialization delay 2 s (<code>lldp reinit</code>)</td></tr>
+<tr><td>Destination MAC</td><td>0100.0CCC.CCCC (multicast)</td><td>0180.C200.000E (multicast), EtherType 0x88CC</td></tr>
+<tr><td>Global enable</td><td><code>cdp run</code></td><td><code>lldp run</code></td></tr>
+<tr><td>Per interface</td><td><code>cdp enable</code></td><td><code>lldp transmit</code> and <code>lldp receive</code> (separate directions)</td></tr>
+<tr><td>Phone extension</td><td>CDP carries the voice VLAN to Cisco phones</td><td>LLDP-MED (Media Endpoint Discovery) network-policy TLV</td></tr>
+</tbody>
+</table>
+<p>The holdtime is how long a receiver keeps a neighbor's entry without hearing a new advertisement. The sender puts its own holdtime in each message. In <code>show cdp neighbors</code> the Holdtme column counts down from 180 and resets to 180 each time an advertisement arrives (about every 60 s), so you normally see values between 120 and 180.</p>
+
+<h3>What they advertise</h3>
+<p>Both carry TLVs (type-length-value fields). The common ones:</p>
+<ul>
+<li>Device ID (hostname) and the sending port ID</li>
+<li>Management/Layer 3 address(es)</li>
+<li>Capabilities (router, switch/bridge, phone, host, WLAN AP)</li>
+<li>Platform/model and software version (CDP "Platform" and "Version"; LLDP "System Description")</li>
+<li>CDP: native VLAN and duplex of the sending port (which is how CDP spots native VLAN and duplex mismatches and logs them), VTP domain, PoE power requests</li>
+<li>LLDP: system name, system description, port description, plus optional organizationally specific TLVs: 802.1 (such as port VLAN ID), 802.3 (such as MAC/PHY configuration) and LLDP-MED (network policy, power)</li>
+</ul>
+
+<h3>Configuration</h3>
+<pre class="cli">! CDP is already on. Turn it off on one edge port facing the internet or a user:
+SW1(config)# interface gigabitethernet0/24
+SW1(config-if)# no cdp enable
+! Turn CDP off for the whole device:
+SW1(config)# no cdp run
+! Tune timers (rarely needed):
+SW1(config)# cdp timer 30
+SW1(config)# cdp holdtime 90
+
+! LLDP is off by default. Turn it on globally:
+SW1(config)# lldp run
+! Once lldp run is on, interfaces transmit and receive by default. Stop one direction:
+SW1(config)# interface gigabitethernet0/24
+SW1(config-if)# no lldp transmit
+SW1(config-if)# no lldp receive
+SW1(config)# lldp timer 30
+SW1(config)# lldp holdtime 120
+SW1(config)# lldp reinit 2</pre>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> LLDP has no single interface "enable" command. The interface commands are <code>lldp transmit</code> and <code>lldp receive</code>. CDP's interface command is <code>cdp enable</code>, its global command <code>cdp run</code>. Mixing these up (for example "lldp enable") is a common distractor.</p></div>
+
+<h3>Verification and how to read it</h3>
+<pre class="cli">SW1# show cdp
+Global CDP information:
+        Sending CDP packets every 60 seconds
+        Sending a holdtime value of 180 seconds
+        Sending CDPv2 advertisements is  enabled
+
+SW1# show cdp neighbors
+Capability Codes: R - Router, T - Trans Bridge, B - Source Route Bridge
+                  S - Switch, H - Host, I - IGMP, r - Repeater, P - Phone,
+                  D - Remote, C - CVTA, M - Two-port Mac Relay
+
+Device ID        Local Intrfce     Holdtme    Capability  Platform  Port ID
+R1               Gig 0/1           152             R B S I ISR4331   Gig 0/0/0
+SW2              Gig 0/2           128              S I   WS-C2960X Gig 0/2
+SEP00112233AABB  Fas 0/5           161            H P M   IP Phone  Port 1</pre>
+<ul>
+<li><strong>Local Intrfce</strong> is this switch's port. <strong>Port ID</strong> is the neighbor's port. Here SW1 Gi0/1 connects to R1 Gi0/0/0.</li>
+<li>Capability letters describe the neighbor. An IP phone shows H P (host, phone).</li>
+<li><code>show cdp neighbors</code> does not show IP addresses. Use <code>show cdp neighbors detail</code> or <code>show cdp entry R1</code>.</li>
+</ul>
+<pre class="cli">SW1# show cdp neighbors gigabitethernet0/1 detail
+-------------------------
+Device ID: R1
+Entry address(es):
+  IP address: 10.1.1.1
+Platform: cisco ISR4331/K9,  Capabilities: Router Source-Route-Bridge Switch IGMP
+Interface: GigabitEthernet0/1,  Port ID (outgoing port): GigabitEthernet0/0/0
+Holdtime : 152 sec
+
+Version :
+Cisco IOS XE Software, Version 16.09.04
+! ...copyright lines trimmed...
+
+advertisement version: 2
+Duplex: full
+Management address(es):
+  IP address: 10.1.1.1</pre>
+
+<pre class="cli">SW1# show lldp
+Global LLDP Information:
+    Status: ACTIVE
+    LLDP advertisements are sent every 30 seconds
+    LLDP hold time advertised is 120 seconds
+    LLDP interface reinitialisation delay is 2 seconds
+
+SW1# show lldp neighbors
+Capability codes:
+    (R) Router, (B) Bridge, (T) Telephone, (C) DOCSIS Cable Device
+    (W) WLAN Access Point, (P) Repeater, (S) Station, (O) Other
+
+Device ID           Local Intf     Hold-time  Capability      Port ID
+R1                  Gi0/1          120        R               Gi0/0/0
+SW2                 Gi0/2          120        B               Gi0/2
+
+Total entries displayed: 2</pre>
+<ul>
+<li>In LLDP a switch is <strong>B (Bridge)</strong>, not S. In LLDP, S means Station (an end host).</li>
+<li><code>show lldp neighbors detail</code> adds the management address, system description, port description and enabled capabilities.</li>
+<li><code>show cdp interface</code> / <code>show lldp interface</code> show per-port state; <code>show cdp traffic</code> / <code>show lldp traffic</code> show counters.</li>
+</ul>
+
+<h3>Security considerations</h3>
+<p>Both protocols send the hostname, model, software version and management IP in clear text to anything plugged into the port. An attacker on a user port can learn the exact IOS version and look up its vulnerabilities. Common practice: disable CDP/LLDP on ports facing untrusted networks (internet edge, guest, user ports where no phone or AP is attached), and keep them on infrastructure links and on ports with IP phones or APs, which need them for voice VLAN and PoE negotiation.</p>
+
+<div class="lab" id="lab-2-3-1">
+<h4>Lab: Map an unknown network with CDP and LLDP</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~25 min</p>
+<p>Topology: build R1 (ISR 4331), SW1, SW2, SW3 (2960) and an IP phone (7960) wired as: R1 G0/0/0 to SW1 Gi0/1; SW1 Gi0/2 to SW2 Gi0/1; SW2 Gi0/2 to SW3 Gi0/1; phone on SW3 Fa0/5 (give it power: drag the power adapter onto it in the Physical tab). Give R1 G0/0/0 10.1.1.1/24 and each switch a Vlan1 SVI 10.1.1.11, .12, .13. Then pretend you only have console access to SW2.</p>
+<ol>
+<li>From SW2 only, use CDP to draw the topology: device names, model, local and remote ports, IP addresses.</li>
+<li>Telnet or SSH (if configured) hop by hop using the IPs you found to reach SW3 and R1, and finish the map.</li>
+<li>Enable LLDP on all devices. Compare <code>show lldp neighbors</code> with CDP: note the capability code each shows for a switch.</li>
+<li>Disable CDP on SW3 Fa0/5. What does the phone lose? Re-enable it.</li>
+<li>Change the CDP timer on SW1 to 5 s and holdtime to 15 s, then enter <code>no cdp enable</code> on SW1 Gi0/2 (the link stays up, SW1 just stops advertising). Watch SW2's entry for SW1 age out. (Shutting the link instead also takes SW2's port down, which can clear the entry at once instead of showing it age out.)</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>SW2 <code>show cdp neighbors</code>: SW1 on Gi0/1 (Port ID Gig 0/2) and SW3 on Gi0/2 (Port ID Gig 0/1).</li>
+<li><code>show lldp neighbors</code>: switches appear with capability B; R1 with R.</li>
+<li>Step 5: entry disappears within about 15 s.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">SW2# show cdp neighbors detail
+! read Device ID, IP address, Platform, Interface and Port ID for each entry
+SW2# telnet 10.1.1.13
+! (needs line vty passwords on SW3; see 4.8/5.3 for SSH and passwords)
+
+R1(config)# lldp run
+SW1(config)# lldp run
+SW2(config)# lldp run
+SW3(config)# lldp run
+
+SW3(config)# interface fastethernet0/5
+SW3(config-if)# no cdp enable
+! The phone no longer learns its voice VLAN or negotiates power via CDP
+SW3(config-if)# cdp enable
+
+SW1(config)# cdp timer 5
+SW1(config)# cdp holdtime 15
+SW1(config)# interface gigabitethernet0/2
+SW1(config-if)# no cdp enable
+! on SW2, repeat show cdp neighbors: Holdtme counts down from 15, then SW1 disappears</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>CDP: Cisco, on by default, 60 s / 180 s, <code>cdp run</code> / <code>cdp enable</code>.</li>
+<li>LLDP: IEEE 802.1AB, off by default on IOS, 30 s / 120 s / reinit 2 s, <code>lldp run</code> / <code>lldp transmit</code> / <code>lldp receive</code>.</li>
+<li>Local Intrfce = my port; Port ID = neighbor's port. IP addresses only in <code>detail</code> or <code>show cdp entry</code>.</li>
+<li>LLDP capability for a switch is B (Bridge).</li>
+<li>Disable both on untrusted edge ports; they leak model, version and IP.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-2-4" data-topics="2.4">
+<h2>2.4 Configure and verify Layer 2/Layer 3 EtherChannel (LACP)</h2>
+
+<p>Connect two switches with two parallel links and STP blocks one of them, so you pay for bandwidth you cannot use. EtherChannel bundles 2 to 8 physical links into one logical link (a port-channel). STP sees one link with one cost, so nothing blocks; traffic is load-shared across members; if a member fails, traffic moves to the others without an STP reconvergence.</p>
+
+<h3>Negotiation protocols and modes</h3>
+<table>
+<thead><tr><th>Protocol</th><th>Modes</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>LACP (IEEE 802.3ad, now 802.1AX)</td><td><code>active</code> (initiates), <code>passive</code> (responds only)</td><td>Open standard. The CCNA focus.</td></tr>
+<tr><td>PAgP (Cisco)</td><td><code>desirable</code> (initiates), <code>auto</code> (responds only)</td><td>Cisco proprietary.</td></tr>
+<tr><td>Static</td><td><code>on</code></td><td>No negotiation at all. Both ends must be <code>on</code>.</td></tr>
+</tbody>
+</table>
+
+<table>
+<thead><tr><th>Side A</th><th>Side B</th><th>Channel forms?</th></tr></thead>
+<tbody>
+<tr><td>active</td><td>active</td><td>Yes</td></tr>
+<tr><td>active</td><td>passive</td><td>Yes</td></tr>
+<tr><td>passive</td><td>passive</td><td><strong>No</strong> (nobody starts)</td></tr>
+<tr><td>desirable</td><td>desirable or auto</td><td>Yes</td></tr>
+<tr><td>auto</td><td>auto</td><td><strong>No</strong></td></tr>
+<tr><td>on</td><td>on</td><td>Yes</td></tr>
+<tr><td>on</td><td>active / passive / desirable / auto</td><td><strong>No</strong></td></tr>
+<tr><td>LACP mode</td><td>PAgP mode</td><td><strong>No</strong> (different protocols)</td></tr>
+</tbody>
+</table>
+
+<div class="callout key"><p><strong>Remember:</strong> the pattern is the same for both protocols: one side must actively initiate (active / desirable). Two passive sides (passive/passive, auto/auto) never form a channel. <code>on</code> only pairs with <code>on</code>.</p></div>
+
+<h3>Member requirements</h3>
+<p>Every member port, on both switches, must match on:</p>
+<ul>
+<li>Speed and duplex</li>
+<li>Switchport mode (all access or all trunk) and, for access, the same access VLAN</li>
+<li>For trunks: the same allowed VLAN list and the same native VLAN</li>
+<li>Layer 2 vs Layer 3 (all switchports, or all <code>no switchport</code>)</li>
+<li>One channel-group per port; do not mix LACP and PAgP in one group</li>
+</ul>
+<p>A port that does not match is <strong>suspended</strong> (flag <code>s</code>) or left stand-alone (<code>I</code>), and the switch logs something like <code>%EC-5-CANNOT_BUNDLE2: Gi0/2 is not compatible with Gi0/1 and will be suspended (vlan mask is different)</code>. Best practice: configure members with <code>interface range</code>, then put them in the channel group, and make later changes on the port-channel interface, which pushes them to all members.</p>
+<p>Limits: PAgP and static channels bundle up to 8 active links. LACP can have up to 16 ports configured in a group: 8 active and up to 8 hot-standby (flag <code>H</code>) that replace a failed active member. LACP system priority and port priority both default to 32768 (lower is preferred) and decide which ports are active when more than 8 are configured.</p>
+
+<h3>Layer 2 EtherChannel (LACP)</h3>
+<pre class="cli">SW1(config)# interface range gigabitethernet0/1 - 2
+SW1(config-if-range)# switchport mode trunk
+SW1(config-if-range)# switchport trunk native vlan 99
+SW1(config-if-range)# channel-group 1 mode active
+Creating a port-channel interface Port-channel 1
+SW1(config-if-range)# exit
+SW1(config)# interface port-channel 1
+SW1(config-if)# switchport mode trunk
+SW1(config-if)# switchport trunk native vlan 99
+SW1(config-if)# switchport trunk allowed vlan 10,20,99
+
+SW2(config)# interface range gigabitethernet0/1 - 2
+SW2(config-if-range)# switchport mode trunk
+SW2(config-if-range)# switchport trunk native vlan 99
+SW2(config-if-range)# channel-group 1 mode passive
+SW2(config-if-range)# exit
+SW2(config)# interface port-channel 1
+SW2(config-if)# switchport trunk allowed vlan 10,20,99</pre>
+<p>The channel-group number is locally significant: SW1 can use Po1 while SW2 uses Po5 for the same bundle. <code>channel-protocol lacp</code> is optional; the mode keyword already implies the protocol.</p>
+
+<h3>Layer 3 EtherChannel</h3>
+<p>On a Layer 3 switch you can make the bundle a routed link. The members and the port-channel must all be Layer 3 (<code>no switchport</code>), and the IP address goes on the port-channel interface, never on members.</p>
+<pre class="cli">DSW1(config)# interface range gigabitethernet1/0/23 - 24
+DSW1(config-if-range)# no switchport
+DSW1(config-if-range)# channel-group 2 mode active
+DSW1(config-if-range)# exit
+DSW1(config)# interface port-channel 2
+! Already Layer 3 because it was created from no-switchport members;
+! entering no switchport here as well does no harm
+DSW1(config-if)# no switchport
+DSW1(config-if)# ip address 10.0.12.1 255.255.255.252</pre>
+<p>Order matters: if you create the port-channel interface first as Layer 2 and then add routed members (or vice versa), the members are rejected or suspended. Remove the channel-group, fix the interface types, and add them again.</p>
+
+<h3>Load balancing</h3>
+<p>EtherChannel does not split one flow over several links. The switch hashes fields of each frame (MAC addresses, IP addresses, or Layer 4 ports, depending on the method) and the hash picks a member link, so all frames of one conversation take the same link and stay in order. The default on many Catalyst switches is <code>src-mac</code>. If most traffic goes to one router MAC or one server, a MAC-based hash can push nearly everything onto one link; <code>src-dst-ip</code> usually spreads better.</p>
+<pre class="cli">SW1(config)# port-channel load-balance src-dst-ip
+SW1# show etherchannel load-balance
+EtherChannel Load-Balancing Configuration:
+        src-dst-ip
+
+EtherChannel Load-Balancing Addresses Used Per-Protocol:
+Non-IP: Source XOR Destination MAC address
+  IPv4: Source XOR Destination IP address
+  IPv6: Source XOR Destination IP address</pre>
+<p>Options include <code>src-mac</code>, <code>dst-mac</code>, <code>src-dst-mac</code>, <code>src-ip</code>, <code>dst-ip</code>, <code>src-dst-ip</code>, and on some platforms Layer 4 port options. The command is global, not per port-channel, on most Catalyst access switches.</p>
+
+<h3>Verification: show etherchannel summary</h3>
+<pre class="cli">SW1# show etherchannel summary
+Flags:  D - down        P - bundled in port-channel
+        I - stand-alone s - suspended
+        H - Hot-standby (LACP only)
+        R - Layer3      S - Layer2
+        U - in use      f - failed to allocate aggregator
+
+        M - not in use, minimum links not met
+        u - unsuitable for bundling
+        w - waiting to be aggregated
+        d - default port
+
+Number of channel-groups in use: 2
+Number of aggregators:           2
+
+Group  Port-channel  Protocol    Ports
+------+-------------+-----------+-----------------------------------------------
+1      Po1(SU)         LACP      Gi0/1(P)    Gi0/2(P)
+3      Po3(SD)         LACP      Fa0/23(I)   Fa0/24(s)</pre>
+<table>
+<thead><tr><th>Flag</th><th>Meaning</th><th>What to do</th></tr></thead>
+<tbody>
+<tr><td>Po1(<strong>SU</strong>)</td><td>Layer 2, in use: healthy L2 bundle</td><td>Nothing</td></tr>
+<tr><td>Po(<strong>RU</strong>)</td><td>Layer 3, in use: healthy routed bundle</td><td>Nothing</td></tr>
+<tr><td>Po(<strong>SD</strong>)</td><td>Layer 2, down: no member bundled</td><td>Look at the members' flags</td></tr>
+<tr><td>(<strong>P</strong>)</td><td>Member bundled in the port-channel</td><td>Nothing</td></tr>
+<tr><td>(<strong>I</strong>)</td><td>Stand-alone: the port is up but not bundled, usually because the neighbor is not negotiating (passive/passive, on vs active, LACP vs PAgP)</td><td>Check modes on both ends</td></tr>
+<tr><td>(<strong>s</strong>)</td><td>Suspended: parameters do not match the other members (speed, duplex, VLANs, native VLAN, mode)</td><td>Compare with <code>show running-config interface</code> and <code>show interfaces X switchport</code></td></tr>
+<tr><td>(<strong>D</strong>)</td><td>Member is down (cable, shutdown)</td><td>Physical checks</td></tr>
+<tr><td>(<strong>H</strong>)</td><td>LACP hot-standby (more than 8 members)</td><td>Normal with 9 to 16 ports</td></tr>
+</tbody>
+</table>
+<p>Other useful commands: <code>show etherchannel port-channel</code>, <code>show lacp neighbor</code> (partner system ID, port, flags), <code>show interfaces port-channel 1</code> (bandwidth is the sum of the members, for example BW 2000000 Kbit/sec for two gigabit links), and <code>show spanning-tree</code> (STP lists Po1, not the members).</p>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> with <code>mode on</code> there is no negotiation, so if one side is <code>on</code> and the other is not bundled (for example still separate ports, or LACP), the <code>on</code> side forwards over all links as one channel while the other side treats them as separate ports. That can cause a loop or MAC flapping. Cisco's EtherChannel misconfiguration guard detects this and err-disables the ports. LACP's negotiation exists precisely to avoid this.</p></div>
+
+<div class="lab" id="lab-2-4-1">
+<h4>Lab: LACP EtherChannel, Layer 2 and Layer 3</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~40 min</p>
+<p>Topology: SW1 and SW2 (2960) connected by Gi0/1 to Gi0/1 and Gi0/2 to Gi0/2. DSW1 and DSW2 (3650-24PS) connected by Gi1/0/23 to Gi1/0/23 and Gi1/0/24 to Gi1/0/24. VLANs 10, 20 and 99 exist on SW1 and SW2.</p>
+<ol>
+<li>Before bundling, look at <code>show spanning-tree</code> on SW1 and SW2: one of the two links is blocking (Altn).</li>
+<li>Build an LACP Layer 2 EtherChannel (Po1) between SW1 (active) and SW2 (passive), trunking 10,20,99, native 99.</li>
+<li>Check <code>show etherchannel summary</code> and <code>show spanning-tree</code> again.</li>
+<li>Break it: set SW1 to <code>passive</code>. Observe the flags. Restore <code>active</code>.</li>
+<li>Break it differently: on SW2 Gi0/2 only, set <code>switchport trunk native vlan 1</code>. Observe the flags. Restore.</li>
+<li>Build a Layer 3 LACP EtherChannel (Po2) between DSW1 (10.0.12.1/30) and DSW2 (10.0.12.2/30), both active. Ping across it.</li>
+<li>Change the load-balancing method on SW1 to <code>src-dst-ip</code> and verify.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>Step 3: <code>Po1(SU) LACP Gi0/1(P) Gi0/2(P)</code>; spanning tree lists Po1 only, forwarding.</li>
+<li>Step 4: passive/passive: members show (I) and Po1 shows (SD).</li>
+<li>Step 5: Gi0/2 on SW2 shows (s) or (I); Gi0/1 stays (P).</li>
+<li>Step 6: <code>Po2(RU) LACP Gi1/0/23(P) Gi1/0/24(P)</code>; ping 10.0.12.2 succeeds.</li>
+<li>Step 7: <code>show etherchannel load-balance</code> shows src-dst-ip.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">SW1(config)# interface range gigabitethernet0/1 - 2
+SW1(config-if-range)# switchport mode trunk
+SW1(config-if-range)# switchport trunk native vlan 99
+SW1(config-if-range)# switchport trunk allowed vlan 10,20,99
+SW1(config-if-range)# channel-group 1 mode active
+
+SW2(config)# interface range gigabitethernet0/1 - 2
+SW2(config-if-range)# switchport mode trunk
+SW2(config-if-range)# switchport trunk native vlan 99
+SW2(config-if-range)# switchport trunk allowed vlan 10,20,99
+SW2(config-if-range)# channel-group 1 mode passive
+
+DSW1(config)# interface range gigabitethernet1/0/23 - 24
+DSW1(config-if-range)# no switchport
+DSW1(config-if-range)# channel-group 2 mode active
+DSW1(config-if-range)# exit
+DSW1(config)# interface port-channel 2
+DSW1(config-if)# no switchport
+DSW1(config-if)# ip address 10.0.12.1 255.255.255.252
+
+DSW2(config)# interface range gigabitethernet1/0/23 - 24
+DSW2(config-if-range)# no switchport
+DSW2(config-if-range)# channel-group 2 mode active
+DSW2(config-if-range)# exit
+DSW2(config)# interface port-channel 2
+DSW2(config-if)# no switchport
+DSW2(config-if)# ip address 10.0.12.2 255.255.255.252
+
+SW1(config)# port-channel load-balance src-dst-ip</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>LACP (802.3ad/802.1AX): active/passive. PAgP (Cisco): desirable/auto. Static: on/on only. Passive+passive and auto+auto never form.</li>
+<li>Members must match speed, duplex, mode, access VLAN or allowed VLANs and native VLAN; mismatches are suspended (s).</li>
+<li>Up to 8 active members; LACP allows 8 more as hot-standby (H).</li>
+<li>Layer 3 EtherChannel: <code>no switchport</code> on members and port-channel; IP on the port-channel.</li>
+<li>Load balancing is per flow by hash; <code>port-channel load-balance src-dst-ip</code>.</li>
+<li>Healthy: Po(SU) for L2, Po(RU) for L3, members (P).</li>
+</ul></div>
+</section>
+<section class="topic" id="t-2-5" data-topics="2.5,2.5.a,2.5.b,2.5.c,2.5.d">
+<h2>2.5 Interpret basic operation of Rapid PVST+</h2>
+
+<p>Redundant Layer 2 links create loops. Ethernet frames have no TTL, so a broadcast in a loop circulates forever (a broadcast storm), MAC tables flap between ports, and hosts receive duplicate frames. Spanning Tree Protocol prevents this by building a loop-free tree: it picks one root switch, keeps the best path from every switch to the root, and puts every other redundant port into a non-forwarding state. If an active link fails, a blocked port takes over.</p>
+
+<h3>The STP family</h3>
+<table>
+<thead><tr><th>Protocol</th><th>Standard</th><th>Instances</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>STP</td><td>IEEE 802.1D</td><td>One for all VLANs (CST)</td><td>Slow: 30 to 50 s convergence</td></tr>
+<tr><td>PVST+</td><td>Cisco</td><td>One 802.1D tree per VLAN</td><td>Per-VLAN load sharing; output says <code>protocol ieee</code></td></tr>
+<tr><td>RSTP</td><td>IEEE 802.1w (now in 802.1D-2004)</td><td>One for all VLANs</td><td>Fast: often under a second on point-to-point links</td></tr>
+<tr><td><strong>Rapid PVST+</strong></td><td>Cisco</td><td>One RSTP tree per VLAN</td><td><strong>Default on current Catalyst switches</strong> (IOS 15.2(4)E and later, IOS XE); output says <code>protocol rstp</code></td></tr>
+<tr><td>MST</td><td>IEEE 802.1s</td><td>Groups VLANs into a few instances</td><td>Not on the CCNA blueprint beyond its name</td></tr>
+</tbody>
+</table>
+<pre class="cli">SW1(config)# spanning-tree mode rapid-pvst
+! other options: pvst, mst</pre>
+<div class="callout tip"><p><strong>Tip:</strong> Packet Tracer's 2960 starts in PVST+ (<code>protocol ieee</code>). Enter <code>spanning-tree mode rapid-pvst</code> on every switch in your labs so the output matches what the exam shows.</p></div>
+
+<h3>Bridge ID and the extended system ID</h3>
+<p>Every switch has a Bridge ID (BID) per VLAN: an 8-byte value made of a 2-byte priority field and the switch's 6-byte base MAC address. With PVST+ and Rapid PVST+, the 16-bit priority field is split:</p>
+<ul>
+<li>4 bits of configurable <strong>priority</strong>, so the value you set must be a multiple of 4096 (0, 4096, 8192 ... 61440). Default 32768.</li>
+<li>12 bits of <strong>extended system ID</strong>, which IOS sets to the VLAN number.</li>
+</ul>
+<p>So the priority shown for VLAN 10 on a default switch is 32768 + 10 = <strong>32778</strong>. The same switch shows 32769 in VLAN 1 and 32788 in VLAN 20. Lower BID is better: compare priority first, then MAC address.</p>
+<pre class="cli">SW1(config)# spanning-tree vlan 10 priority 4100
+% Bridge Priority must be in increments of 4096.
+% Allowed values are:
+  0     4096  8192  12288 16384 20480 24576 28672
+  32768 36864 40960 45056 49152 53248 57344 61440</pre>
+
+<h3 id="t-2-5-a">2.5.a Root bridge, root port, designated port and the election</h3>
+<h4>Step 1: elect the root bridge</h4>
+<p>All switches start by claiming to be root and sending BPDUs (hello every 2 s) listing their own BID as Root ID. When a switch hears a superior (lower) Root ID, it stops claiming and relays the better one. The switch with the <strong>lowest BID</strong> becomes root for that VLAN. All of the root's (working) ports are <strong>designated</strong> ports and forward.</p>
+
+<h4>Step 2: each non-root switch picks one root port</h4>
+<p>The root port is the port with the best path to the root. Tie-breakers, in order:</p>
+<ol>
+<li><strong>Lowest root path cost</strong>: the cost the neighbor advertises in its BPDU plus the cost of the local port the BPDU arrived on.</li>
+<li><strong>Lowest sender (neighbor) Bridge ID</strong>.</li>
+<li><strong>Lowest sender port priority</strong> (default 128).</li>
+<li><strong>Lowest sender port number</strong>.</li>
+</ol>
+<p>Tie-breakers 3 and 4 use the <em>neighbor's</em> port ID (the one in the received BPDU). They matter only with parallel links to the same neighbor.</p>
+
+<h4>Step 3: each segment (link) gets one designated port</h4>
+<p>On every link, the switch that offers the best path to the root through that link owns the designated port: lowest advertised root path cost, then lowest BID, then lowest port priority, then lowest port number. The designated port forwards.</p>
+
+<h4>Step 4: everything else is blocked</h4>
+<p>Any port that is neither root nor designated becomes an <strong>alternate</strong> port (or backup, see 2.5.b) and discards.</p>
+
+<h4>Port costs</h4>
+<table>
+<thead><tr><th>Speed</th><th>Short (802.1D-1998) cost, CCNA default</th><th>Long (802.1D-2004) cost</th></tr></thead>
+<tbody>
+<tr><td>10 Mbps</td><td>100</td><td>2,000,000</td></tr>
+<tr><td>100 Mbps</td><td>19</td><td>200,000</td></tr>
+<tr><td>1 Gbps</td><td>4</td><td>20,000</td></tr>
+<tr><td>10 Gbps</td><td>2</td><td>2,000</td></tr>
+<tr><td>100 Gbps</td><td>(not defined, 2 or 1)</td><td>200</td></tr>
+</tbody>
+</table>
+<p>Exam questions use the short values unless told otherwise. Newer IOS XE releases and platforms can use the long method (<code>spanning-tree pathcost method long</code>), and some list long values in their defaults; if the output shows costs like 20000, you are looking at long mode. An EtherChannel's cost is based on its aggregate bandwidth.</p>
+
+<h4>Worked example</h4>
+<figure class="diagram">
+<svg viewBox="0 0 700 360" role="img" aria-label="Three switches in a triangle. SW1 is root with designated ports. SW2 and SW3 have root ports toward SW1. On the SW2 to SW3 link, SW2 Gi0/2 is designated and SW3 Gi0/2 is alternate and discarding.">
+<rect x="270" y="20" width="160" height="70" rx="8" class="d-accent-fill" stroke="currentColor"/>
+<text x="350" y="45" text-anchor="middle" class="d-text">SW1 (root)</text>
+<text x="350" y="65" text-anchor="middle" class="d-text">24586</text>
+<text x="350" y="82" text-anchor="middle" class="d-muted">0011.1111.1111</text>
+<rect x="50" y="250" width="160" height="70" rx="8" class="d-fill" stroke="currentColor"/>
+<text x="130" y="275" text-anchor="middle" class="d-text">SW2</text>
+<text x="130" y="295" text-anchor="middle" class="d-text">32778</text>
+<text x="130" y="312" text-anchor="middle" class="d-muted">0022.2222.2222</text>
+<rect x="490" y="250" width="160" height="70" rx="8" class="d-fill" stroke="currentColor"/>
+<text x="570" y="275" text-anchor="middle" class="d-text">SW3</text>
+<text x="570" y="295" text-anchor="middle" class="d-text">32778</text>
+<text x="570" y="312" text-anchor="middle" class="d-muted">0033.3333.3333</text>
+<line x1="290" y1="90" x2="150" y2="250" class="d-line" stroke="currentColor" stroke-width="2"/>
+<line x1="410" y1="90" x2="550" y2="250" class="d-line" stroke="currentColor" stroke-width="2"/>
+<line x1="210" y1="285" x2="490" y2="285" class="d-line" stroke="currentColor" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="250" y="115" text-anchor="end" class="d-text">Gi0/1 DP</text>
+<text x="450" y="115" class="d-text">Gi0/2 DP</text>
+<text x="105" y="235" class="d-text">Gi0/1 RP</text>
+<text x="520" y="235" class="d-text">Gi0/1 RP</text>
+<text x="215" y="275" class="d-text">Gi0/2 DP</text>
+<text x="485" y="275" text-anchor="end" class="d-accent">Gi0/2 ALT (discarding)</text>
+<text x="190" y="170" class="d-muted">cost 4</text>
+<text x="470" y="170" class="d-muted">cost 4</text>
+<text x="350" y="305" text-anchor="middle" class="d-muted">cost 4</text>
+<text x="350" y="350" text-anchor="middle" class="d-muted">VLAN 10, all links 1 Gbps (short cost 4)</text>
+</svg>
+<figcaption>Root and port-role election for VLAN 10. RP = root port, DP = designated port, ALT = alternate.</figcaption>
+</figure>
+<ol>
+<li><strong>Root</strong>: SW1 has priority 24586 (24576 + 10, set with <code>root primary</code>); the others have 32778. Lowest priority wins: SW1 is root. Its Gi0/1 and Gi0/2 are designated.</li>
+<li><strong>SW2 root port</strong>: via Gi0/1 the cost is 0 + 4 = 4; via Gi0/2 (through SW3) it is 4 + 4 = 8. Gi0/1 wins. SW3 likewise picks its Gi0/1 (cost 4).</li>
+<li><strong>SW2 to SW3 link</strong>: both switches advertise root cost 4 onto it. Tie, so compare BIDs: same priority 32778, SW2's MAC 0022... is lower than SW3's 0033.... SW2 Gi0/2 is designated.</li>
+<li><strong>SW3 Gi0/2</strong> is neither root nor designated: alternate, discarding. If SW3 Gi0/1 fails, Gi0/2 becomes the root port almost immediately (RSTP).</li>
+</ol>
+<p><strong>Variation 1 (cost wins over a direct link)</strong>: replace the SW1 to SW3 link with FastEthernet (cost 19). SW3's direct path now costs 19, while the path through SW2 costs 4 + 4 = 8. SW3's Gi0/2 (toward SW2) becomes its root port, SW2's Gi0/2 is still designated (it advertises 4, SW3 would advertise 8), and SW3's FastEthernet port toward SW1 becomes alternate (SW1's end is designated, as every root port is). The direct link to the root is the one that blocks.</p>
+<p><strong>Variation 2 (neighbor port ID tie-breaker)</strong>: SW4 connects to root SW1 with two parallel gigabit links, SW4 Gi0/1 to SW1 Gi0/2 and SW4 Gi0/2 to SW1 Gi0/1. Root cost ties (4 and 4), sender BID ties (both SW1), sender port priority ties (128). Lowest <em>sender</em> port number wins: the BPDU from SW1 Gi0/1 (port 128.25) beats SW1 Gi0/2 (128.26), so SW4's root port is its <strong>Gi0/2</strong>, the port cabled to SW1 Gi0/1. Answering "Gi0/1 because it is SW4's lowest port" is the trap.</p>
+
+<h4>Influencing the election</h4>
+<pre class="cli">! Make SW1 root for VLAN 10 and backup root for VLAN 20 (manual)
+SW1(config)# spanning-tree vlan 10 priority 4096
+SW1(config)# spanning-tree vlan 20 priority 8192
+
+! Or use the macro
+SW1(config)# spanning-tree vlan 10 root primary
+SW2(config)# spanning-tree vlan 10 root secondary
+
+! Per-port cost and priority (interface level, optionally per VLAN)
+SW3(config)# interface gigabitethernet0/2
+SW3(config-if)# spanning-tree vlan 10 cost 2
+SW3(config-if)# spanning-tree vlan 10 port-priority 64</pre>
+<ul>
+<li><code>root primary</code> sets the priority to <strong>24576</strong> if that is enough to make this switch root. If the current root already has a priority below 24576, it sets the priority to <strong>4096 less than the current root's priority</strong>. It is a one-time calculation written into the config as a plain <code>priority</code> value; it does not keep adjusting later.</li>
+<li><code>root secondary</code> sets <strong>28672</strong>, which beats default switches (32768) but loses to the primary.</li>
+<li>Port priority: 0 to 240 in steps of 16, default 128. Lower is preferred. Changing it on a switch influences the <em>neighbor's</em> root-port choice (because the neighbor uses the sender port ID).</li>
+<li>Port cost: lowering the cost on a local port makes it more attractive as this switch's root port.</li>
+</ul>
+
+<h3 id="t-2-5-b">2.5.b Port states and roles</h3>
+<h4>Roles</h4>
+<table>
+<thead><tr><th>Role</th><th>Where</th><th>State when stable</th></tr></thead>
+<tbody>
+<tr><td>Root port</td><td>One per non-root switch: best path to root</td><td>Forwarding</td></tr>
+<tr><td>Designated port</td><td>One per segment: the port that forwards onto that link (all root-bridge ports)</td><td>Forwarding</td></tr>
+<tr><td>Alternate port (RSTP)</td><td>Receives a better BPDU from <em>another</em> switch: a backup path to the root, ready to replace the root port</td><td>Discarding</td></tr>
+<tr><td>Backup port (RSTP)</td><td>Receives a better BPDU from <em>its own</em> switch: a second port on the same shared segment (only with a hub)</td><td>Discarding</td></tr>
+<tr><td>Disabled</td><td>Administratively down or STP-disabled</td><td>Discarding</td></tr>
+</tbody>
+</table>
+<p>Legacy 802.1D had only root, designated and non-designated ("blocking") ports; RSTP split blocking into alternate and backup.</p>
+
+<h4>States</h4>
+<table>
+<thead><tr><th>802.1D state</th><th>RSTP state</th><th>Learns MACs?</th><th>Forwards data?</th><th>802.1D duration</th></tr></thead>
+<tbody>
+<tr><td>Disabled</td><td>Discarding</td><td>No</td><td>No</td><td>Until enabled</td></tr>
+<tr><td>Blocking</td><td>Discarding</td><td>No</td><td>No</td><td>Up to max age 20 s</td></tr>
+<tr><td>Listening</td><td>Discarding</td><td>No</td><td>No</td><td>Forward delay 15 s</td></tr>
+<tr><td>Learning</td><td>Learning</td><td>Yes</td><td>No</td><td>Forward delay 15 s</td></tr>
+<tr><td>Forwarding</td><td>Forwarding</td><td>Yes</td><td>Yes</td><td>Stable</td></tr>
+</tbody>
+</table>
+<p><strong>802.1D timers</strong> (sent by the root, used by all): hello 2 s, max age 20 s, forward delay 15 s. A port moving to forwarding spends 15 s listening plus 15 s learning = 30 s. An indirect failure adds up to 20 s of max age first, so up to 50 s.</p>
+<p><strong>RSTP is faster</strong> because:</p>
+<ul>
+<li>Every switch sends its own BPDUs every hello (2 s), and a neighbor is declared lost after 3 missed hellos (6 s), instead of waiting for max age.</li>
+<li>An alternate port takes over as root port immediately when the root port fails.</li>
+<li>On point-to-point links, designated ports use a <strong>proposal/agreement</strong> handshake: the upstream switch proposes to forward, the downstream switch puts its other non-edge ports in sync (discarding) and agrees, and the port goes straight to forwarding without timers. This ripples down the tree in well under a second.</li>
+<li>Edge ports (PortFast) go to forwarding at once and do not cause topology changes.</li>
+</ul>
+<p>RSTP falls back to the 802.1D timers on a port that talks to a legacy 802.1D switch (Type shows <code>P2p Peer(STP)</code>).</p>
+
+<h4>RSTP link types</h4>
+<table>
+<thead><tr><th>Link type</th><th>Detected from</th><th>Fast handshake?</th></tr></thead>
+<tbody>
+<tr><td>Point-to-point (<code>P2p</code>)</td><td>Full-duplex port</td><td>Yes (proposal/agreement)</td></tr>
+<tr><td>Shared (<code>Shr</code>)</td><td>Half-duplex port (likely a hub)</td><td>No, uses 802.1D-style timers</td></tr>
+<tr><td>Edge (<code>Edge</code>)</td><td>PortFast configured</td><td>Forwards immediately</td></tr>
+</tbody>
+</table>
+<p>Override with <code>spanning-tree link-type point-to-point</code> or <code>shared</code> on the interface.</p>
+
+<h3>Reading show spanning-tree line by line</h3>
+<pre class="cli">SW3# show spanning-tree vlan 10
+
+VLAN0010
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    24586
+             Address     0011.1111.1111
+             Cost        4
+             Port        25 (GigabitEthernet0/1)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    32778  (priority 32768 sys-id-ext 10)
+             Address     0033.3333.3333
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Fa0/1               Desg FWD 19        128.1    P2p Edge
+Gi0/1               Root FWD 4         128.25   P2p
+Gi0/2               Altn BLK 4         128.26   P2p</pre>
+<ol>
+<li><code>VLAN0010</code>: one Rapid PVST+ instance per VLAN; this is VLAN 10's tree.</li>
+<li><code>protocol rstp</code>: Rapid PVST+. (<code>ieee</code> = PVST+, <code>mstp</code> = MST.)</li>
+<li><strong>Root ID</strong> block: the root's priority (24586 = 24576 + 10) and MAC; <code>Cost 4</code> is this switch's root path cost; <code>Port 25 (GigabitEthernet0/1)</code> is the root port. On the root itself this block says <code>This bridge is the root</code> and shows no cost or port.</li>
+<li><strong>Bridge ID</strong> block: this switch's own BID. If Root ID and Bridge ID match, this switch is root.</li>
+<li>Timers shown under Root ID are the ones received from the root (the ones in effect).</li>
+<li>Interface table: Role (<code>Root</code>, <code>Desg</code>, <code>Altn</code>, <code>Back</code>), Sts (<code>FWD</code>, <code>LRN</code>, <code>BLK</code>; Cisco prints BLK for the RSTP discarding state), Cost of this port, Prio.Nbr (port priority.port number, the port ID), Type (P2p, Shr, Edge, plus flags such as <code>*ROOT_Inc</code>, <code>*LOOP_Inc</code>, <code>*BKN</code>).</li>
+<li>Fa0/1 is an edge (PortFast) designated port toward a host; Gi0/2 is the alternate port from the worked example.</li>
+</ol>
+<p>Other views: <code>show spanning-tree root</code> (root per VLAN), <code>show spanning-tree summary</code> (mode, PortFast/BPDU guard defaults, counts per state), <code>show spanning-tree interface gi0/2 detail</code>, <code>show spanning-tree inconsistentports</code>.</p>
+
+<h3 id="t-2-5-c">2.5.c PortFast</h3>
+<p>A port connected to a PC, printer, server or AP has no loop risk, so waiting through discarding and learning only delays DHCP and logins. PortFast makes the port an <strong>edge port</strong>: it goes straight to forwarding when the link comes up, and its up/down events do not generate topology changes (which would flush MAC tables network-wide).</p>
+<pre class="cli">! Per interface
+SW1(config)# interface fastethernet0/1
+SW1(config-if)# spanning-tree portfast
+%Warning: portfast should only be enabled on ports connected to a single
+ host. Connecting hubs, concentrators, switches, bridges, etc... to this
+ interface  when portfast is enabled, can cause temporary bridging loops.
+ Use with CAUTION
+
+! Globally: every access (non-trunking) port becomes edge
+SW1(config)# spanning-tree portfast default
+
+! Trunk to a server or hypervisor that does not run STP
+SW1(config-if)# spanning-tree portfast trunk
+
+! Newer IOS XE syntax adds the keyword "edge":
+SW1(config)# spanning-tree portfast edge default
+SW1(config-if)# spanning-tree portfast edge</pre>
+<p>PortFast does not disable STP on the port: the port still sends BPDUs, and if it receives one it loses edge status and behaves as a normal STP port. That is why it is paired with BPDU guard.</p>
+
+<h3 id="t-2-5-d">2.5.d Root guard, loop guard, BPDU filter, BPDU guard</h3>
+<table>
+<thead><tr><th>Feature</th><th>Protects against</th><th>Trigger</th><th>Action</th><th>Recovery</th></tr></thead>
+<tbody>
+<tr><td>BPDU guard</td><td>A switch plugged into an edge port</td><td>Any BPDU received</td><td>Port <strong>err-disabled</strong> (shut down)</td><td>Manual (<code>shutdown</code>/<code>no shutdown</code>) or errdisable recovery</td></tr>
+<tr><td>BPDU filter</td><td>Sending/processing BPDUs where you do not want them</td><td>(see below)</td><td>Stops BPDUs</td><td>n/a</td></tr>
+<tr><td>Root guard</td><td>A downstream switch becoming root</td><td><strong>Superior</strong> BPDU received</td><td>Port <strong>root-inconsistent</strong> (discarding) for that VLAN</td><td>Automatic when superior BPDUs stop</td></tr>
+<tr><td>Loop guard</td><td>Unidirectional link making a blocked port forward</td><td>BPDUs <strong>stop</strong> arriving on a root/alternate port</td><td>Port <strong>loop-inconsistent</strong> (discarding)</td><td>Automatic when BPDUs resume</td></tr>
+</tbody>
+</table>
+
+<h4>BPDU guard</h4>
+<pre class="cli">! Per interface (works whether or not PortFast is on)
+SW1(config-if)# spanning-tree bpduguard enable
+! Globally: applies to every port that is operationally PortFast/edge
+SW1(config)# spanning-tree portfast bpduguard default
+!   (IOS XE: spanning-tree portfast edge bpduguard default)
+
+! What happens when someone plugs in a switch:
+%SPANTREE-2-BLOCK_BPDUGUARD: Received BPDU on port FastEthernet0/1 with BPDU Guard enabled. Disabling port.
+%PM-4-ERR_DISABLE: bpduguard error detected on Fa0/1, putting Fa0/1 in err-disable state
+
+SW1# show interfaces status err-disabled
+Port      Name               Status       Reason               Err-disabled Vlans
+Fa0/1                        err-disabled bpduguard
+
+! Manual recovery after removing the rogue switch
+SW1(config)# interface fastethernet0/1
+SW1(config-if)# shutdown
+SW1(config-if)# no shutdown
+
+! Automatic recovery (default interval 300 seconds)
+SW1(config)# errdisable recovery cause bpduguard
+SW1(config)# errdisable recovery interval 300</pre>
+
+<h4>BPDU filter: global and interface behave differently</h4>
+<ul>
+<li><strong>Global</strong> <code>spanning-tree portfast bpdufilter default</code> (IOS XE: <code>portfast edge bpdufilter default</code>): applies only to ports that are operationally PortFast. Those ports still send a few BPDUs when the link comes up, then stop sending. If such a port ever <strong>receives</strong> a BPDU, it loses PortFast and BPDU filtering and runs normal STP. This is relatively safe.</li>
+<li><strong>Interface</strong> <code>spanning-tree bpdufilter enable</code>: the port neither sends nor processes received BPDUs, whether or not PortFast is set. It effectively disables STP on that port. A loop through it will not be detected. Use only when you are certain (for example toward another administrative domain).</li>
+<li>If interface BPDU filter and BPDU guard are both on a port, the filter wins: the port never processes the BPDU, so guard never triggers.</li>
+</ul>
+
+<h4>Root guard</h4>
+<pre class="cli">DSW1(config)# interface gigabitethernet1/0/10
+DSW1(config-if)# spanning-tree guard root
+
+%SPANTREE-2-ROOTGUARD_BLOCK: Root guard blocking port GigabitEthernet1/0/10 on VLAN0010.
+
+DSW1# show spanning-tree vlan 10 | include Gi1/0/10
+Gi1/0/10            Desg BKN*4         128.10   P2p *ROOT_Inc</pre>
+<p>Configure root guard on designated ports that point <em>away</em> from the root (toward access switches or a customer). The port keeps working normally while it receives inferior BPDUs. When a superior BPDU arrives (someone set priority 0 downstream), the port goes root-inconsistent for that VLAN instead of letting the topology move the root. It recovers on its own once the superior BPDUs stop.</p>
+
+<h4>Loop guard</h4>
+<pre class="cli">SW3(config)# interface gigabitethernet0/2
+SW3(config-if)# spanning-tree guard loop
+! or globally for all point-to-point ports:
+SW3(config)# spanning-tree loopguard default
+
+%SPANTREE-2-LOOPGUARD_BLOCK: Loop guard blocking port GigabitEthernet0/2 on VLAN0010.</pre>
+<p>An alternate port stays discarding only because it keeps hearing BPDUs from the designated port. If a fiber strand fails so BPDUs stop arriving but the link stays up (a unidirectional link), the alternate port would age out the information, become designated and forward, creating a loop. Loop guard instead moves it to loop-inconsistent (still discarding). Use it on root and alternate ports, typically on uplinks between switches. Root guard and loop guard cannot both be enabled on the same port.</p>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> match the feature to its state. BPDU guard = <strong>err-disabled</strong> (needs manual or errdisable recovery). Root guard = <strong>root-inconsistent</strong>, loop guard = <strong>loop-inconsistent</strong> (both recover by themselves). Root guard reacts to a <em>superior</em> BPDU; loop guard reacts to the <em>absence</em> of BPDUs; BPDU guard reacts to <em>any</em> BPDU.</p></div>
+
+<div class="lab" id="lab-2-5-1">
+<h4>Lab: Predict, then verify, the Rapid PVST+ topology</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~45 min</p>
+<p>Topology: SW1, SW2, SW3 (2960-24TT) in a triangle: SW1 Gi0/1 to SW2 Gi0/1, SW1 Gi0/2 to SW3 Gi0/1, SW2 Gi0/2 to SW3 Gi0/2. Add SW4 connected to SW3 with two links, SW4 Fa0/23 to SW3 Fa0/24 and SW4 Fa0/24 to SW3 Fa0/23. VLANs 10 and 20 on all switches, all inter-switch links static trunks.</p>
+<ol>
+<li>Set <code>spanning-tree mode rapid-pvst</code> on all four switches. Record each switch's base MAC (<code>show spanning-tree vlan 10</code>, Bridge ID Address).</li>
+<li><strong>On paper first</strong>: with default priorities, predict the VLAN 10 root, every root port, designated port and alternate port. Then verify with <code>show spanning-tree vlan 10</code> on all four.</li>
+<li>Make SW1 root for VLAN 10 and SW2 root for VLAN 20 with <code>root primary</code>, and make each the other's secondary. Predict the new roles for both VLANs, then verify. Note how the blocked port differs per VLAN (per-VLAN load sharing).</li>
+<li>Predict which of SW4's two ports is its root port (hint: sender port ID). Verify. Then on SW3 set <code>spanning-tree vlan 10 port-priority 64</code> on Fa0/24 and predict again.</li>
+<li>Shut down SW3 Gi0/1. Watch how quickly SW3's alternate port becomes root port. Restore.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>Protocol shows <code>rstp</code> for every VLAN.</li>
+<li>After step 3: VLAN 10 root SW1 priority 24586; VLAN 20 root SW2 priority 24596; secondaries 28682 (VLAN 10) and 28692 (VLAN 20).</li>
+<li>Step 4: SW4's root port is Fa0/24 (it receives BPDUs from SW3 Fa0/23, the lower sender port). After SW3 Fa0/24's port priority is lowered to 64 (a lower value is preferred over 128), SW4's root port moves to Fa0/23.</li>
+<li>Step 5: <code>show spanning-tree vlan 10</code> on SW3 shows Gi0/2 as Root FWD within a second or two.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">SW1(config)# spanning-tree mode rapid-pvst
+SW1(config)# spanning-tree vlan 10 root primary
+SW1(config)# spanning-tree vlan 20 root secondary
+SW2(config)# spanning-tree mode rapid-pvst
+SW2(config)# spanning-tree vlan 20 root primary
+SW2(config)# spanning-tree vlan 10 root secondary
+SW3(config)# spanning-tree mode rapid-pvst
+SW4(config)# spanning-tree mode rapid-pvst
+
+! Expected for VLAN 10 (SW1 root): SW2 Gi0/1 Root, SW3 Gi0/1 Root,
+! SW2-SW3 link: SW2 has the lower BID (28682 vs 32778), so SW2 Gi0/2 Desg
+! and SW3 Gi0/2 Altn.
+! Expected for VLAN 20 (SW2 root): SW1 Gi0/1 Root, SW3 Gi0/2 Root,
+! SW1-SW3 link: SW1 (28692) beats SW3, so SW1 Gi0/2 Desg, SW3 Gi0/1 Altn.
+
+SW3(config)# interface fastethernet0/24
+SW3(config-if)# spanning-tree vlan 10 port-priority 64
+
+SW1# show running-config | include spanning-tree vlan
+spanning-tree vlan 10 priority 24576
+spanning-tree vlan 20 priority 28672</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-2-5-2">
+<h4>Lab: PortFast, BPDU guard err-disable and recovery, root guard</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~30 min</p>
+<p>Topology: continue from the previous lab. Add PC1 on SW3 Fa0/1. Keep a spare 2960 (ROGUE) unconnected.</p>
+<ol>
+<li>Time how long PC1's port takes to go green after you reconnect its cable (use Simulation or just watch the link light). Enable PortFast on Fa0/1 and repeat.</li>
+<li>Enable BPDU guard globally for PortFast ports. Check <code>show spanning-tree summary</code>.</li>
+<li>Unplug PC1 and connect ROGUE Gi0/1 to SW3 Fa0/1. Read the log, then <code>show interfaces status err-disabled</code>.</li>
+<li>Remove ROGUE, reconnect PC1 and recover the port manually. Then configure automatic recovery for bpduguard with a 60 s interval.</li>
+<li>Treat SW3 as an access switch you do not trust. Enable root guard on both designated ports that face it: SW1 Gi0/2 and SW2 Gi0/2. (Guarding only one of them is not enough: SW3's superior BPDUs would reach SW1 through SW2.) On SW3, set <code>spanning-tree vlan 10 priority 0</code>. Read the logs and <code>show spanning-tree vlan 10</code> on SW1 and SW2. Remove the priority from SW3 and watch the ports recover by themselves.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>Step 1: without PortFast the port takes about 30 s (two forward delays) even in Rapid PVST+, because a PC never answers the RSTP proposal; with PortFast it forwards immediately. <code>show spanning-tree interface fa0/1 portfast</code> shows enabled; Type shows <code>P2p Edge</code>.</li>
+<li>Step 2: summary shows "Portfast BPDU Guard Default is enabled".</li>
+<li>Step 3: <code>%SPANTREE-2-BLOCK_BPDUGUARD</code> and <code>%PM-4-ERR_DISABLE</code>; status err-disabled, reason bpduguard.</li>
+<li>Step 5: <code>%SPANTREE-2-ROOTGUARD_BLOCK</code> on SW1 and SW2; Gi0/2 on each shows <code>*ROOT_Inc</code>; SW1 stays root for VLAN 10; the ports return to Desg FWD after SW3's priority is restored.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">SW3(config)# interface fastethernet0/1
+SW3(config-if)# switchport mode access
+SW3(config-if)# switchport access vlan 10
+SW3(config-if)# spanning-tree portfast
+SW3(config-if)# exit
+SW3(config)# spanning-tree portfast bpduguard default
+
+! after the violation and removing ROGUE:
+SW3(config)# interface fastethernet0/1
+SW3(config-if)# shutdown
+SW3(config-if)# no shutdown
+SW3(config-if)# exit
+SW3(config)# errdisable recovery cause bpduguard
+SW3(config)# errdisable recovery interval 60
+
+SW1(config)# interface gigabitethernet0/2
+SW1(config-if)# spanning-tree guard root
+SW2(config)# interface gigabitethernet0/2
+SW2(config-if)# spanning-tree guard root
+SW3(config)# spanning-tree vlan 10 priority 0
+! observe on SW1, then:
+SW3(config)# no spanning-tree vlan 10 priority 0</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>BID = priority (multiple of 4096, default 32768) + sys-id-ext (VLAN) + MAC. Lowest BID is root.</li>
+<li>Root port: lowest root cost, then lowest sender BID, sender port priority, sender port number. Short costs: 100 / 19 / 4 / 2 for 10M / 100M / 1G / 10G.</li>
+<li><code>root primary</code> = 24576 or 4096 below the current root; <code>root secondary</code> = 28672.</li>
+<li>RSTP roles: root, designated, alternate, backup, disabled. States: discarding, learning, forwarding (802.1D: blocking, listening, learning, forwarding, disabled; timers 2/20/15).</li>
+<li>PortFast = edge port, forwards at once; pair with BPDU guard (err-disabled on any BPDU).</li>
+<li>Root guard: superior BPDU, root-inconsistent. Loop guard: missing BPDUs, loop-inconsistent. Both self-recover.</li>
+<li>Global BPDU filter affects PortFast ports and reverts if a BPDU arrives; interface BPDU filter disables STP on that port.</li>
+</ul></div>
+</section>
+<section class="topic" id="t-2-6" data-topics="2.6">
+<h2>2.6 Cisco wireless architectures and AP modes</h2>
+
+<p>Topic 1.11 covered RF, channels and SSIDs. This topic is about how access points (APs) are managed and where client traffic goes. The exam expects you to name each architecture, say where the controller lives, and pick the AP mode that fits a job.</p>
+
+<h3>Autonomous APs</h3>
+<p>An autonomous AP is a self-contained device: it runs its own IOS, is configured one by one (CLI or web GUI), and bridges wireless clients straight onto the wired network. Each SSID maps to a VLAN on the AP, so an AP serving several SSIDs connects to a <strong>trunk</strong> port. There is no central RF management, so channel and power planning, security policy and roaming are per AP. Fine for a home or very small office, painful at scale. A management IP in a management VLAN is needed on each AP.</p>
+
+<h3>Lightweight APs and the split-MAC architecture</h3>
+<p>A lightweight AP (LAP) cannot work on its own. It discovers a Wireless LAN Controller (WLC), downloads its configuration (and software) from it, and from then on the 802.11 MAC functions are split between them: <strong>split-MAC</strong>.</p>
+<table>
+<thead><tr><th>AP (real-time functions)</th><th>WLC (management functions)</th></tr></thead>
+<tbody>
+<tr><td>Transmitting and receiving 802.11 frames (RF)</td><td>Client authentication and security policy (802.1X with RADIUS, PSK)</td></tr>
+<tr><td>Beacons and probe responses</td><td>Association and reassociation handling, roaming between APs</td></tr>
+<tr><td>MAC acknowledgments and retransmissions</td><td>Radio Resource Management (RRM): channel and power assignment, coverage hole detection</td></tr>
+<tr><td>Frame queuing and prioritization (WMM)</td><td>QoS policy, WLAN-to-VLAN mapping, bridging 802.11 to 802.3</td></tr>
+<tr><td>802.11 encryption/decryption on the air</td><td>Rogue AP detection management, AP configuration and image management</td></tr>
+</tbody>
+</table>
+
+<h4>CAPWAP</h4>
+<p>The AP and WLC talk over CAPWAP (Control And Provisioning of Wireless Access Points, RFC 5415), a standard based on Cisco's earlier LWAPP. CAPWAP builds two tunnels between the AP's IP address and the WLC's management interface:</p>
+<ul>
+<li><strong>Control tunnel: UDP 5246</strong>. Configuration, AP management, keepalives. Always encrypted with <strong>DTLS</strong>.</li>
+<li><strong>Data tunnel: UDP 5247</strong>. Client frames encapsulated between AP and WLC. DTLS encryption of data is optional (off by default on Cisco controllers; turned on as "data link encryption" when needed).</li>
+</ul>
+<p>Because CAPWAP runs over UDP/IP, the AP and WLC can be in different subnets, across a routed network or a WAN. The AP finds a WLC by: a Layer 3 broadcast on its own subnet, <strong>DHCP option 43</strong> (WLC IPv4 address in the AP's DHCP offer), a DNS lookup of <code>CISCO-CAPWAP-CONTROLLER.&lt;localdomain&gt;</code>, previously learned controllers, or statically configured primary/secondary/tertiary controller names.</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 300" role="img" aria-label="Split-MAC: a laptop associates to a lightweight AP on a switch access port; a CAPWAP tunnel with DTLS control on UDP 5246 and data on UDP 5247 crosses the routed network to the WLC, which connects to a trunk.">
+<rect x="10" y="120" width="90" height="50" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="55" y="150" text-anchor="middle" class="d-text">Client</text>
+<rect x="150" y="120" width="110" height="50" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="205" y="142" text-anchor="middle" class="d-text">Lightweight</text>
+<text x="205" y="160" text-anchor="middle" class="d-text">AP (local)</text>
+<line x1="100" y1="145" x2="150" y2="145" class="d-line" stroke="currentColor" stroke-dasharray="4 4"/>
+<text x="125" y="115" text-anchor="middle" class="d-muted">802.11</text>
+<rect x="300" y="120" width="90" height="50" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="345" y="150" text-anchor="middle" class="d-text">Access SW</text>
+<line x1="260" y1="145" x2="300" y2="145" class="d-line" stroke="currentColor" stroke-width="2"/>
+<text x="280" y="190" text-anchor="middle" class="d-muted">access port</text>
+<rect x="430" y="120" width="100" height="50" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="480" y="142" text-anchor="middle" class="d-text">Routed</text>
+<text x="480" y="160" text-anchor="middle" class="d-text">network</text>
+<line x1="390" y1="145" x2="430" y2="145" class="d-line" stroke="currentColor" stroke-width="2"/>
+<rect x="590" y="120" width="120" height="50" rx="6" class="d-accent-fill" stroke="currentColor"/>
+<text x="650" y="150" text-anchor="middle" class="d-text">WLC</text>
+<line x1="530" y1="145" x2="590" y2="145" class="d-line" stroke="currentColor" stroke-width="2"/>
+<path d="M205 120 C 205 40, 650 40, 650 120" fill="none" class="d-accent" stroke="currentColor" stroke-width="3"/>
+<text x="430" y="40" text-anchor="middle" class="d-text">CAPWAP control: UDP 5246, DTLS (always)</text>
+<path d="M205 170 C 205 260, 650 260, 650 170" fill="none" class="d-accent" stroke="currentColor" stroke-width="3" stroke-dasharray="8 6"/>
+<text x="430" y="275" text-anchor="middle" class="d-text">CAPWAP data: UDP 5247 (client frames, DTLS optional)</text>
+<text x="650" y="200" text-anchor="middle" class="d-muted">trunk: client VLANs</text>
+</svg>
+<figcaption>Split-MAC with CAPWAP. In local mode every client frame rides the data tunnel to the WLC, which drops it into the client VLAN on its trunk.</figcaption>
+</figure>
+
+<h3>Controller deployment models</h3>
+<table>
+<thead><tr><th>Model</th><th>Where the WLC function runs</th><th>Typical use</th></tr></thead>
+<tbody>
+<tr><td><strong>Centralized (unified)</strong></td><td>A dedicated WLC appliance (AireOS 3504/5520/8540, Catalyst 9800-40/80) in the data center or core</td><td>Campus; one controller (or HA pair) manages thousands of APs</td></tr>
+<tr><td><strong>Cloud-based</strong></td><td>In the cloud: Cisco Meraki dashboard (Meraki APs), or a Catalyst 9800-CL virtual controller in a public/private cloud</td><td>Many distributed sites, minimal on-site gear; management via web dashboard</td></tr>
+<tr><td><strong>Embedded</strong></td><td>Inside an access switch (Catalyst 9300/9400/9500 running the embedded wireless controller)</td><td>Small campus or branch, SD-Access fabric; on the order of a couple of hundred APs</td></tr>
+<tr><td><strong>Mobility Express / EWC</strong></td><td>On an AP: Mobility Express (AireOS-based, 802.11ac Wave 2 APs) and its successor, the Embedded Wireless Controller on Catalyst 9100 APs (IOS XE)</td><td>Small sites (about 100 APs or fewer) with no separate controller box</td></tr>
+<tr><td><strong>FlexConnect</strong> (a remote-office design)</td><td>Central WLC; APs at branches across a WAN in FlexConnect mode</td><td>Branches where tunneling all client traffic to HQ would waste WAN bandwidth</td></tr>
+</tbody>
+</table>
+<p>Meraki cloud management is out-of-band: only management data (configuration, statistics) goes to the cloud over an encrypted tunnel; user traffic goes directly to its destination, and devices keep running on their last configuration if the cloud is unreachable.</p>
+
+<h3>AP modes</h3>
+<p>On a WLC you set each lightweight AP's mode. Know what each is for:</p>
+<table>
+<thead><tr><th>Mode</th><th>Serves clients?</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><strong>Local</strong> (default)</td><td>Yes</td><td>All client traffic tunneled to the WLC over CAPWAP. Between client service it briefly scans other channels for RRM, rogues and IDS. If the WLC is lost, the AP stops serving clients.</td></tr>
+<tr><td><strong>FlexConnect</strong></td><td>Yes</td><td>For branches across a WAN. Per WLAN, traffic is either tunneled to the WLC (central switching) or switched locally onto the branch VLAN at the AP (<strong>local switching</strong>). If the WAN link to the WLC fails, the AP keeps serving locally switched WLANs (standalone mode).</td></tr>
+<tr><td><strong>Monitor</strong></td><td>No</td><td>Radios only receive: dedicated scanning of all channels for RRM, rogue detection, wIPS and location (context-aware) services.</td></tr>
+<tr><td><strong>Rogue detector</strong></td><td>No</td><td>Radios off. The AP listens on the <em>wired</em> side (ARP) to find rogue APs/clients physically connected to the LAN, correlating with MACs that other APs heard over the air. Older feature; not supported on newer AP generations.</td></tr>
+<tr><td><strong>Sniffer</strong></td><td>No</td><td>Captures all 802.11 frames on one channel and forwards them to a remote PC running Wireshark or similar for analysis.</td></tr>
+<tr><td><strong>SE-Connect</strong></td><td>No</td><td>Spectrum Expert Connect: the AP becomes a dedicated spectrum analyzer feeding a remote tool (Cisco Spectrum Expert, MetaGeek Chanalyzer) to find non-Wi-Fi interference. Requires CleanAir-capable APs.</td></tr>
+<tr><td><strong>Bridge / Mesh</strong></td><td>Yes (if configured)</td><td>Mesh APs: a root AP is wired; mesh APs connect to it over a wireless backhaul. Also point-to-point or point-to-multipoint bridging between buildings.</td></tr>
+<tr><td><strong>Flex+Bridge</strong></td><td>Yes</td><td>Mesh plus FlexConnect: mesh backhaul with local switching at the remote site.</td></tr>
+</tbody>
+</table>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> "an AP that does not serve clients and is dedicated to finding rogue devices over the air" is <strong>monitor</strong> mode. "Detects rogues on the wired network" is <strong>rogue detector</strong>. "Sends captured frames to Wireshark" is <strong>sniffer</strong>. "Spectrum analysis of interference" is <strong>SE-Connect</strong>. "Branch office, keeps working if the WAN fails" is <strong>FlexConnect</strong>.</p></div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Autonomous AP: standalone, configured individually, trunk for multiple SSIDs/VLANs.</li>
+<li>Lightweight AP + WLC = split-MAC: real-time 802.11 on the AP, management (auth, roaming, RRM, policy) on the WLC.</li>
+<li>CAPWAP: control UDP 5246 (DTLS-encrypted), data UDP 5247 (encryption optional). Discovery: broadcast, DHCP option 43, DNS, previously joined.</li>
+<li>Deployments: centralized, cloud (Meraki, 9800-CL), embedded (on a Catalyst 9000 switch), Mobility Express/EWC (on an AP), FlexConnect for branches.</li>
+<li>AP modes: local (default), FlexConnect, monitor, rogue detector, sniffer, SE-Connect, bridge/mesh, Flex+Bridge.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-2-7" data-topics="2.7">
+<h2>2.7 Physical infrastructure connections of WLAN components (AP, WLC, access/trunk ports, LAG)</h2>
+
+<h3>Connecting APs to switches</h3>
+<table>
+<thead><tr><th>AP type / mode</th><th>Switch port</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Lightweight AP in <strong>local</strong> mode</td><td><strong>Access</strong> port in the AP management VLAN</td><td>The AP has one IP address; all client traffic is inside CAPWAP to the WLC, so the switch never sees client VLANs.</td></tr>
+<tr><td>Lightweight AP in <strong>FlexConnect</strong> mode with local switching</td><td><strong>Trunk</strong>; native VLAN = AP management VLAN; allowed list includes the client VLANs</td><td>The AP tags locally switched client traffic into branch VLANs.</td></tr>
+<tr><td><strong>Autonomous</strong> AP with several SSIDs/VLANs</td><td><strong>Trunk</strong></td><td>The AP bridges each SSID into its own VLAN.</td></tr>
+<tr><td>Autonomous AP with one SSID</td><td>Access port can work</td><td>Only one VLAN involved.</td></tr>
+</tbody>
+</table>
+<p>Edge ports to APs commonly get <code>spanning-tree portfast</code> (or <code>portfast trunk</code> for a FlexConnect trunk).</p>
+<pre class="cli">! Local-mode AP
+SW1(config)# interface gigabitethernet1/0/10
+SW1(config-if)# description LAP-Floor2
+SW1(config-if)# switchport mode access
+SW1(config-if)# switchport access vlan 50
+SW1(config-if)# spanning-tree portfast
+
+! FlexConnect AP with local switching of VLANs 10 and 20, AP management in VLAN 50
+SW1(config)# interface gigabitethernet1/0/11
+SW1(config-if)# switchport mode trunk
+SW1(config-if)# switchport trunk native vlan 50
+SW1(config-if)# switchport trunk allowed vlan 10,20,50
+SW1(config-if)# spanning-tree portfast trunk</pre>
+
+<h4>Power over Ethernet</h4>
+<p>APs are usually powered by the switch (PoE, introduced in 1.1.h). Know the standards: 802.3af PoE (15.4 W per port at the switch), 802.3at PoE+ (30 W), 802.3bt (up to 60 W Type 3 / 90 W Type 4; Cisco UPOE is 60 W, UPOE+ 90 W). Modern multi-radio APs often need PoE+ or more for full functionality and run with radios or ports disabled on less. The AP can negotiate a finer power level with the switch via CDP or LLDP. <code>show power inline</code> lists the power drawn per port.</p>
+
+<h3>WLC physical ports</h3>
+<figure class="diagram">
+<svg viewBox="0 0 720 300" role="img" aria-label="WLC ports: console and service port to an out-of-band management network, redundancy port to an HA peer, and distribution system ports bundled into a LAG to the switch as an 802.1Q trunk">
+<rect x="230" y="100" width="260" height="90" rx="8" class="d-accent-fill" stroke="currentColor"/>
+<text x="360" y="130" text-anchor="middle" class="d-text">WLC (AireOS 3504 / 5520,</text>
+<text x="360" y="150" text-anchor="middle" class="d-text">or Catalyst 9800)</text>
+<rect x="20" y="30" width="150" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="95" y="55" text-anchor="middle" class="d-text">Console (serial)</text>
+<rect x="20" y="110" width="150" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="95" y="135" text-anchor="middle" class="d-text">OOB mgmt network</text>
+<line x1="170" y1="50" x2="230" y2="110" class="d-line" stroke="currentColor"/>
+<text x="200" y="70" class="d-muted">console</text>
+<line x1="170" y1="130" x2="230" y2="130" class="d-line" stroke="currentColor"/>
+<text x="175" y="165" class="d-muted">service port</text>
+<rect x="550" y="110" width="150" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="625" y="135" text-anchor="middle" class="d-text">Standby WLC</text>
+<line x1="490" y1="130" x2="550" y2="130" class="d-line" stroke="currentColor"/>
+<text x="495" y="120" class="d-muted">RP (HA)</text>
+<rect x="290" y="240" width="140" height="45" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="360" y="267" text-anchor="middle" class="d-text">Distribution switch</text>
+<line x1="330" y1="190" x2="330" y2="240" class="d-accent" stroke="currentColor" stroke-width="3"/>
+<line x1="350" y1="190" x2="350" y2="240" class="d-accent" stroke="currentColor" stroke-width="3"/>
+<line x1="370" y1="190" x2="370" y2="240" class="d-accent" stroke="currentColor" stroke-width="3"/>
+<line x1="390" y1="190" x2="390" y2="240" class="d-accent" stroke="currentColor" stroke-width="3"/>
+<ellipse cx="360" cy="215" rx="45" ry="10" fill="none" stroke="currentColor"/>
+<text x="420" y="210" class="d-text">distribution ports in a LAG</text>
+<text x="420" y="228" class="d-muted">802.1Q trunk, switch side: mode on</text>
+</svg>
+<figcaption>WLC port roles. Data and CAPWAP use the distribution system ports (optionally bundled in a LAG); the service port is for out-of-band management only.</figcaption>
+</figure>
+<table>
+<thead><tr><th>Port</th><th>AireOS WLC</th><th>Catalyst 9800</th><th>Use</th></tr></thead>
+<tbody>
+<tr><td>Console</td><td>RJ-45 (some models also have a USB console)</td><td>RJ-45 and USB console</td><td>Initial setup, recovery</td></tr>
+<tr><td>Service port (SP)</td><td>Dedicated port, bound to the service-port interface</td><td>GigabitEthernet0, in the management VRF</td><td>Out-of-band management only. Cannot carry 802.1Q tags, not used for CAPWAP or client data. Active even in boot mode.</td></tr>
+<tr><td>Distribution system ports</td><td>Numbered ports 1, 2, ... (data ports)</td><td>Front-panel data ports such as TenGigabitEthernet0/1/0</td><td>All CAPWAP and client data; connect to a switch <strong>trunk</strong>.</td></tr>
+<tr><td>Redundancy port (RP)</td><td>RP port</td><td>RP port</td><td>Connects two controllers for high availability (SSO): keepalives and state sync.</td></tr>
+</tbody>
+</table>
+
+<h3>Link aggregation (LAG) on a WLC</h3>
+<ul>
+<li><strong>AireOS</strong>: LAG bundles <strong>all</strong> distribution system ports into one logical port (only one LAG per controller). The WLC does <strong>not</strong> run LACP or PAgP, so the switch side must be a static EtherChannel: <code>channel-group X mode on</code>. Enabling or disabling LAG needs a controller reboot. Without LAG, you would map interfaces to individual ports with backup ports.</li>
+<li><strong>Catalyst 9800</strong>: it is IOS XE, so it uses normal port-channels and supports static (on), LACP and PAgP, with multiple port-channels.</li>
+<li>Either way the bundle is an 802.1Q trunk carrying the management VLAN and all client VLANs.</li>
+</ul>
+<pre class="cli">! Switch side facing an AireOS WLC with LAG enabled on 4 ports
+DSW1(config)# interface range gigabitethernet1/0/1 - 4
+DSW1(config-if-range)# switchport mode trunk
+DSW1(config-if-range)# switchport trunk allowed vlan 50,100,200
+DSW1(config-if-range)# channel-group 10 mode on
+DSW1(config-if-range)# exit
+DSW1(config)# interface port-channel 10
+DSW1(config-if)# switchport mode trunk
+DSW1(config-if)# switchport trunk allowed vlan 50,100,200</pre>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> a question showing an AireOS WLC with LAG and a switch configured with <code>channel-group 1 mode active</code> is describing a broken setup. AireOS LAG requires <code>mode on</code>.</p></div>
+
+<h3>WLC logical interfaces (AireOS)</h3>
+<table>
+<thead><tr><th>Interface</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><strong>Management</strong></td><td>In-band management (GUI, SSH), AAA source address, CAPWAP endpoint for APs (it acts as the AP-manager on current releases), mobility traffic. Mapped to a distribution port and a VLAN.</td></tr>
+<tr><td><strong>Virtual</strong></td><td>A non-routable placeholder address used for DHCP relay to clients and as the web-authentication redirect address, and for mobility. Cisco recommends an RFC 5737 address such as 192.0.2.1 (older guides used 1.1.1.1). Must be the same on all controllers in a mobility group.</td></tr>
+<tr><td><strong>Service-port</strong></td><td>Bound to the physical service port for out-of-band management.</td></tr>
+<tr><td><strong>Dynamic</strong></td><td>User-created, one per client VLAN (VLAN ID, IP, gateway, DHCP server). A WLAN is mapped to a dynamic interface, which is how an SSID lands in a VLAN. Similar to an SVI.</td></tr>
+<tr><td>AP-manager</td><td>Legacy separate CAPWAP source interface; on modern AireOS the management interface does this job.</td></tr>
+</tbody>
+</table>
+<p>On the Catalyst 9800 the equivalent of the management interface is the <strong>wireless management interface</strong>, normally an SVI (for example <code>interface Vlan50</code>) on the trunk. Client VLANs are just VLANs referenced in policy profiles.</p>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Local-mode AP: access port (all client traffic inside CAPWAP). FlexConnect with local switching or multi-SSID autonomous AP: trunk.</li>
+<li>WLC: service port = out-of-band management, no VLAN tags; distribution system ports = data and CAPWAP on a trunk; RP = HA; console.</li>
+<li>AireOS LAG: all distribution ports, no LACP/PAgP, switch uses <code>channel-group X mode on</code>, reboot required. 9800 supports LACP and PAgP too.</li>
+<li>AireOS interfaces: management, virtual, service-port, dynamic (WLAN to VLAN), legacy AP-manager.</li>
+<li>PoE: 802.3af 15.4 W, 802.3at 30 W, 802.3bt 60/90 W.</li>
+</ul></div>
+</section>
+<section class="topic" id="t-2-8" data-topics="2.8">
+<h2>2.8 Network device management access (Telnet, SSH, HTTP, HTTPS, console, TACACS+/RADIUS, cloud managed)</h2>
+
+<p>This topic is about the ways an administrator reaches a device and how logins are checked. The detailed SSH setup is in 4.8 and local passwords in 5.3; here, know the options, their ports, and their security properties.</p>
+
+<h3>Access methods at a glance</h3>
+<table>
+<thead><tr><th>Method</th><th>Transport / port</th><th>Encrypted?</th><th>IOS lines/commands</th></tr></thead>
+<tbody>
+<tr><td>Console</td><td>Serial, out-of-band (no IP needed)</td><td>n/a (physical)</td><td><code>line con 0</code></td></tr>
+<tr><td>Telnet</td><td>TCP 23</td><td><strong>No</strong>: username, password and session in clear text</td><td><code>line vty 0 15</code>, <code>transport input telnet</code></td></tr>
+<tr><td>SSH (v2)</td><td>TCP 22</td><td>Yes</td><td><code>transport input ssh</code> (needs hostname, domain name, RSA keys, local or AAA users; see 4.8)</td></tr>
+<tr><td>HTTP (web GUI)</td><td>TCP 80</td><td>No</td><td><code>ip http server</code></td></tr>
+<tr><td>HTTPS (web GUI)</td><td>TCP 443</td><td>Yes (TLS)</td><td><code>ip http secure-server</code></td></tr>
+</tbody>
+</table>
+
+<h3>Console</h3>
+<p>The console port gives CLI access with no IP configuration, so it is how you set up a new device or recover one that is unreachable. Classic Cisco console ports are RJ-45 and use a <strong>rollover</strong> (console) cable to a DB-9 serial port or a USB-to-serial adapter; many current devices also have a USB mini-B or micro-B console port. Default terminal settings: <strong>9600 baud, 8 data bits, no parity, 1 stop bit, no flow control</strong> (9600 8N1).</p>
+<pre class="cli">R1(config)# line console 0
+R1(config-line)# password Str0ngC0nsole!
+R1(config-line)# login
+! or, to use local usernames instead of the line password:
+R1(config-line)# login local
+R1(config-line)# exec-timeout 5 0
+R1(config-line)# logging synchronous</pre>
+
+<h3>Telnet and SSH (VTY lines)</h3>
+<p>Remote CLI sessions use virtual terminal (VTY) lines, usually <code>line vty 0 4</code> or <code>0 15</code>. The device needs an IP address reachable from the admin (and on a Layer 2 switch, an SVI plus <code>ip default-gateway</code>). Telnet sends everything, including the password, in clear text, so anyone capturing packets reads it. Use SSH and restrict the lines:</p>
+<pre class="cli">R1(config)# line vty 0 15
+R1(config-line)# login local
+R1(config-line)# transport input ssh
+! VTY lines default to "login": with no line password (and no login local),
+! a Telnet attempt gets "Password required, but none set" and is closed</pre>
+
+<h3>HTTP and HTTPS</h3>
+<p>Many IOS/IOS XE devices (and every WLC) have a web interface. <code>ip http server</code> enables the clear-text HTTP server on TCP 80; <code>ip http secure-server</code> enables HTTPS on TCP 443 with a self-signed or installed certificate. Best practice: <code>no ip http server</code>, keep only HTTPS if you need a GUI, and authenticate it with <code>ip http authentication local</code> (or AAA). The Catalyst 9800 and AireOS WLC GUIs are reached over HTTPS.</p>
+
+<h3>AAA: TACACS+ and RADIUS</h3>
+<p>Local usernames on every device do not scale and are hard to audit. AAA (authentication, authorization, accounting; concepts in 5.8) centralizes logins on a server such as Cisco ISE. The device is the AAA client and talks to the server with TACACS+ or RADIUS.</p>
+<table>
+<thead><tr><th></th><th>TACACS+</th><th>RADIUS</th></tr></thead>
+<tbody>
+<tr><td>Origin</td><td>Cisco-developed (now documented in RFC 8907)</td><td>Open standard (RFC 2865/2866)</td></tr>
+<tr><td>Transport</td><td><strong>TCP 49</strong></td><td><strong>UDP 1812</strong> authentication/authorization, <strong>UDP 1813</strong> accounting (legacy Cisco ports 1645/1646)</td></tr>
+<tr><td>Encryption</td><td>Encrypts (obfuscates) the <strong>entire packet body</strong></td><td>Hides <strong>only the password</strong>; other attributes (username, etc.) are clear text</td></tr>
+<tr><td>AAA functions</td><td><strong>Separates</strong> authentication, authorization and accounting (each a separate exchange)</td><td><strong>Combines</strong> authentication and authorization in one exchange; accounting separate</td></tr>
+<tr><td>Command authorization</td><td>Yes: can authorize each CLI command</td><td>No per-command authorization</td></tr>
+<tr><td>Typical use</td><td><strong>Device administration</strong> (admins logging in to routers/switches)</td><td><strong>Network access</strong> (802.1X wired/wireless users, VPN users)</td></tr>
+</tbody>
+</table>
+<pre class="cli">! Minimal AAA login with TACACS+ and local fallback (modern syntax)
+R1(config)# username admin privilege 15 secret L0calFallback!
+R1(config)# aaa new-model
+R1(config)# tacacs server ISE1
+R1(config-server-tacacs)# address ipv4 10.10.10.5
+R1(config-server-tacacs)# key T@cKey123
+R1(config-server-tacacs)# exit
+R1(config)# aaa authentication login default group tacacs+ local
+! RADIUS equivalent:
+R1(config)# radius server ISE1-R
+R1(config-radius-server)# address ipv4 10.10.10.5 auth-port 1812 acct-port 1813
+R1(config-radius-server)# key R@dKey123</pre>
+<p>The method list is tried in order; <code>local</code> is used <em>only if the server does not respond</em>. If the server answers "reject", the login fails and the local database is not consulted. After <code>aaa new-model</code>, the default login method applies to all lines unless overridden, so configure it before you close your session.</p>
+
+<h3>Cloud-managed devices</h3>
+<p>Cisco Meraki switches, APs and security appliances are managed from the Meraki dashboard, a web portal in the cloud. Each device connects outbound to the cloud over an encrypted tunnel and pulls its configuration. You manage everything from a browser (HTTPS) without console or SSH sessions to individual devices; zero-touch deployment means a device configured in the dashboard just needs power and an internet path. Management is out-of-band: user traffic does not pass through the cloud, and devices keep forwarding with their last configuration if the cloud is unreachable. Some Catalyst 9000 switches can also be monitored or managed from the Meraki dashboard.</p>
+
+<h3>In-band versus out-of-band management</h3>
+<dl>
+<dt>In-band</dt><dd>Management traffic (SSH, SNMP, HTTPS) uses the same network that carries user data, for example an SVI in a management VLAN. Cheap, but if the production network breaks, you lose management access with it.</dd>
+<dt>Out-of-band (OOB)</dt><dd>A separate path used only for management: the console port (often via a terminal/console server), or a dedicated management Ethernet port on its own network (Catalyst 9000 GigabitEthernet0/0 in the <code>Mgmt-vrf</code>, a WLC service port). Survives production outages and is easier to secure.</dd>
+</dl>
+
+<div class="lab" id="lab-2-8-1">
+<h4>Lab: Centralized login with TACACS+ and local fallback</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~30 min</p>
+<p>Topology: R1 G0/0/0 192.168.1.1/24 to SW1; on SW1 a Server-PT (192.168.1.10/24) and an admin PC (192.168.1.20/24, gateway .1).</p>
+<ol>
+<li>On the server, open Services &gt; AAA. Turn the service on. Add a network client: name R1, IP 192.168.1.1, server type Tacacs, secret <code>T@cKey123</code>. Add a user <code>netadmin</code> with a password of your choice.</li>
+<li>On R1 create a local user <code>admin</code>, enable <code>aaa new-model</code>, define the TACACS+ server, and set login authentication to TACACS+ then local.</li>
+<li>From the PC's command prompt, <code>telnet 192.168.1.1</code> and log in as <code>netadmin</code>. Note why Telnet is acceptable only in a lab.</li>
+<li>Try logging in as <code>admin</code> while the server is up. Then turn the AAA service off on the server and try <code>admin</code> again. Explain the difference.</li>
+<li>Restrict the VTY lines to SSH only (generate keys as in 4.8 if you want to test SSH from the PC with <code>ssh -l netadmin 192.168.1.1</code>).</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>Step 3: netadmin logs in (authenticated by the server).</li>
+<li>Step 4: with the server up, <code>admin</code> fails (server rejects an unknown user; local is not tried). With the server down, <code>admin</code> works (fallback to local because the server did not respond).</li>
+<li>Step 5: Telnet is refused once <code>transport input ssh</code> is set.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">R1(config)# username admin secret L0calFallback!
+R1(config)# aaa new-model
+! Packet Tracer accepts the legacy syntax; real IOS XE also accepts
+! "tacacs server NAME / address ipv4 / key"
+R1(config)# tacacs-server host 192.168.1.10 key T@cKey123
+R1(config)# aaa authentication login default group tacacs+ local
+R1(config)# line vty 0 4
+R1(config-line)# login authentication default
+R1(config-line)# transport input telnet ssh
+! step 5
+R1(config-line)# transport input ssh</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Console: rollover or USB, 9600 8N1, <code>line con 0</code>, works with no IP.</li>
+<li>Telnet TCP 23 clear text; SSH TCP 22 encrypted; HTTP 80 (<code>ip http server</code>); HTTPS 443 (<code>ip http secure-server</code>).</li>
+<li>TACACS+: TCP 49, whole body encrypted, separates AuthN/AuthZ/Acct, per-command authorization, device admin.</li>
+<li>RADIUS: UDP 1812/1813 (1645/1646), only the password hidden, combines AuthN+AuthZ, network access (802.1X).</li>
+<li>Local fallback in a method list is used only if the server does not respond.</li>
+<li>Cloud managed (Meraki): dashboard over HTTPS, out-of-band management, user data does not traverse the cloud.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-2-9" data-topics="2.9">
+<h2>2.9 Interpret WLAN GUI configuration for client connectivity (WLAN creation, security, QoS profiles, advanced settings)</h2>
+
+<p>The exam shows screenshots of a WLC GUI and asks what a setting does or what is wrong. Exhibits can come from the older AireOS GUI (3504, 5520, and Packet Tracer's 2504/3504) or the Catalyst 9800 GUI (IOS XE). The ideas are the same; the menus differ. Topic 5.10 walks through a WPA2-PSK WLAN step by step; this topic is about interpreting every tab.</p>
+
+<h3>The four things every WLAN needs</h3>
+<ol>
+<li>An identity: WLAN ID, profile name and SSID.</li>
+<li>A wired destination: the VLAN (AireOS dynamic interface, or 9800 policy profile VLAN) where client traffic lands.</li>
+<li>Security: Layer 2 (WPA2/WPA3 with PSK or 802.1X), optionally Layer 3 (web authentication), and AAA servers.</li>
+<li>Status enabled (and, on the 9800, a policy tag on the APs that maps the WLAN to its policy).</li>
+</ol>
+
+<h3>AireOS GUI</h3>
+<h4>Creating the WLAN</h4>
+<p>Top menu <strong>WLANs</strong>, choose <strong>Create New</strong> in the drop-down and click <strong>Go</strong>. The New page asks for:</p>
+<table>
+<thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Type</td><td>WLAN (or Guest LAN/Remote LAN)</td></tr>
+<tr><td>Profile Name</td><td>Administrative name, unique on the controller (up to 32 characters); not seen by clients</td></tr>
+<tr><td>SSID</td><td>The network name clients see (up to 32 characters). Several WLANs can share an SSID if their security differs.</td></tr>
+<tr><td>ID</td><td>WLAN ID number (1 to 512 on larger AireOS controllers). The default AP group serves only WLAN IDs 1 to 16.</td></tr>
+</tbody>
+</table>
+<p>Click <strong>Apply</strong>, and the <strong>WLANs &gt; Edit</strong> page opens with tabs General, Security, QoS, Policy-Mapping and Advanced.</p>
+
+<h4>General tab</h4>
+<ul>
+<li><strong>Status: Enabled</strong> check box. A newly created WLAN is disabled until you tick it, a common reason "the SSID does not appear".</li>
+<li><strong>Security Policies</strong>: read-only summary of what the Security tab selects, for example <code>[WPA2][Auth(PSK)]</code>.</li>
+<li><strong>Radio Policy</strong>: All, or limit to 802.11a/g/b bands.</li>
+<li><strong>Interface/Interface Group(G)</strong>: the dynamic interface (and so the VLAN) the WLAN's clients are placed in. Defaults to <code>management</code>; change it to the client VLAN's dynamic interface.</li>
+<li><strong>Broadcast SSID</strong>: whether the SSID appears in beacons (hiding it is not a security control).</li>
+</ul>
+
+<h4>Security tab</h4>
+<table>
+<thead><tr><th>Sub-tab</th><th>Settings</th></tr></thead>
+<tbody>
+<tr><td><strong>Layer 2</strong></td><td>Layer 2 Security: None (open), WPA+WPA2, WPA2+WPA3/WPA3 on newer code, Static WEP (legacy). WPA2 Policy with <strong>AES</strong> (CCMP) encryption. <strong>Authentication Key Management</strong>: <strong>802.1X</strong> (enterprise, per-user via RADIUS), <strong>PSK</strong> (personal, enter the passphrase, ASCII 8 to 63 characters), FT 802.1X/FT PSK (fast roaming), <strong>SAE</strong> (WPA3-Personal), CCKM. <strong>PMF</strong> (Protected Management Frames, 802.11w): Disabled, Optional or Required; WPA3 requires it. A new AireOS WLAN defaults to WPA2 with AES and 802.1X, so for PSK you must change the key management and enter the key.</td></tr>
+<tr><td><strong>Layer 3</strong></td><td>Layer 3 Security: None, or <strong>Web Policy</strong> (web authentication: a captive portal login page; options Authentication, Passthrough, Conditional/Splash Page Web Redirect). Typical for guest WLANs, often with Layer 2 open.</td></tr>
+<tr><td><strong>AAA Servers</strong></td><td>Which RADIUS servers to use for this WLAN's authentication and accounting (defined globally under Security &gt; AAA &gt; RADIUS), plus LDAP and Local EAP options. Required for 802.1X and for web auth against RADIUS.</td></tr>
+</tbody>
+</table>
+
+<h4>QoS tab</h4>
+<table>
+<thead><tr><th>Profile</th><th>Intended traffic</th><th>802.11e/WMM access category</th></tr></thead>
+<tbody>
+<tr><td><strong>Platinum</strong></td><td>Voice</td><td>Voice</td></tr>
+<tr><td><strong>Gold</strong></td><td>Video</td><td>Video</td></tr>
+<tr><td><strong>Silver</strong></td><td>Best effort, <strong>the default</strong></td><td>Best effort</td></tr>
+<tr><td><strong>Bronze</strong></td><td>Background, lowest (guest)</td><td>Background</td></tr>
+</tbody>
+</table>
+<p>The profile caps the priority (DSCP/802.1p and WMM marking) of traffic on that WLAN. A voice WLAN should be Platinum; a guest WLAN often Bronze. The same tab has <strong>WMM Policy</strong> (Disabled, Allowed, Required); 802.11n/ac/ax high data rates require WMM.</p>
+
+<h4>Advanced tab (the settings exhibits ask about)</h4>
+<table>
+<thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><strong>Allow AAA Override</strong></td><td>Lets the RADIUS server's reply override the WLAN's settings per user, for example assigning a VLAN, ACL or QoS level per user/group. Off by default.</td></tr>
+<tr><td><strong>Enable Session Timeout</strong></td><td>Forces reauthentication after the timeout (default 1800 s for 802.1X WLANs).</td></tr>
+<tr><td><strong>Client Exclusion</strong></td><td>Temporarily blocks clients that fail authentication repeatedly (excessive 802.11 association/802.1X/web-auth failures, IP theft). Enabled with a timeout (commonly 60 s).</td></tr>
+<tr><td><strong>Maximum Allowed Clients</strong></td><td>Caps clients on the WLAN; 0 means unlimited.</td></tr>
+<tr><td><strong>DHCP Addr. Assignment Required</strong></td><td>Clients must get an address via DHCP; statically addressed clients are not allowed to pass traffic. Also DHCP Server Override to point clients at a specific DHCP server.</td></tr>
+<tr><td><strong>P2P Blocking Action</strong></td><td>Peer-to-peer blocking: Disabled, Drop (clients on the WLAN cannot talk to each other through the controller), Forward-UpStream (send to the upstream router to decide). Common on guest WLANs.</td></tr>
+<tr><td><strong>FlexConnect Local Switching</strong></td><td>For FlexConnect APs: switch this WLAN's traffic locally at the AP instead of tunneling it to the WLC.</td></tr>
+<tr><td>Coverage Hole Detection, Aironet IE, MFP, DTIM period, client load balancing/band select</td><td>RF and client-behavior options; know the names.</td></tr>
+</tbody>
+</table>
+
+<h3>Catalyst 9800 GUI</h3>
+<p>The 9800 splits what AireOS put in one WLAN into profiles and tags:</p>
+<dl>
+<dt>WLAN profile</dt><dd>Configuration &gt; Tags &amp; Profiles &gt; WLANs. SSID, WLAN ID, status and security.</dd>
+<dt>Policy profile</dt><dd>Configuration &gt; Tags &amp; Profiles &gt; Policy. What happens to client traffic: VLAN, switching mode, QoS, session settings, AAA override.</dd>
+<dt>Policy tag</dt><dd>Configuration &gt; Tags &amp; Profiles &gt; Tags &gt; Policy. Maps WLAN profile(s) to policy profile(s).</dd>
+<dt>Site tag and RF tag</dt><dd>Site tag holds the AP join profile (and Flex profile for FlexConnect); RF tag holds the 2.4/5 GHz RF profiles.</dd>
+<dt>Assigning tags</dt><dd>Configuration &gt; Wireless &gt; Access Points (per AP), or Configuration &gt; Wireless Setup &gt; Advanced to tag many APs. An AP only broadcasts the WLANs in its policy tag. Changing an AP's tags can make it drop and rejoin the controller (disconnecting its clients), so change tags in a maintenance window.</dd>
+</dl>
+<p>A WLAN Wizard (Configuration &gt; Wireless Setup &gt; WLAN Wizard) can build all of these at once.</p>
+
+<h4>WLAN profile (Configuration &gt; Tags &amp; Profiles &gt; WLANs &gt; + Add)</h4>
+<ul>
+<li><strong>General</strong>: Profile Name, SSID, WLAN ID, Status (enabled/disabled), Broadcast SSID, radio policy.</li>
+<li><strong>Security &gt; Layer2</strong>: WPA + WPA2, WPA2 + WPA3, WPA3, or None; protected management frame (PMF) setting; Auth Key Mgmt: 802.1X, PSK, SAE, FT variants; pre-shared key format and value.</li>
+<li><strong>Security &gt; Layer3</strong>: web policy (web authentication) and its parameter map.</li>
+<li><strong>Security &gt; AAA</strong>: the authentication method list (which points to the RADIUS server group).</li>
+<li><strong>Advanced</strong>: max client connections, P2P blocking action, coverage hole detection, Aironet IE, 802.11k/v and similar.</li>
+</ul>
+
+<h4>Policy profile (Configuration &gt; Tags &amp; Profiles &gt; Policy &gt; + Add)</h4>
+<ul>
+<li><strong>General</strong>: Status, <strong>Central Switching</strong>, Central Authentication, Central DHCP. Disabling central switching is the 9800 equivalent of FlexConnect local switching.</li>
+<li><strong>Access Policies</strong>: the <strong>VLAN</strong> (or VLAN group) for clients, plus ACLs. This is the WLAN-to-VLAN mapping.</li>
+<li><strong>QOS and AVC</strong>: QoS SSID policy ingress/egress, chosen from <strong>platinum, gold, silver, bronze</strong> (same meanings as AireOS), Auto QoS, AVC.</li>
+<li><strong>Mobility</strong>: anchors for guest tunneling.</li>
+<li><strong>Advanced</strong>: Session Timeout, Idle Timeout, Client Exclusion timeout, <strong>Allow AAA Override</strong>, <strong>IPv4 DHCP Required</strong>, maximum clients per WLAN.</li>
+</ul>
+
+<h3>AireOS to 9800 map</h3>
+<table>
+<thead><tr><th>Item</th><th>AireOS location</th><th>9800 location</th></tr></thead>
+<tbody>
+<tr><td>SSID, WLAN ID, status</td><td>WLANs &gt; Edit &gt; General</td><td>WLAN profile &gt; General</td></tr>
+<tr><td>Client VLAN</td><td>General &gt; Interface/Interface Group</td><td>Policy profile &gt; Access Policies &gt; VLAN</td></tr>
+<tr><td>WPA2/WPA3, PSK/802.1X, PMF</td><td>Security &gt; Layer 2</td><td>WLAN profile &gt; Security &gt; Layer2</td></tr>
+<tr><td>Web auth</td><td>Security &gt; Layer 3</td><td>WLAN profile &gt; Security &gt; Layer3</td></tr>
+<tr><td>RADIUS servers</td><td>Security &gt; AAA Servers</td><td>WLAN profile &gt; Security &gt; AAA (method list)</td></tr>
+<tr><td>Platinum/Gold/Silver/Bronze</td><td>QoS tab</td><td>Policy profile &gt; QOS and AVC</td></tr>
+<tr><td>AAA override, session timeout, DHCP required, exclusion</td><td>Advanced tab</td><td>Policy profile &gt; Advanced</td></tr>
+<tr><td>P2P blocking, max clients</td><td>Advanced tab</td><td>WLAN profile &gt; Advanced (max clients per WLAN also in policy profile)</td></tr>
+<tr><td>Local switching</td><td>Advanced &gt; FlexConnect Local Switching</td><td>Policy profile &gt; General: Central Switching disabled</td></tr>
+<tr><td>Which APs broadcast it</td><td>AP groups (default group: WLAN IDs 1 to 16)</td><td>Policy tag assigned to the APs</td></tr>
+</tbody>
+</table>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> exhibit questions about "clients connect but get no IP address / land in the wrong subnet" usually point to the interface (AireOS) or policy profile VLAN (9800) mapping. "SSID not visible" points to Status disabled, Broadcast SSID off, or (9800) the WLAN missing from the AP's policy tag. "Voice calls choppy" points to a QoS profile other than Platinum.</p></div>
+
+<div class="lab" id="lab-2-9-1">
+<h4>Lab: Build a WLAN on a Packet Tracer WLC and join a lightweight AP</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~60 min</p>
+<p>Topology: DSW1 (3650-24PS) with VLAN 50 (AP and WLC management, 192.168.50.0/24, SVI .1) and VLAN 100 (wireless clients, 192.168.100.0/24, SVI .1), <code>ip routing</code> on. WLC-3504 (or WLC-2504) port 1 to DSW1 Gi1/0/1. A lightweight AP (LAP-PT or 3702i) to DSW1 Gi1/0/2. Admin PC on DSW1 Gi1/0/3 in VLAN 50 (192.168.50.20). A laptop with its wired NIC replaced by a wireless module. DHCP pools on DSW1 for VLAN 50 (for the AP; exclude .1 to .20) and VLAN 100 (exclude .1 to .10).</p>
+<ol>
+<li>Configure DSW1: VLANs, SVIs, DHCP pools. Make Gi1/0/2 (AP, local mode) an <strong>access</strong> port in VLAN 50 with PortFast. Make Gi1/0/1 (WLC) a <strong>trunk</strong> with native VLAN 50 and allowed VLANs 50,100. If the AP shows no power, add its power adapter in the Physical tab.</li>
+<li>Give the WLC management interface 192.168.50.2/24, gateway 192.168.50.1, VLAN untagged (0) because VLAN 50 is the trunk's native VLAN. In Packet Tracer this is in the WLC's Config tab (or the first-run wizard). Keep the AP in the same subnet so it discovers the WLC by broadcast.</li>
+<li>From the admin PC's web browser, open the WLC GUI at the management address and log in (create the admin account if prompted).</li>
+<li>Controller &gt; Interfaces: create a dynamic interface <code>clients</code>, VLAN 100, IP 192.168.100.2/24, gateway 192.168.100.1, DHCP server 192.168.100.1, port 1.</li>
+<li>WLANs &gt; Create New &gt; Go: profile <code>CORP</code>, SSID <code>CORP</code>, ID 1. General: Status Enabled, Interface <code>clients</code>. Security &gt; Layer 2: WPA2, AES, PSK, passphrase <code>Lab-Passphrase-2026</code>. QoS: Silver. Apply.</li>
+<li>Check Wireless &gt; Access Points: the AP should be listed (joined over CAPWAP) in Local mode.</li>
+<li>On the laptop's PC Wireless (or Desktop &gt; PC Wireless) tool, connect to CORP with WPA2-Personal and the passphrase. Check it gets a 192.168.100.x address and can ping 192.168.50.1.</li>
+<li>Break and observe: untick the WLAN's Status (the SSID disappears); then set the WLAN's interface back to <code>management</code> (the laptop now gets a VLAN 50 address). Restore.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>AP gets a DHCP address in 192.168.50.0/24 and shows as joined under Wireless &gt; Access Points.</li>
+<li>WLANs list: ID 1, CORP, Enabled, Security <code>[WPA2][Auth(PSK)]</code>.</li>
+<li>Laptop IP 192.168.100.11 or later, gateway 192.168.100.1; ping to 192.168.50.1 succeeds.</li>
+<li><code>show interfaces trunk</code> on DSW1: Gi1/0/1 trunking, native 50, allowed 50,100.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">DSW1(config)# ip routing
+DSW1(config)# vlan 50
+DSW1(config-vlan)# name AP_MGMT
+DSW1(config-vlan)# vlan 100
+DSW1(config-vlan)# name WIFI_CLIENTS
+DSW1(config-vlan)# exit
+DSW1(config)# interface vlan 50
+DSW1(config-if)# ip address 192.168.50.1 255.255.255.0
+DSW1(config-if)# no shutdown
+DSW1(config-if)# interface vlan 100
+DSW1(config-if)# ip address 192.168.100.1 255.255.255.0
+DSW1(config-if)# no shutdown
+DSW1(config-if)# exit
+DSW1(config)# ip dhcp excluded-address 192.168.50.1 192.168.50.20
+DSW1(config)# ip dhcp excluded-address 192.168.100.1 192.168.100.10
+DSW1(config)# ip dhcp pool AP_MGMT
+DSW1(dhcp-config)# network 192.168.50.0 255.255.255.0
+DSW1(dhcp-config)# default-router 192.168.50.1
+DSW1(dhcp-config)# ip dhcp pool WIFI
+DSW1(dhcp-config)# network 192.168.100.0 255.255.255.0
+DSW1(dhcp-config)# default-router 192.168.100.1
+DSW1(dhcp-config)# exit
+DSW1(config)# interface gigabitethernet1/0/2
+DSW1(config-if)# switchport mode access
+DSW1(config-if)# switchport access vlan 50
+DSW1(config-if)# spanning-tree portfast
+DSW1(config-if)# interface gigabitethernet1/0/3
+DSW1(config-if)# switchport mode access
+DSW1(config-if)# switchport access vlan 50
+DSW1(config-if)# interface gigabitethernet1/0/1
+! add "switchport trunk encapsulation dot1q" first if IOS asks for it
+DSW1(config-if)# switchport mode trunk
+DSW1(config-if)# switchport trunk native vlan 50
+DSW1(config-if)# switchport trunk allowed vlan 50,100
+
+! WLC GUI (AireOS style), described:
+!  Controller > Interfaces > New: name clients, VLAN 100
+!    IP 192.168.100.2/24, gateway 192.168.100.1, primary DHCP 192.168.100.1, port 1
+!  WLANs > Create New > Go: Type WLAN, Profile CORP, SSID CORP, ID 1 > Apply
+!  General: Status Enabled; Interface/Interface Group(G): clients
+!  Security > Layer 2: WPA+WPA2, WPA2 Policy + AES, Auth Key Mgmt PSK,
+!    PSK Format ASCII, key Lab-Passphrase-2026
+!  QoS: Silver (best effort) > Apply</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>AireOS: WLANs &gt; Create New &gt; Go (Type, Profile Name, SSID, ID), then General / Security / QoS / Advanced tabs. Enable the Status box.</li>
+<li>WLAN to VLAN: AireOS General &gt; Interface (dynamic interface); 9800 policy profile &gt; Access Policies &gt; VLAN.</li>
+<li>Security: Layer 2 WPA2/WPA3 with PSK or 802.1X (+ PMF); Layer 3 web auth; AAA Servers for RADIUS.</li>
+<li>QoS: Platinum voice, Gold video, Silver best effort (default), Bronze background.</li>
+<li>Advanced: AAA override, session timeout, client exclusion, DHCP address assignment required, P2P blocking, max clients, FlexConnect local switching.</li>
+<li>9800: WLAN profile + policy profile joined by a policy tag, which is assigned to APs.</li>
+</ul></div>
+</section>
+<section class="topic-sources" data-for="2">
+<ul>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-10/configuration_guide/vlan/b_1710_vlan_9300_cg/configuring_vlans.html" target="_blank" rel="noopener">Cisco: Configuring VLANs (Catalyst 9300, IOS XE 17.10)</a>: normal and extended ranges, vlan.dat, reserved VLANs.</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-13/configuration_guide/vlan/b_1713_vlan_9300_cg/configuring_vlan_trunks.html" target="_blank" rel="noopener">Cisco: Configuring VLAN Trunks (Catalyst 9300, IOS XE 17.13)</a>: switchport modes, DTP, native VLAN, allowed lists.</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-3/configuration_guide/nmgmt/b_173_nmgmt_9300_cg/configuring_the_cisco_discovery_protocol.html" target="_blank" rel="noopener">Cisco: Configuring Cisco Discovery Protocol (Catalyst 9300, IOS XE 17.3)</a>: CDP defaults and commands.</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-14/configuration_guide/int_hw/b_1714_int_and_hw_9300_cg/configuring_lldp__lldp_med__and_wired_location_service.html" target="_blank" rel="noopener">Cisco: Configuring LLDP, LLDP-MED (Catalyst 9300, IOS XE 17.14)</a>: LLDP defaults, timers, LLDP-MED voice VLAN.</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-9/configuration_guide/lyr2/b_179_lyr2_9300_cg/configuring_etherchannels.html" target="_blank" rel="noopener">Cisco: Configuring EtherChannels (Catalyst 9300, IOS XE 17.9)</a>: LACP/PAgP modes, member compatibility, Layer 3 EtherChannel.</li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/switches/catalyst-9300-series-switches/220367-troubleshoot-etherchannels-on-catalyst-9.html" target="_blank" rel="noopener">Cisco: Troubleshoot EtherChannels on Catalyst 9000 Switches</a>.</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/16-11/configuration_guide/lyr2/b_1611_lyr2_9300_cg/configuring_spanning_tree_protocol.html" target="_blank" rel="noopener">Cisco: Configuring Spanning Tree Protocol (Catalyst 9300, IOS XE 16.11)</a>: defaults, extended system ID, root primary/secondary.</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst2960l/software/15-2_5_e/config-guide/b_1525e_consolidated_2960l_cg/b_1525e_consolidated_2960l_cg_chapter_01111.html" target="_blank" rel="noopener">Cisco: Configuring STP (Catalyst 2960-L, IOS 15.2(5)E)</a>: short path costs, Rapid PVST+ default, root primary rule.</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-13/configuration_guide/lyr2/b_1713_lyr2_9300_cg/configuring_optional_spanning_tree_features.html" target="_blank" rel="noopener">Cisco: Configuring Optional Spanning-Tree Features (Catalyst 9300, IOS XE 17.13)</a>: PortFast, BPDU guard, BPDU filter, root guard, loop guard.</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/wireless/controller/8-10/config-guide/b_cg810/managing_aps.html" target="_blank" rel="noopener">Cisco: Wireless Controller Configuration Guide 8.10, Managing APs</a>: AP modes.</li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/wireless/catalyst-9120axe-access-point/221056-understand-the-ap-join-process-with-the.html" target="_blank" rel="noopener">Cisco: Understand the AP Join Process with the Catalyst 9800 WLC</a>: discovery methods, CAPWAP ports, DTLS.</li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/wireless/5500-series-wireless-controllers/113344-cuwn-ppm.html" target="_blank" rel="noopener">Cisco: Unified Wireless Network Protocol and Port Matrix</a>: CAPWAP, RADIUS and TACACS+ ports.</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/wireless/controller/8-6/config-guide/b_cg86/ports_and_interfaces.html" target="_blank" rel="noopener">Cisco: Wireless Controller Configuration Guide 8.6, Ports and Interfaces</a>: service port, distribution ports, interfaces, LAG.</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/wireless/controller/9800/17-9/config-guide/b_wl_17_9_cg/m_lacp_pagp.html" target="_blank" rel="noopener">Cisco: Catalyst 9800 Configuration Guide 17.9, Link Aggregation Group</a>.</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/wireless/controller/9800/17-9/config-guide/b_wl_17_9_cg/m_wlan_9800.html" target="_blank" rel="noopener">Cisco: Catalyst 9800 Configuration Guide 17.9, WLANs</a>: WLAN profile, policy profile, policy tag.</li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/wireless/catalyst-9800-series-wireless-controllers/213919-configure-802-1x-authentication-on-catal.html" target="_blank" rel="noopener">Cisco: Configure 802.1X Authentication on Catalyst 9800</a>: GUI paths for WLAN, policy profile and tags.</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/wireless/controller/8-10/config-guide/b_cg810/quality_of_service.html" target="_blank" rel="noopener">Cisco: Wireless Controller Configuration Guide 8.10, Quality of Service</a>: Platinum/Gold/Silver/Bronze.</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/wireless/controller/8-10/config-guide/b_cg810/wlan_timeouts.html" target="_blank" rel="noopener">Cisco: Wireless Controller Configuration Guide 8.10, WLAN Timeouts</a>: session and idle timeouts.</li>
+<li><a href="https://documentation.meraki.com/Platform_Management/Dashboard_Administration/Design_and_Configure/Architectures_and_Best_Practices/Cisco_Meraki_Best_Practice_Design/Meraki_Cloud_Architecture" target="_blank" rel="noopener">Cisco Meraki: Meraki Cloud Architecture</a>: out-of-band cloud management.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc5415" target="_blank" rel="noopener">RFC 5415: CAPWAP Protocol Specification</a>.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8907" target="_blank" rel="noopener">RFC 8907: The TACACS+ Protocol</a>.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc2865" target="_blank" rel="noopener">RFC 2865: RADIUS</a>.</li>
+</ul>
+</section>

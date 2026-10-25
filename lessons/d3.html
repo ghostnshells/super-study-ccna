@@ -1,0 +1,2031 @@
+<section class="topic" id="t-3-1" data-topics="3.1,3.1.a,3.1.b,3.1.c,3.1.d,3.1.e,3.1.f,3.1.g">
+<h2>3.1 Interpret the components of a routing table</h2>
+
+<p>Domain 3 is 25% of the exam, and almost every question in it starts from the same artifact: the output of <code>show ip route</code>. If you can read every field of that output without hesitation, 3.2 (forwarding decisions), 3.3 (static routes) and 3.4 (OSPF) become much easier, because they all end up as lines in this table.</p>
+
+<p>The routing table (the RIB, routing information base) is the router's list of the best path it knows to each destination prefix. Many sources feed it: connected interfaces, static routes, and each running routing protocol. Each source offers candidate routes. The router installs only the best candidate for each prefix, and the installed set is what you see in <code>show ip route</code>. Packets are then forwarded from that table (in practice from CEF, which is built from it; see 3.2).</p>
+
+<h3>The full example</h3>
+<p>The scenario: R1 is an IOSv router. It runs OSPF process 1 in area 0 with R2 on Gi0/0, EIGRP AS 100 with R3 on Gi0/1, has a user LAN on Gi0/2 and an Internet link on Gi0/3 with a static default route to the ISP. R2 is an OSPF area border router, so R1 also sees inter-area and external OSPF routes. Read the whole output once, then work through each component below.</p>
+
+<pre class="cli">R1# show ip route
+Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP
+       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area
+       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2
+       E1 - OSPF external type 1, E2 - OSPF external type 2
+       i - IS-IS, su - IS-IS summary, L1 - IS-IS level-1, L2 - IS-IS level-2
+       ia - IS-IS inter area, * - candidate default, U - per-user static route
+       o - ODR, P - periodic downloaded static route, H - NHRP, l - LISP
+       a - application route
+       + - replicated route, % - next hop override, p - overrides from PfR
+
+Gateway of last resort is 203.0.113.1 to network 0.0.0.0
+
+S*    0.0.0.0/0 [1/0] via 203.0.113.1
+      1.0.0.0/32 is subnetted, 1 subnets
+C        1.1.1.1 is directly connected, Loopback0
+      2.0.0.0/32 is subnetted, 1 subnets
+O        2.2.2.2 [110/2] via 10.1.12.2, 00:14:07, GigabitEthernet0/0
+      10.0.0.0/8 is variably subnetted, 8 subnets, 4 masks
+C        10.1.12.0/30 is directly connected, GigabitEthernet0/0
+L        10.1.12.1/32 is directly connected, GigabitEthernet0/0
+C        10.1.13.0/30 is directly connected, GigabitEthernet0/1
+L        10.1.13.1/32 is directly connected, GigabitEthernet0/1
+O IA     10.20.0.0/16 [110/3] via 10.1.12.2, 00:14:07, GigabitEthernet0/0
+D        10.30.1.0/24 [90/3072] via 10.1.13.2, 00:21:40, GigabitEthernet0/1
+D EX     10.40.1.0/24 [170/3072] via 10.1.13.2, 00:21:40, GigabitEthernet0/1
+O E2     10.50.0.0/16 [110/20] via 10.1.12.2, 00:14:07, GigabitEthernet0/0
+      172.16.0.0/24 is subnetted, 2 subnets
+S        172.16.5.0 [1/0] via 10.1.13.2
+S        172.16.6.0 [1/0] via 10.1.13.2, GigabitEthernet0/1
+      192.168.1.0/24 is variably subnetted, 2 subnets, 2 masks
+C        192.168.1.0/24 is directly connected, GigabitEthernet0/2
+L        192.168.1.1/32 is directly connected, GigabitEthernet0/2
+      203.0.113.0/24 is variably subnetted, 2 subnets, 2 masks
+C        203.0.113.0/30 is directly connected, GigabitEthernet0/3
+L        203.0.113.2/32 is directly connected, GigabitEthernet0/3</pre>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 200" role="img" aria-label="One routing table line split into its six fields: code, prefix and length, administrative distance and metric, next hop, age, and outgoing interface">
+<rect x="10" y="40" width="52" height="32" rx="4" class="d-fill" stroke="currentColor"/>
+<rect x="68" y="40" width="116" height="32" rx="4" class="d-fill" stroke="currentColor"/>
+<rect x="190" y="40" width="72" height="32" rx="4" class="d-accent-fill" stroke="currentColor"/>
+<rect x="268" y="40" width="126" height="32" rx="4" class="d-fill" stroke="currentColor"/>
+<rect x="400" y="40" width="82" height="32" rx="4" class="d-fill" stroke="currentColor"/>
+<rect x="488" y="40" width="168" height="32" rx="4" class="d-fill" stroke="currentColor"/>
+<text x="36" y="61" text-anchor="middle" class="d-text" font-family="monospace">O IA</text>
+<text x="126" y="61" text-anchor="middle" class="d-text" font-family="monospace">10.20.0.0/16</text>
+<text x="226" y="61" text-anchor="middle" class="d-text" font-family="monospace">[110/3]</text>
+<text x="331" y="61" text-anchor="middle" class="d-text" font-family="monospace">via 10.1.12.2</text>
+<text x="441" y="61" text-anchor="middle" class="d-text" font-family="monospace">00:14:07</text>
+<text x="572" y="61" text-anchor="middle" class="d-text" font-family="monospace">GigabitEthernet0/0</text>
+<line x1="36" y1="72" x2="36" y2="100" class="d-line" stroke="currentColor"/>
+<line x1="126" y1="72" x2="126" y2="150" class="d-line" stroke="currentColor"/>
+<line x1="226" y1="72" x2="226" y2="100" class="d-line" stroke="currentColor"/>
+<line x1="331" y1="72" x2="331" y2="150" class="d-line" stroke="currentColor"/>
+<line x1="441" y1="72" x2="441" y2="100" class="d-line" stroke="currentColor"/>
+<line x1="572" y1="72" x2="572" y2="150" class="d-line" stroke="currentColor"/>
+<text x="36" y="116" text-anchor="middle" class="d-text">Code</text>
+<text x="36" y="134" text-anchor="middle" class="d-muted">source</text>
+<text x="126" y="166" text-anchor="middle" class="d-text">Prefix / length</text>
+<text x="126" y="184" text-anchor="middle" class="d-muted">destination</text>
+<text x="226" y="116" text-anchor="middle" class="d-text">[AD/metric]</text>
+<text x="226" y="134" text-anchor="middle" class="d-muted">trust / cost</text>
+<text x="331" y="166" text-anchor="middle" class="d-text">Next hop</text>
+<text x="331" y="184" text-anchor="middle" class="d-muted">next router</text>
+<text x="441" y="116" text-anchor="middle" class="d-text">Age</text>
+<text x="441" y="134" text-anchor="middle" class="d-muted">since learned</text>
+<text x="572" y="166" text-anchor="middle" class="d-text">Outgoing interface</text>
+<text x="572" y="184" text-anchor="middle" class="d-muted">where it leaves</text>
+<text x="10" y="24" class="d-text">One route, six fields (OSPF inter-area route on R1)</text>
+</svg>
+<figcaption>Every dynamic route line has the same anatomy. Static and connected routes omit some fields (no age, and connected routes have no next hop).</figcaption>
+</figure>
+
+<h3 id="t-3-1-a">3.1.a Routing protocol code</h3>
+<p>The first column says how the route was learned. The legend at the top of the output is long because IOS prints every possible code; you need to recognize these:</p>
+<table>
+<thead><tr><th>Code</th><th>Meaning</th><th>Where you see it</th></tr></thead>
+<tbody>
+<tr><td><code>C</code></td><td>Connected: the subnet of an up/up interface with an IP address</td><td>Every routed interface</td></tr>
+<tr><td><code>L</code></td><td>Local: a /32 host route for the router's own interface address (IPv4, IOS 15 and later)</td><td>One per IP address on the router</td></tr>
+<tr><td><code>S</code></td><td>Static route</td><td><code>ip route</code> commands</td></tr>
+<tr><td><code>S*</code></td><td>Static route that is a candidate default (a default route)</td><td><code>ip route 0.0.0.0 0.0.0.0 ...</code></td></tr>
+<tr><td><code>O</code></td><td>OSPF intra-area route (destination in the same area)</td><td>Single-area OSPF: all OSPF routes look like this</td></tr>
+<tr><td><code>O IA</code></td><td>OSPF inter-area route (learned through an ABR from another area)</td><td>Multi-area OSPF</td></tr>
+<tr><td><code>O E1</code> / <code>O E2</code></td><td>OSPF external type 1 / type 2 (redistributed into OSPF by an ASBR). E2 keeps the original seed metric; E1 adds the internal cost to reach the ASBR.</td><td>Redistribution, and <code>default-information originate</code>, which shows as <code>O*E2</code></td></tr>
+<tr><td><code>D</code></td><td>EIGRP internal route (D comes from DUAL, EIGRP's algorithm)</td><td>EIGRP</td></tr>
+<tr><td><code>D EX</code></td><td>EIGRP external route (redistributed into EIGRP)</td><td>EIGRP redistribution</td></tr>
+<tr><td><code>R</code></td><td>RIP</td><td>RIPv2</td></tr>
+<tr><td><code>B</code></td><td>BGP</td><td>Internet edge, WAN providers</td></tr>
+<tr><td><code>i</code></td><td>IS-IS (followed by L1/L2 for the level)</td><td>Service provider cores</td></tr>
+<tr><td><code>*</code></td><td>Candidate default: this route can be the gateway of last resort</td><td>Combined with another code: <code>S*</code>, <code>O*E2</code>, <code>D*</code></td></tr>
+</tbody>
+</table>
+<p>Example lines for the codes not in the main output (from other routers):</p>
+<pre class="cli">R       172.20.0.0/16 [120/2] via 10.9.9.2, 00:00:12, GigabitEthernet0/0
+B       198.51.100.0/24 [20/0] via 203.0.113.1, 1d02h
+i L2    172.30.0.0/16 [115/20] via 10.9.8.2, 00:03:11, GigabitEthernet0/1
+O*E2    0.0.0.0/0 [110/1] via 10.0.123.2, 00:20:03, GigabitEthernet0/0</pre>
+<p>Notice the RIP age is only 12 seconds: RIP refreshes routes every 30 seconds, so its age keeps resetting. OSPF and EIGRP ages keep growing because they do not send periodic full updates. The eBGP line has no outgoing interface because BGP next hops are resolved recursively.</p>
+
+<h3 id="t-3-1-b">3.1.b Prefix</h3>
+<p>The prefix is the destination network the route describes, for example <code>10.20.0.0</code> in <code>10.20.0.0/16</code>. It is always the network address (host bits zero), never a host address, except for /32 host routes. The prefix together with its length is the route's identity: <code>10.1.0.0/16</code> and <code>10.1.0.0/24</code> are two different routes and can both be in the table at the same time.</p>
+<p>The table is sorted numerically by prefix and grouped under classful headings (see 3.1.c). The default route <code>0.0.0.0/0</code> is listed first.</p>
+
+<h3 id="t-3-1-c">3.1.c Network mask</h3>
+<p>IOS shows the mask in prefix-length notation (<code>/24</code>). Two header styles appear, and both are just formatting, not routes:</p>
+<dl>
+<dt><code>172.16.0.0/24 is subnetted, 2 subnets</code></dt>
+<dd>All routes inside the classful network 172.16.0.0 (a Class B) use the same mask, /24. The mask is printed once on the header, so the child lines show <code>172.16.5.0</code> with no prefix length.</dd>
+<dt><code>10.0.0.0/8 is variably subnetted, 8 subnets, 4 masks</code></dt>
+<dd>The classful network 10.0.0.0/8 holds 8 child routes using 4 different masks (/30, /32, /16 and /24 here). Each child line then carries its own prefix length. Count them in the example: 10.1.12.0/30, 10.1.12.1/32, 10.1.13.0/30, 10.1.13.1/32, 10.20.0.0/16, 10.30.1.0/24, 10.40.1.0/24 and 10.50.0.0/16.</dd>
+</dl>
+<p>Because every routed interface produces a /n connected route and a /32 local route, almost every classful network that contains a router interface shows as "variably subnetted". That is why 192.168.1.0/24 (one C route and one L route) has "2 subnets, 2 masks".</p>
+<h4>Local (L) routes</h4>
+<p>Since IOS 15, each interface address gets an <code>L</code> route with a /32 mask: <code>L 10.1.12.1/32 is directly connected, GigabitEthernet0/0</code>. It tells the router "this exact address is me", so packets to it are processed locally (pings to the router, SSH, routing protocol packets) instead of being forwarded. A loopback configured with a /32 mask shows only the C route (<code>C 1.1.1.1 is directly connected, Loopback0</code>) because the connected route is already a /32.</p>
+<div class="callout trap"><p><strong>Exam trap:</strong> The exam may ask how many routes a table holds or which mask a destination uses. Header lines ("is subnetted", "is variably subnetted") are not routes. And a child line under an "is subnetted" header has the mask from the header, even though the line itself shows no /n.</p></div>
+
+<h3 id="t-3-1-d">3.1.d Next hop</h3>
+<p>The next hop is the IP address of the neighboring router that the packet is handed to, shown after <code>via</code>. The outgoing interface follows the age at the end of the line. Variations you must recognize:</p>
+<ul>
+<li><strong>Dynamic route:</strong> <code>[110/3] via 10.1.12.2, 00:14:07, GigabitEthernet0/0</code>: next hop, age, outgoing interface.</li>
+<li><strong>Static route with next hop only:</strong> <code>S 172.16.5.0 [1/0] via 10.1.13.2</code>. No interface is shown. The router finds the interface by a second (recursive) lookup of 10.1.13.2, which matches the connected route 10.1.13.0/30 on Gi0/1.</li>
+<li><strong>Fully specified static:</strong> <code>S 172.16.6.0 [1/0] via 10.1.13.2, GigabitEthernet0/1</code>: both next hop and interface were configured.</li>
+<li><strong>Static route to an interface only:</strong> <code>S 172.16.7.0 is directly connected, GigabitEthernet0/1</code>. It looks like a connected route but the code is S. <code>show ip route 172.16.7.0</code> reports it as known via "static", distance 1, metric 0 (connected).</li>
+<li><strong>Connected and local routes:</strong> no next hop; the destination is on the wire of that interface.</li>
+<li><strong>Equal-cost paths:</strong> a second line indented under the first, with another <code>via</code> (see 3.2).</li>
+</ul>
+<p>The <strong>age</strong> (00:14:07, or 1d02h for older routes) is how long ago the route was installed or last updated. A route that keeps resetting to a few seconds old in OSPF or EIGRP is a sign of instability (flapping).</p>
+
+<h3 id="t-3-1-e">3.1.e Administrative distance</h3>
+<p>Administrative distance (AD) is the first number in brackets: <code>[110/3]</code>. It rates how trustworthy a route source is. When two different sources (for example OSPF and EIGRP) offer the exact same prefix and length, the router installs the one with the lower AD. AD is local to the router; it is never advertised to neighbors.</p>
+<table>
+<thead><tr><th>Route source</th><th>Default AD</th><th>Memorize?</th></tr></thead>
+<tbody>
+<tr><td>Connected interface</td><td>0</td><td>Yes</td></tr>
+<tr><td>Static route</td><td>1</td><td>Yes</td></tr>
+<tr><td>EIGRP summary route</td><td>5</td><td>Recognize</td></tr>
+<tr><td>External BGP (eBGP)</td><td>20</td><td>Yes</td></tr>
+<tr><td>Internal EIGRP</td><td>90</td><td>Yes</td></tr>
+<tr><td>IGRP (obsolete, removed from IOS)</td><td>100</td><td>Recognize</td></tr>
+<tr><td>OSPF (all OSPF route types)</td><td>110</td><td>Yes</td></tr>
+<tr><td>IS-IS</td><td>115</td><td>Yes</td></tr>
+<tr><td>RIP</td><td>120</td><td>Yes</td></tr>
+<tr><td>External EIGRP</td><td>170</td><td>Yes</td></tr>
+<tr><td>Internal BGP (iBGP)</td><td>200</td><td>Yes</td></tr>
+<tr><td>Default route learned from a DHCP server (<code>ip address dhcp</code>)</td><td>254</td><td>Recognize</td></tr>
+<tr><td>Unknown / unusable</td><td>255</td><td>Yes: never installed</td></tr>
+</tbody>
+</table>
+<p>A mnemonic for the core list in order: Connected 0, Static 1, eBGP 20, EIGRP 90, OSPF 110, IS-IS 115, RIP 120, EIGRP external 170, iBGP 200. OSPF intra-area, inter-area and external routes all use 110; the route-type preference (intra over inter over external) is handled inside OSPF, not by AD.</p>
+<p>Cisco keeps the full table in <a href="https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/15986-admin-distance.html" target="_blank" rel="noopener">What Is Administrative Distance?</a>. You can change AD: per static route (the floating static, 3.3.d) or per protocol with the <code>distance</code> command under the routing process (beyond CCNA depth, but you should know it exists).</p>
+<div class="callout key"><p><strong>Remember:</strong> AD only compares routes for the identical prefix/length from different sources. It never beats a longer prefix. A route with AD 255 is considered unreachable and is not installed.</p></div>
+
+<h3 id="t-3-1-f">3.1.f Metric</h3>
+<p>The metric is the second number in brackets: <code>[110/3]</code>. It is the routing protocol's own cost to reach the destination. It is only meaningful within one protocol: an OSPF cost of 3 and an EIGRP metric of 3072 cannot be compared, which is exactly why AD exists.</p>
+<table>
+<thead><tr><th>Protocol</th><th>Metric</th><th>How it is computed</th></tr></thead>
+<tbody>
+<tr><td>OSPF</td><td>Cost</td><td>Sum of the outgoing interface costs along the path. Interface cost = reference bandwidth / interface bandwidth, minimum 1. Default reference 100 Mbps, so FastEthernet, GigabitEthernet and faster all cost 1 unless you raise the reference (3.4).</td></tr>
+<tr><td>EIGRP</td><td>Composite metric</td><td>By default uses minimum bandwidth on the path and cumulative delay: 256 x (10^7 / slowest bandwidth in kbps + total delay in tens of microseconds). R1's 10.30.1.0/24: two gigabit links, 256 x (10 + 2) = 3072.</td></tr>
+<tr><td>RIP</td><td>Hop count</td><td>Number of routers to cross. Maximum 15; 16 means unreachable.</td></tr>
+<tr><td>Static, connected</td><td>0</td><td>Static routes show <code>[1/0]</code>; connected routes have AD 0 and metric 0.</td></tr>
+<tr><td>BGP</td><td>Shown value is the MED</td><td>BGP chooses paths by attributes, not by this number (outside CCNA scope).</td></tr>
+</tbody>
+</table>
+<p>The detail view of one route shows how the metric was built:</p>
+<pre class="cli">R1# show ip route 10.30.1.0
+Routing entry for 10.30.1.0/24
+  Known via "eigrp 100", distance 90, metric 3072, type internal
+  Redistributing via eigrp 100
+  Last update from 10.1.13.2 on GigabitEthernet0/1, 00:21:40 ago
+  Routing Descriptor Blocks:
+  * 10.1.13.2, from 10.1.13.2, 00:21:40 ago, via GigabitEthernet0/1
+      Route metric is 3072, traffic share count is 1
+      Total delay is 20 microseconds, minimum bandwidth is 1000000 Kbit
+      Reliability 255/255, minimum MTU 1500 bytes
+      Loading 1/255, Hops 1</pre>
+
+<h3 id="t-3-1-g">3.1.g Gateway of last resort</h3>
+<p>The line above the routes tells you whether the router has a default route and where it points:</p>
+<ul>
+<li><code>Gateway of last resort is 203.0.113.1 to network 0.0.0.0</code>: a default route is installed; packets that match nothing more specific go to 203.0.113.1.</li>
+<li><code>Gateway of last resort is not set</code>: no default route. Packets that match no route are dropped (3.2).</li>
+</ul>
+<p>The default route itself is the <code>0.0.0.0/0</code> line, flagged with <code>*</code> (candidate default). It can come from a static route (<code>S*</code>), from OSPF (<code>O*E2</code> when a neighbor uses <code>default-information originate</code>), from EIGRP (<code>D*</code> or <code>D*EX</code>), or from DHCP. If several sources offer 0.0.0.0/0, normal AD rules decide which one is installed.</p>
+<div class="callout tip"><p><strong>Tip:</strong> On the exam, when a question asks where a packet to an unknown destination goes, look at the gateway of last resort line first. If it says "not set", the answer is "dropped", no matter how many other routes exist.</p></div>
+
+<h3>Reading the IPv6 routing table</h3>
+<p><code>show ipv6 route</code> holds the same information in a two-line format: code, prefix and [AD/metric] on the first line, <code>via</code> next hop and interface on the second. IPv6 connected and local routes do show <code>[0/0]</code>. Local routes are /128.</p>
+<pre class="cli">R1# show ipv6 route
+IPv6 Routing Table - default - 7 entries
+Codes: C - Connected, L - Local, S - Static, U - Per-user Static route
+       B - BGP, HA - Home Agent, MR - Mobile Router, R - RIP
+       H - NHRP, I1 - ISIS L1, I2 - ISIS L2, IA - ISIS interarea
+       IS - ISIS summary, D - EIGRP, EX - EIGRP external, NM - NEMO
+       ND - ND Default, NDp - ND Prefix, DCE - Destination, NDr - Redirect
+       O - OSPF Intra, OI - OSPF Inter, OE1 - OSPF ext 1, OE2 - OSPF ext 2
+       ON1 - OSPF NSSA ext 1, ON2 - OSPF NSSA ext 2, a - Application
+S   ::/0 [1/0]
+     via 2001:DB8:0:12::2
+C   2001:DB8:0:12::/64 [0/0]
+     via GigabitEthernet0/0, directly connected
+L   2001:DB8:0:12::1/128 [0/0]
+     via GigabitEthernet0/0, receive
+C   2001:DB8:1:1::/64 [0/0]
+     via GigabitEthernet0/2, directly connected
+L   2001:DB8:1:1::1/128 [0/0]
+     via GigabitEthernet0/2, receive
+O   2001:DB8:2:2::/64 [110/2]
+     via FE80::2, GigabitEthernet0/0
+L   FF00::/8 [0/0]
+     via Null0, receive</pre>
+<ul>
+<li><strong>Codes:</strong> C, L, S, O (OSPFv3 intra-area), OI (inter-area), OE1/OE2, D, EX. <strong>ND</strong> is a default route learned from a router advertisement (when the interface uses SLAAC, <code>ipv6 address autoconfig default</code>); <strong>NDp</strong> is an on-link prefix learned the same way.</li>
+<li><strong>Dynamic next hops are link-local</strong> (<code>via FE80::2, GigabitEthernet0/0</code>). OSPFv3 and EIGRP for IPv6 use the neighbor's link-local address, so the interface must be shown too: a link-local address is only unique on one link.</li>
+<li><strong>No gateway of last resort line</strong> and no classful headings. The default route is simply <code>::/0</code>.</li>
+<li><strong>FF00::/8 via Null0, receive</strong> is the multicast range, always present. "7 entries" in the header counts it.</li>
+<li>The AD values are the same as IPv4 (static 1, OSPF 110, and so on).</li>
+</ul>
+
+<h3>Useful variations of show ip route</h3>
+<table>
+<thead><tr><th>Command</th><th>Shows</th></tr></thead>
+<tbody>
+<tr><td><code>show ip route 10.30.1.5</code></td><td>The route the router would use for that address (longest match), in detail</td></tr>
+<tr><td><code>show ip route 10.30.1.0 255.255.255.0</code></td><td>That exact prefix only</td></tr>
+<tr><td><code>show ip route ospf</code> / <code>static</code> / <code>connected</code> / <code>eigrp</code></td><td>Only routes from one source</td></tr>
+<tr><td><code>show ip route 10.0.0.0 255.0.0.0 longer-prefixes</code></td><td>Every route inside 10.0.0.0/8</td></tr>
+<tr><td><code>show ipv6 route static</code>, <code>show ipv6 route ospf</code></td><td>IPv6 equivalents</td></tr>
+</tbody>
+</table>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>A route line is: code, prefix/length, [AD/metric], via next hop, age, outgoing interface.</li>
+<li>Codes: C connected, L local /32, S static, S* static default, O / O IA / O E1 / O E2 OSPF, D / D EX EIGRP, R RIP, B BGP, i IS-IS, * candidate default.</li>
+<li>"is subnetted" = one mask for all children; "is variably subnetted, X subnets, Y masks" = mixed masks. Headers are not routes.</li>
+<li>AD: connected 0, static 1, eBGP 20, EIGRP 90, OSPF 110, IS-IS 115, RIP 120, EIGRP external 170, iBGP 200, DHCP default 254, unusable 255.</li>
+<li>Metrics: OSPF cost (reference bandwidth / interface bandwidth), EIGRP composite (bandwidth + delay), RIP hop count (max 15).</li>
+<li>"Gateway of last resort is not set" means no default route: unmatched packets are dropped.</li>
+<li>IPv6 table: two-line entries, /128 local routes, link-local next hops with an interface, ND = default learned from an RA.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-3-2" data-topics="3.2,3.2.a,3.2.b,3.2.c">
+<h2>3.2 How a router makes a forwarding decision by default</h2>
+
+<p>Two different decisions are hidden in this topic, and most exam mistakes come from mixing them up:</p>
+<ol>
+<li><strong>Route selection (building the table).</strong> Which candidate route for a given prefix gets installed? Decided by administrative distance (between sources) and then metric (within one protocol). This happens in the control plane whenever routing information changes.</li>
+<li><strong>Forwarding lookup (using the table).</strong> For one packet, which installed route matches its destination? Decided by longest prefix match. This happens for every packet.</li>
+</ol>
+<p>So the default behavior, in the order a packet experiences it: <strong>longest prefix match first</strong> picks the route; AD and metric already did their work earlier, deciding which routes are in the table at all.</p>
+
+<h3 id="t-3-2-a">3.2.a Longest prefix match</h3>
+<p>When a packet arrives, the router compares its destination IP with every route in the table. A route matches if the first <em>n</em> bits of the destination equal the first <em>n</em> bits of the route's prefix, where <em>n</em> is the prefix length. Several routes can match. The router uses the matching route with the <strong>longest prefix length</strong> (the most specific route), regardless of its AD or metric.</p>
+<p>Example router R5. All neighbors sit on one LAN, 10.9.9.0/24, out Gi0/0: an edge router at .1, OSPF neighbors at .2 and .6, an EIGRP neighbor at .3, and a static next hop at .4.</p>
+<pre class="cli">R5# show ip route
+Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP
+       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area
+! (rest of legend omitted)
+
+Gateway of last resort is 10.9.9.1 to network 0.0.0.0
+
+S*    0.0.0.0/0 [1/0] via 10.9.9.1
+      10.0.0.0/8 is variably subnetted, 2 subnets, 2 masks
+C        10.9.9.0/24 is directly connected, GigabitEthernet0/0
+L        10.9.9.5/32 is directly connected, GigabitEthernet0/0
+      172.16.0.0/16 is variably subnetted, 4 subnets, 4 masks
+O        172.16.0.0/16 [110/20] via 10.9.9.6, 00:03:12, GigabitEthernet0/0
+                       [110/20] via 10.9.9.2, 00:03:12, GigabitEthernet0/0
+D        172.16.32.0/19 [90/3328] via 10.9.9.3, 00:07:45, GigabitEthernet0/0
+O        172.16.40.0/24 [110/30] via 10.9.9.2, 00:03:12, GigabitEthernet0/0
+S        172.16.40.64/26 [1/0] via 10.9.9.4</pre>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 300" role="img" aria-label="Longest prefix match for destination 172.16.40.77: five routes match, with 0, 16, 19, 24 and 26 matching bits; the /26 route wins">
+<text x="10" y="24" class="d-text">Destination 172.16.40.77 = 10101100.00010000.00101000.01001101</text>
+<text x="200" y="52" class="d-muted">bits matched (0 to 32)</text>
+<line x1="200" y1="60" x2="200" y2="250" class="d-line" stroke="currentColor"/>
+<line x1="584" y1="60" x2="584" y2="250" class="d-line" stroke="currentColor" stroke-dasharray="4 4"/>
+<text x="10" y="86" class="d-text" font-family="monospace">0.0.0.0/0</text>
+<rect x="200" y="74" width="2" height="18" class="d-fill" stroke="currentColor"/>
+<text x="596" y="88" class="d-text">via 10.9.9.1</text>
+<text x="10" y="122" class="d-text" font-family="monospace">172.16.0.0/16</text>
+<rect x="200" y="110" width="192" height="18" class="d-fill" stroke="currentColor"/>
+<text x="596" y="124" class="d-text">via .2 and .6</text>
+<text x="10" y="158" class="d-text" font-family="monospace">172.16.32.0/19</text>
+<rect x="200" y="146" width="228" height="18" class="d-fill" stroke="currentColor"/>
+<text x="596" y="160" class="d-text">via 10.9.9.3</text>
+<text x="10" y="194" class="d-text" font-family="monospace">172.16.40.0/24</text>
+<rect x="200" y="182" width="288" height="18" class="d-fill" stroke="currentColor"/>
+<text x="596" y="196" class="d-text">via 10.9.9.2</text>
+<text x="10" y="230" class="d-text" font-family="monospace">172.16.40.64/26</text>
+<rect x="200" y="218" width="312" height="18" class="d-accent-fill" stroke="currentColor"/>
+<text x="596" y="232" class="d-text">via 10.9.9.4</text>
+<text x="200" y="278" class="d-text">All five routes match. The longest match (/26, static) is used.</text>
+<text x="200" y="296" class="d-muted">AD and metric are not compared across different prefix lengths.</text>
+</svg>
+<figcaption>Longest prefix match: each bar is how many leading bits of the route agree with the destination. The longest bar wins.</figcaption>
+</figure>
+
+<h4>Worked examples</h4>
+<p>Convert only the octet that matters to binary. For 172.16.x.y the first 16 bits match 172.16.0.0/16 automatically; the /19 needs the third octet to start with bits 001 (values 32 to 63); the /24 needs the third octet to be exactly 40; the /26 needs third octet 40 and fourth octet 64 to 127.</p>
+<table>
+<thead><tr><th>Destination</th><th>Matching routes</th><th>Chosen route</th><th>Next hop</th></tr></thead>
+<tbody>
+<tr><td>172.16.40.77</td><td>/0, /16, /19, /24, /26</td><td>172.16.40.64/26 (S)</td><td>10.9.9.4</td></tr>
+<tr><td>172.16.40.200</td><td>/0, /16, /19, /24 (200 is outside 64 to 127)</td><td>172.16.40.0/24 (O)</td><td>10.9.9.2</td></tr>
+<tr><td>172.16.50.1</td><td>/0, /16, /19 (50 = 00110010, starts 001)</td><td>172.16.32.0/19 (D)</td><td>10.9.9.3</td></tr>
+<tr><td>172.16.100.1</td><td>/0, /16 (100 = 01100100, starts 011)</td><td>172.16.0.0/16 (O, two paths)</td><td>10.9.9.2 or 10.9.9.6 (load shared)</td></tr>
+<tr><td>172.17.0.1</td><td>/0 only</td><td>0.0.0.0/0 (S*)</td><td>10.9.9.1</td></tr>
+<tr><td>10.9.9.77</td><td>/0, 10.9.9.0/24</td><td>Connected</td><td>None: R5 ARPs for 10.9.9.77 itself</td></tr>
+<tr><td>10.9.9.5</td><td>/0, /24, /32</td><td>Local route</td><td>None: the packet is for R5</td></tr>
+</tbody>
+</table>
+<div class="callout trap"><p><strong>Exam trap:</strong> Look at 172.16.40.200. The EIGRP /19 has a better AD (90) than the OSPF /24 (110), yet the OSPF route is used because /24 is longer than /19. AD is never consulted here: the two routes are for different prefixes, so both are installed and longest match picks between them.</p></div>
+
+<h4>The default route: /0 is always the shortest match</h4>
+<p>A default route, 0.0.0.0/0 (or ::/0 for IPv6), has zero bits to compare, so it matches every destination. Because it is the shortest possible match, it is used only when nothing else matches. That is why it is called the gateway of last resort.</p>
+
+<h4>When nothing matches</h4>
+<p>If no route matches and there is no default route, the router <strong>drops the packet</strong> and sends an <strong>ICMP Destination Unreachable</strong> message back to the source address. From a Cisco router, a ping in that situation typically shows <code>U.U.U</code>: IOS rate-limits ICMP unreachables (by default one every 500 ms), so every other reply is a timeout (<code>.</code>). A plain <code>.....</code> instead usually means the packet was forwarded but nothing came back, for example a missing return route on a later router.</p>
+
+<h3 id="t-3-2-b">3.2.b Administrative distance</h3>
+<p>AD is used only when two or more <em>route sources</em> offer the <strong>same prefix with the same length</strong>. Each routing protocol picks its own best route, then offers it to the routing table. The routing table manager installs the offer with the lowest AD. The losing route is not deleted from its protocol (it stays in the OSPF LSDB or the EIGRP topology table), so if the winner disappears, the next best source is installed automatically. Floating static routes (3.3.d) are built on exactly this behavior.</p>
+<p>Example: suppose R5 also learned 172.16.40.0/24 from EIGRP via 10.9.9.3. OSPF offers [110/30] via 10.9.9.2; EIGRP offers [90/3328] via 10.9.9.3. EIGRP wins on AD, so the table now shows:</p>
+<pre class="cli">R5# show ip route 172.16.40.0 255.255.255.0
+Routing entry for 172.16.40.0/24
+  Known via "eigrp 100", distance 90, metric 3328, type internal
+  Redistributing via eigrp 100
+  Last update from 10.9.9.3 on GigabitEthernet0/0, 00:00:41 ago
+  Routing Descriptor Blocks:
+  * 10.9.9.3, from 10.9.9.3, 00:00:41 ago, via GigabitEthernet0/0
+      Route metric is 3328, traffic share count is 1
+      Total delay is 30 microseconds, minimum bandwidth is 1000000 Kbit
+      Reliability 255/255, minimum MTU 1500 bytes
+      Loading 1/255, Hops 2</pre>
+<p>The OSPF version is still in R5's OSPF database and reappears in the table if the EIGRP route is lost. Comparing 110 with 90 told us nothing about which path is shorter; it only reflects which protocol IOS trusts more by default.</p>
+<div class="callout key"><p><strong>Remember:</strong> The order of the three tools: longest prefix match chooses among routes in the table; AD chooses which source installs a given prefix/length; metric chooses the best path within one protocol. A question that compares a /24 and a /16 is an LPM question, not an AD question.</p></div>
+
+<h3 id="t-3-2-c">3.2.c Routing protocol metric</h3>
+<p>Within one routing protocol, the route with the lowest metric for a prefix wins and is offered to the table. OSPF compares total cost; EIGRP compares its composite metric; RIP compares hop count. (OSPF also has an internal preference order before cost: intra-area beats inter-area, which beats external type 1, which beats external type 2. In single-area OSPF all routes are intra-area, so cost decides.)</p>
+<h4>Equal-cost multipath (ECMP)</h4>
+<p>If a protocol finds two or more paths with the same best metric, it installs all of them, up to its <code>maximum-paths</code> limit. On IOS the default for OSPF and EIGRP is 4; the configurable maximum depends on platform (commonly 16 or 32). The routing table shows the extra paths as indented lines under the first:</p>
+<pre class="cli">O        172.16.0.0/16 [110/20] via 10.9.9.6, 00:03:12, GigabitEthernet0/0
+                       [110/20] via 10.9.9.2, 00:03:12, GigabitEthernet0/0</pre>
+<pre class="cli">R5(config)# router ospf 1
+R5(config-router)# maximum-paths 2
+! maximum-paths 1 disables load sharing: only one path is installed</pre>
+<p>CEF shares traffic across equal paths <strong>per destination</strong> by default (it hashes source and destination IP), so one flow stays on one path and packets arrive in order. Two static routes to the same prefix with the same AD also produce ECMP.</p>
+<p>Metric is never compared between protocols. An EIGRP metric of 3328 is not "worse" than an OSPF cost of 30; they are different units, and AD decides between them.</p>
+
+<h3>Background: CEF, the FIB and the adjacency table</h3>
+<p>Cisco routers do not search the routing table for every packet. Cisco Express Forwarding (CEF, enabled by default with <code>ip cef</code>) precomputes two tables from the control plane:</p>
+<ul>
+<li><strong>FIB (forwarding information base):</strong> a copy of the routing table optimized for longest-match lookups, with recursive next hops already resolved. <code>show ip cef</code>.</li>
+<li><strong>Adjacency table:</strong> for each next hop, the ready-made Layer 2 header (destination MAC from ARP, source MAC, EtherType). <code>show adjacency</code>.</li>
+</ul>
+<pre class="cli">R5# show ip cef 172.16.40.77
+172.16.40.64/26
+  nexthop 10.9.9.4 GigabitEthernet0/0
+R5# show ip cef 172.16.100.1
+172.16.0.0/16
+  nexthop 10.9.9.2 GigabitEthernet0/0
+  nexthop 10.9.9.6 GigabitEthernet0/0</pre>
+<p>The forwarding result is the same as the routing table logic (longest match); CEF just does it faster, in hardware on switches and most routers. For the CCNA, know that the RIB is the control-plane table and the FIB plus adjacency table are the data-plane tables built from it.</p>
+
+<div class="lab" id="lab-3-2-1">
+<h4>Lab: Longest prefix match worksheet</h4>
+<p class="lab-meta">Tool: any browser/terminal | Time: ~25 min</p>
+<p>A paper lab. Router R6 is a deliberately mixed lab router (it runs RIP, EIGRP and OSPF so you see every code). Gi0/0 is 10.255.0.1/30 toward R7 (10.255.0.2); Gi0/1 is 10.255.0.5/30 toward R8 (10.255.0.6); Gi0/2 is the LAN 192.168.50.1/24. Use this output:</p>
+<pre class="cli">R6# show ip route
+! (legend omitted)
+Gateway of last resort is not set
+
+      10.0.0.0/8 is variably subnetted, 9 subnets, 6 masks
+S        10.0.0.0/8 [1/0] via 10.255.0.6
+D        10.10.0.0/16 [90/3072] via 10.255.0.2, 00:41:10, GigabitEthernet0/0
+O        10.10.10.0/24 [110/3] via 10.255.0.6, 00:12:55, GigabitEthernet0/1
+R        10.10.10.128/25 [120/2] via 10.255.0.2, 00:00:21, GigabitEthernet0/0
+S        10.10.10.200/32 [1/0] via 10.255.0.6
+C        10.255.0.0/30 is directly connected, GigabitEthernet0/0
+L        10.255.0.1/32 is directly connected, GigabitEthernet0/0
+C        10.255.0.4/30 is directly connected, GigabitEthernet0/1
+L        10.255.0.5/32 is directly connected, GigabitEthernet0/1
+      192.168.50.0/24 is variably subnetted, 2 subnets, 2 masks
+C        192.168.50.0/24 is directly connected, GigabitEthernet0/2
+L        192.168.50.1/32 is directly connected, GigabitEthernet0/2</pre>
+<ol>
+<li>For each destination, write the chosen route and next hop: (a) 10.10.10.200, (b) 10.10.10.201, (c) 10.10.10.20, (d) 10.10.20.1, (e) 10.200.1.1, (f) 172.16.1.1, (g) 10.255.0.5.</li>
+<li>Check the header: list the six masks in the 10.0.0.0/8 group.</li>
+<li>R6 now also learns 10.10.10.0/24 from EIGRP via 10.255.0.2 with metric 3328. Which route for 10.10.10.0/24 is installed, and what is the new answer for (c)?</li>
+<li>The RIP neighbor stops advertising 10.10.10.128/25. What is the new answer for (b)?</li>
+<li>What single command would make (f) reach R8 instead of being dropped?</li>
+</ol>
+<p><strong>Verify:</strong> check each answer with binary on the octet that differs. If you have Packet Tracer open, you can recreate the static routes on a router and use <code>show ip route 10.10.10.201</code> to confirm which entry IOS picks.</p>
+<details><summary>Solution</summary>
+<pre class="cli">1. (a) 10.10.10.200 -&gt; 10.10.10.200/32 static, via 10.255.0.6 (host route is the longest possible match)
+   (b) 10.10.10.201 -&gt; 10.10.10.128/25 RIP, via 10.255.0.2 (201 is in 128-255; /25 beats /24, /16, /8)
+   (c) 10.10.10.20  -&gt; 10.10.10.0/24 OSPF, via 10.255.0.6 (20 is in 0-127, so the /25 does not match)
+   (d) 10.10.20.1   -&gt; 10.10.0.0/16 EIGRP, via 10.255.0.2
+   (e) 10.200.1.1   -&gt; 10.0.0.0/8 static, via 10.255.0.6
+   (f) 172.16.1.1   -&gt; no match and no default: dropped, ICMP unreachable sent to the source
+   (g) 10.255.0.5   -&gt; local route: the packet is for R6 itself
+2. /8, /16, /24, /25, /32, /30
+3. EIGRP (AD 90) replaces OSPF (AD 110) for 10.10.10.0/24. (c) now goes via 10.255.0.2.
+   The metrics 3328 and 3 are never compared.
+4. (b) falls back to 10.10.10.0/24: via 10.255.0.6 if OSPF still owns it,
+   or via 10.255.0.2 if you kept the change from step 3.
+5. R6(config)# ip route 0.0.0.0 0.0.0.0 10.255.0.6</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Per packet, the router uses the matching route with the longest prefix length. AD and metric are not compared across different prefix lengths.</li>
+<li>AD decides only between sources offering the identical prefix/length; the lowest AD is installed, the loser waits in its protocol's database.</li>
+<li>Metric decides within one protocol; equal metrics give ECMP up to <code>maximum-paths</code> (IOS default 4 for OSPF and EIGRP).</li>
+<li>The default route (/0) matches everything and is used last. With no match and no default, the packet is dropped and an ICMP unreachable goes to the source (ping shows U.U.U).</li>
+<li>CEF forwards from the FIB (prefixes, resolved next hops) and adjacency table (prebuilt Layer 2 headers), derived from the routing table.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-3-3" data-topics="3.3,3.3.a,3.3.b,3.3.c,3.3.d">
+<h2>3.3 Configure and verify IPv4 and IPv6 static routing</h2>
+
+<p>A static route is a route you type in. It never changes on its own, uses no CPU or bandwidth for updates, and reveals nothing to neighbors. It also never adapts: if the path fails silently, the static route keeps sending traffic into the failure. In practice statics are used for default routes toward an ISP, stub sites with one exit, specific overrides, and backups (floating statics). The exam expects you to configure all four kinds named in the outline (default, network, host, floating) for both IPv4 and IPv6, and to read and troubleshoot them.</p>
+
+<h3>IPv4 syntax: three ways to say where to send it</h3>
+<pre class="cli">R1(config)# ip route <em>prefix mask</em> {<em>next-hop-ip</em> | <em>exit-interface</em> [<em>next-hop-ip</em>]} [<em>distance</em>] [permanent] [name <em>text</em>]</pre>
+<table>
+<thead><tr><th>Form</th><th>Example</th><th>Shows in the table as</th></tr></thead>
+<tbody>
+<tr><td>Next hop only (recursive)</td><td><code>ip route 192.168.2.0 255.255.255.0 10.0.12.2</code></td><td><code>S 192.168.2.0/24 [1/0] via 10.0.12.2</code></td></tr>
+<tr><td>Exit interface only</td><td><code>ip route 192.168.2.0 255.255.255.0 GigabitEthernet0/0</code></td><td><code>S 192.168.2.0/24 is directly connected, GigabitEthernet0/0</code></td></tr>
+<tr><td>Fully specified (interface + next hop)</td><td><code>ip route 192.168.2.0 255.255.255.0 GigabitEthernet0/0 10.0.12.2</code></td><td><code>S 192.168.2.0/24 [1/0] via 10.0.12.2, GigabitEthernet0/0</code></td></tr>
+</tbody>
+</table>
+<p>The mask is always a dotted-decimal subnet mask (not a wildcard, not /n). The prefix must be the network address for that mask: <code>ip route 192.168.3.5 255.255.255.0 10.0.12.2</code> is rejected with <code>%Inconsistent address and mask</code>.</p>
+
+<h4>Next hop only: recursive lookup</h4>
+<p>With a next-hop IP, the router needs a second lookup to find the outgoing interface: it looks up 10.0.12.2 in its own table, matches the connected route 10.0.12.0/30 on Gi0/0, and forwards there. This is called a recursive route. It also means the next hop does not have to be directly connected: <code>ip route 172.16.0.0 255.255.0.0 10.5.5.5</code> works if some other route covers 10.5.5.5, and IOS resolves it in as many steps as needed. On Ethernet, the router ARPs only for the next hop, which is exactly what you want.</p>
+
+<h4>Exit interface only: fine on serial, a problem on Ethernet</h4>
+<p>An interface-only static says "the destination is directly reachable out this interface". On a point-to-point serial link (HDLC or PPP) that is true enough, because there is only one device on the other end and no ARP is needed. On Ethernet, the router has no next-hop address, so it treats every destination in the prefix as if it were on the local wire and ARPs for <strong>each final destination address</strong>. That works only if the neighbor router answers those ARPs on behalf of the remote hosts (<strong>proxy ARP</strong>, enabled by default on IOS interfaces but often disabled by security policy). The result is either a large ARP cache and extra CPU (one ARP entry per remote destination; terrible for a default route) or, with proxy ARP off, no connectivity at all. Cisco recommends specifying the next hop (or both) on Ethernet (<a href="https://www.cisco.com/c/en/us/support/docs/dial-access/floating-static-route/118263-technote-nexthop-00.html" target="_blank" rel="noopener">Configure a Next Hop IP Address for Static Routes</a>).</p>
+
+<h4>Fully specified</h4>
+<p>Interface plus next hop avoids both problems: no recursion is needed to find the interface, and ARP is done only for the next hop. It is also required for IPv6 link-local next hops (below).</p>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> An interface-only static route displays as "is directly connected", but its code is S and its AD is still 1 (<code>show ip route</code> on the prefix shows "Known via static, distance 1, metric 0 (connected)"). It is not a connected route with AD 0.</p></div>
+
+<h4>When is a static route actually installed?</h4>
+<ul>
+<li><strong>Next-hop form:</strong> only while the next hop is resolvable through another route in the table (normally a connected subnet). If 10.0.12.0/30 disappears because Gi0/0 goes down, the static route is withdrawn.</li>
+<li><strong>Interface form:</strong> only while that interface is up/up.</li>
+<li><strong>Fully specified:</strong> only while the interface is up.</li>
+<li>Its AD must also be the lowest offer for that exact prefix (that is what makes a floating static wait).</li>
+<li>The <code>permanent</code> keyword keeps the route installed even if the interface goes down. Rarely a good idea; know that it exists.</li>
+</ul>
+<p>The important consequence: a static route only notices failures the router itself can see. If R1 and R2 connect through a switch and R2 dies, R1's Gi0/0 stays up, 10.0.12.2 still looks resolvable, and the static route stays in the table, black-holing traffic. (IP SLA tracking fixes this but is beyond CCNA scope.)</p>
+
+<h3 id="t-3-3-a">3.3.a Default route</h3>
+<p>A default route matches every destination with zero bits (0.0.0.0/0) and is used when nothing more specific matches. Typical uses: a branch or stub router with a single upstream, and an edge router toward an ISP.</p>
+<pre class="cli">R1(config)# ip route 0.0.0.0 0.0.0.0 203.0.113.1
+R1(config)# end
+R1# show ip route | include Gateway|0.0.0.0
+Gateway of last resort is 203.0.113.1 to network 0.0.0.0
+S*    0.0.0.0/0 [1/0] via 203.0.113.1</pre>
+<p>The <code>*</code> marks it as the candidate default, and the gateway of last resort line is set. To share a static default with OSPF neighbors, the edge router adds <code>default-information originate</code> under <code>router ospf</code> (3.4); neighbors see it as <code>O*E2</code>.</p>
+<p>Do not confuse <code>ip route 0.0.0.0 0.0.0.0</code> with <code>ip default-gateway</code>. The latter is for a device that is <strong>not</strong> routing (a Layer 2 switch's management interface, or a router with <code>no ip routing</code>). A routing device ignores <code>ip default-gateway</code>.</p>
+
+<h3 id="t-3-3-b">3.3.b Network route</h3>
+<p>A network route points to a specific subnet (anything between /1 and /31). It is the most common static route:</p>
+<pre class="cli">R1(config)# ip route 192.168.2.0 255.255.255.0 10.0.12.2
+R1(config)# ip route 172.16.0.0 255.255.0.0 GigabitEthernet0/1 10.0.13.2</pre>
+<p>A short prefix can act as a summary: one static for 172.16.0.0/16 covers every 172.16.x.x subnet behind that neighbor.</p>
+
+<h3 id="t-3-3-c">3.3.c Host route</h3>
+<p>A host route matches exactly one address: mask 255.255.255.255 (/32) for IPv4, /128 for IPv6. Because it is the longest possible prefix, it always wins longest prefix match. Typical uses: steer traffic for one server along a different path (through a firewall, over a different link), or reach a peer's loopback.</p>
+<pre class="cli">R1(config)# ip route 192.168.3.10 255.255.255.255 10.0.12.2
+R1# show ip route static | begin 192.168.3
+      192.168.3.0/24 is variably subnetted, 2 subnets, 2 masks
+S        192.168.3.0/24 [1/0] via 10.0.13.2, GigabitEthernet0/1
+S        192.168.3.10/32 [1/0] via 10.0.12.2</pre>
+<p>Traffic to 192.168.3.10 goes via R2 (10.0.12.2); traffic to every other 192.168.3.x host goes straight to R3. Note that connected interfaces already create /32 local (L) routes; a static host route is something you add for a remote address.</p>
+
+<h3 id="t-3-3-d">3.3.d Floating static route</h3>
+<p>A floating static route is a backup static route configured with an AD higher than the primary route's AD. While the primary exists, the floating route loses the AD comparison and is not installed (it "floats" above the table). If the primary is withdrawn, the floating static is installed automatically; when the primary returns, it takes over again.</p>
+<pre class="cli">! Primary path: OSPF (AD 110) over Gi0/0. Backup: static over Gi0/1.
+R1(config)# ip route 192.168.2.0 255.255.255.0 10.0.21.2 130</pre>
+<ul>
+<li>Over OSPF (110), use any AD from 111 to 254. Over EIGRP internal (90), use 91 or more (but note an EIGRP external route is 170). Values like 130, 200 or 250 are common.</li>
+<li>For a static backing up another static, give the primary the default AD 1 and the backup a higher one, for example 5. The primary must be withdrawable (next hop or interface can fail) or the backup never floats in.</li>
+<li>AD 255 means "never install": the route is useless.</li>
+</ul>
+<p>While the primary is active, <code>show ip route</code> does not show the floating route at all. Check the configuration (<code>show running-config | include ip route</code>) to see it. After a failover it appears with its configured AD in brackets: <code>S 192.168.2.0/24 [130/0] via 10.0.21.2</code>.</p>
+<div class="callout trap"><p><strong>Exam trap:</strong> If the "floating" static has an AD lower than the dynamic route (for example 100 under OSPF's 110, or the default 1), it is not floating: it becomes the primary path and OSPF's route for that prefix is never installed. A classic exam exhibit shows a static with AD 100 and asks why traffic uses the backup link.</p></div>
+<div class="callout tip"><p><strong>Tip:</strong> Failover is only as fast as the primary route's withdrawal. If the link goes down on R1's own interface, OSPF drops the neighbor immediately. If the failure is somewhere R1 cannot see (through a switch), OSPF waits for the dead timer (40 s by default) before the route is removed and the floating static appears.</p></div>
+
+<h3>IPv6 static routes</h3>
+<p>First, the router must route IPv6 at all:</p>
+<pre class="cli">R1(config)# ipv6 unicast-routing</pre>
+<p>Without <code>ipv6 unicast-routing</code>, IOS accepts IPv6 addresses on interfaces and even accepts <code>ipv6 route</code> commands, but it acts as an IPv6 host: it does not forward IPv6 packets between interfaces and does not send router advertisements. This is a favorite troubleshooting answer.</p>
+<pre class="cli">R1(config)# ipv6 route <em>prefix/length</em> {<em>next-hop</em> | <em>exit-interface</em> [<em>next-hop</em>]} [<em>distance</em>]</pre>
+<table>
+<thead><tr><th>Kind</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Default</td><td><code>ipv6 route ::/0 2001:DB8:0:12::2</code></td></tr>
+<tr><td>Network, global unicast next hop</td><td><code>ipv6 route 2001:DB8:2:2::/64 2001:DB8:0:12::2</code></td></tr>
+<tr><td>Network, link-local next hop (interface required)</td><td><code>ipv6 route 2001:DB8:3:3::/64 GigabitEthernet0/0 FE80::2</code></td></tr>
+<tr><td>Host route</td><td><code>ipv6 route 2001:DB8:3:3::10/128 GigabitEthernet0/2 FE80::3</code></td></tr>
+<tr><td>Floating</td><td><code>ipv6 route 2001:DB8:3:3::/64 GigabitEthernet0/2 FE80::3 200</code></td></tr>
+<tr><td>Exit interface only (point-to-point links only)</td><td><code>ipv6 route 2001:DB8:9::/64 Serial0/0/0</code></td></tr>
+</tbody>
+</table>
+<h4>Why a link-local next hop needs the interface</h4>
+<p>Every IPv6 interface has a link-local address (FE80::/10), and the same link-local address can exist on every link (R2 in the lab below uses FE80::2 on two interfaces, which is legal). A link-local address alone is ambiguous: the router cannot tell which link it lives on. So when the next hop is link-local, you must give the exit interface as well. Typing <code>ipv6 route 2001:DB8:3:3::/64 FE80::2</code> without an interface is rejected (IOS reports that an interface has to be specified for a link-local next hop). Link-local next hops are popular because they do not change if global addressing is renumbered, and they are what dynamic protocols use anyway.</p>
+<p>A global unicast next hop alone is fine: the router resolves it recursively, exactly like IPv4. As in IPv4, an interface-only route on Ethernet is a poor choice: there is no proxy ARP in IPv6, so the router would try Neighbor Discovery for every destination on the remote prefix.</p>
+<pre class="cli">R1# show ipv6 route static
+IPv6 Routing Table - default - 10 entries
+Codes: C - Connected, L - Local, S - Static, U - Per-user Static route
+       B - BGP, HA - Home Agent, MR - Mobile Router, R - RIP
+       H - NHRP, I1 - ISIS L1, I2 - ISIS L2, IA - ISIS interarea
+       IS - ISIS summary, D - EIGRP, EX - EIGRP external, NM - NEMO
+       ND - ND Default, NDp - ND Prefix, DCE - Destination, NDr - Redirect
+       O - OSPF Intra, OI - OSPF Inter, OE1 - OSPF ext 1, OE2 - OSPF ext 2
+       ON1 - OSPF NSSA ext 1, ON2 - OSPF NSSA ext 2, a - Application
+S   ::/0 [1/0]
+     via 2001:DB8:0:12::2
+S   2001:DB8:3:3::/64 [1/0]
+     via FE80::2, GigabitEthernet0/0
+S   2001:DB8:3:3::10/128 [1/0]
+     via FE80::3, GigabitEthernet0/2</pre>
+<p>The floating route (AD 200) is configured but not shown: the AD 1 route for the same /64 is installed. "10 entries" counts the whole table: three statics, a C and L route for each of three interfaces, and FF00::/8.</p>
+
+<h3>Verification</h3>
+<table>
+<thead><tr><th>Command</th><th>What to look for</th></tr></thead>
+<tbody>
+<tr><td><code>show ip route static</code> / <code>show ipv6 route static</code></td><td>The route is installed, with the expected [AD/metric] and next hop</td></tr>
+<tr><td><code>show ip route 192.168.3.10</code></td><td>Which route a specific destination actually uses (longest match)</td></tr>
+<tr><td><code>show running-config | include ip route</code> (or <code>| section ipv6 route</code>)</td><td>What was configured, including routes that are not installed (floating, or next hop unresolvable)</td></tr>
+<tr><td><code>ping</code> / <code>ping ipv6</code> (or plain <code>ping 2001:DB8:...</code>)</td><td>End-to-end reachability. Use <code>ping 192.168.3.10 source 192.168.1.1</code> to test the return path for a LAN as well.</td></tr>
+<tr><td><code>traceroute</code> (<code>tracert</code> on Windows and Packet Tracer PCs)</td><td>Which path the packet takes hop by hop; where it stops</td></tr>
+<tr><td><code>show ip interface brief</code> / <code>show ipv6 interface brief</code></td><td>Exit interface up/up, addresses correct</td></tr>
+</tbody>
+</table>
+
+<h3>Troubleshooting static routes</h3>
+<table>
+<thead><tr><th>Fault</th><th>Symptom</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Wrong next hop that is not on any connected subnet (typo, e.g. 10.0.12.6 instead of .2)</td><td>Route is in the running config but not in <code>show ip route</code></td><td>Correct the next hop; check it is the neighbor's address on the shared subnet</td></tr>
+<tr><td>Wrong next hop that is resolvable but is the wrong router</td><td>Route is installed; traceroute goes the wrong way, possibly loops (repeating hops, then TTL expiry)</td><td>Point to the router that actually has the path</td></tr>
+<tr><td>Missing return route</td><td>Ping from PC1 to PC3 times out (<code>.....</code>, not U); traceroute reaches the far router or host but replies never return. The forward path is fine.</td><td>Add the reverse static on the far router(s). Routing must work in both directions.</td></tr>
+<tr><td>Wrong mask (too long), e.g. 255.255.255.128 for a /24 LAN</td><td>Only half the hosts reachable</td><td>Use the LAN's real mask</td></tr>
+<tr><td>Prefix and mask inconsistent</td><td>IOS rejects the command: <code>%Inconsistent address and mask</code></td><td>Use the network address for that mask</td></tr>
+<tr><td>Exit interface down</td><td>Route missing from the table (and floating static, if any, appears)</td><td>Fix the link</td></tr>
+<tr><td>Floating static AD too low</td><td>Backup link carries traffic while the primary is healthy</td><td>Raise the AD above the dynamic protocol's</td></tr>
+<tr><td>IPv6: <code>ipv6 unicast-routing</code> missing</td><td>Router pings its neighbors, but nothing is forwarded through it; hosts get no RA</td><td>Enable it</td></tr>
+<tr><td>IPv6: link-local next hop without interface</td><td>Command rejected</td><td>Add the exit interface</td></tr>
+</tbody>
+</table>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 330" role="img" aria-label="Static routing lab topology: R1, R2 and R3 in a triangle with a LAN on each router and a loopback on R2">
+<rect x="300" y="30" width="120" height="44" rx="8" class="d-fill" stroke="currentColor"/>
+<text x="360" y="57" text-anchor="middle" class="d-text">R2</text>
+<rect x="80" y="210" width="120" height="44" rx="8" class="d-fill" stroke="currentColor"/>
+<text x="140" y="237" text-anchor="middle" class="d-text">R1</text>
+<rect x="520" y="210" width="120" height="44" rx="8" class="d-fill" stroke="currentColor"/>
+<text x="580" y="237" text-anchor="middle" class="d-text">R3</text>
+<line x1="140" y1="210" x2="330" y2="74" class="d-line" stroke="currentColor"/>
+<line x1="580" y1="210" x2="390" y2="74" class="d-line" stroke="currentColor"/>
+<line x1="200" y1="232" x2="520" y2="232" class="d-line" stroke="currentColor"/>
+<text x="140" y="140" class="d-text">10.0.12.0/30</text>
+<text x="150" y="160" class="d-muted">R1 G0/0 .1, R2 G0/0 .2</text>
+<text x="470" y="140" class="d-text">10.0.23.0/30</text>
+<text x="470" y="160" class="d-muted">R2 G0/1 .1, R3 G0/1 .2</text>
+<text x="360" y="222" text-anchor="middle" class="d-text">10.0.13.0/30</text>
+<text x="360" y="252" text-anchor="middle" class="d-muted">R1 G0/1 .1, R3 G0/0 .2</text>
+<text x="440" y="46" class="d-text">Lo0 198.51.100.1/32</text>
+<text x="440" y="64" class="d-muted">G0/2 192.168.2.1/24, PC2 .10</text>
+<text x="20" y="284" class="d-text">G0/2 192.168.1.1/24</text>
+<text x="20" y="302" class="d-muted">PC1 192.168.1.10</text>
+<text x="500" y="284" class="d-text">G0/2 192.168.3.1/24</text>
+<text x="500" y="302" class="d-muted">Server .10, PC3 .20</text>
+</svg>
+<figcaption>Lab 3.3-1 topology. Each LAN hangs off G0/2 through a 2960 switch.</figcaption>
+</figure>
+
+<div class="lab" id="lab-3-3-1">
+<h4>Lab: Static routing triangle with default, network and host routes</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~45 min</p>
+<p>Three 2911 routers in a triangle as in the diagram. Each G0/2 connects to a 2960 switch with hosts: PC1 192.168.1.10 (gateway .1); PC2 192.168.2.10; Server 192.168.3.10 and PC3 192.168.3.20 (gateway 192.168.3.1). R2's Loopback0 198.51.100.1/32 stands in for "the Internet". Policy: all traffic from R1 and R3 to unknown destinations goes to R2. Traffic from R1 to the server 192.168.3.10 must go through R2 (pretend R2 has a firewall); everything else from R1 to the 192.168.3.0/24 LAN takes the direct link.</p>
+<ol>
+<li>Cable and address all interfaces and hosts. Confirm with <code>show ip interface brief</code> that all router interfaces are up/up.</li>
+<li>On R1: a network route to 192.168.2.0/24 via R2 (next-hop form), a fully specified network route to 192.168.3.0/24 via R3, a host route to 192.168.3.10 via R2, and a default route via R2.</li>
+<li>On R2: network routes to 192.168.1.0/24 via R1 and 192.168.3.0/24 via R3.</li>
+<li>On R3: network routes to 192.168.1.0/24 via R1 (direct link) and 192.168.2.0/24 via R2, and a default route via R2.</li>
+<li>From PC1, ping PC2, the server, PC3 and 198.51.100.1. Trace to the server and to PC3 and compare the paths.</li>
+<li>Break it: remove R3's route to 192.168.1.0/24. Predict, then test, what PC1's ping and trace to PC3 show. Restore it.</li>
+<li>Break it differently: on R1, change the default route's next hop to 10.0.12.6. What does <code>show ip route</code> show, and why?</li>
+</ol>
+<p><strong>Verify:</strong></p>
+<ul>
+<li><code>show ip route static</code> on R1 shows four static routes: S* default, 192.168.2.0/24, and under "192.168.3.0/24 is variably subnetted, 2 subnets, 2 masks" both the /24 (via 10.0.13.2, GigabitEthernet0/1) and the /32 (via 10.0.12.2).</li>
+<li><code>tracert 192.168.3.10</code> from PC1: 192.168.1.1, 10.0.12.2, 10.0.23.2, 192.168.3.10.</li>
+<li><code>tracert 192.168.3.20</code> from PC1: 192.168.1.1, 10.0.13.2, 192.168.3.20.</li>
+<li>Step 6: the ping still succeeds. R3's replies follow its default route to R2, and R2 knows 192.168.1.0/24, so they return the long way. A default route can hide a missing specific route. Also remove R2's route to 192.168.1.0/24 and the ping fails with <code>Request timed out</code>: the classic missing return route.</li>
+<li>Step 7: the default route disappears from the table and "Gateway of last resort is not set", because 10.0.12.6 is not inside any connected subnet (10.0.12.0/30 holds only .1 and .2).</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! ---- R1 ----
+interface GigabitEthernet0/0
+ ip address 10.0.12.1 255.255.255.252
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 10.0.13.1 255.255.255.252
+ no shutdown
+interface GigabitEthernet0/2
+ ip address 192.168.1.1 255.255.255.0
+ no shutdown
+!
+ip route 192.168.2.0 255.255.255.0 10.0.12.2
+ip route 192.168.3.0 255.255.255.0 GigabitEthernet0/1 10.0.13.2
+ip route 192.168.3.10 255.255.255.255 10.0.12.2
+ip route 0.0.0.0 0.0.0.0 10.0.12.2
+
+! ---- R2 ----
+interface GigabitEthernet0/0
+ ip address 10.0.12.2 255.255.255.252
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 10.0.23.1 255.255.255.252
+ no shutdown
+interface GigabitEthernet0/2
+ ip address 192.168.2.1 255.255.255.0
+ no shutdown
+interface Loopback0
+ ip address 198.51.100.1 255.255.255.255
+!
+ip route 192.168.1.0 255.255.255.0 10.0.12.1
+ip route 192.168.3.0 255.255.255.0 10.0.23.2
+
+! ---- R3 ----
+interface GigabitEthernet0/0
+ ip address 10.0.13.2 255.255.255.252
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 10.0.23.2 255.255.255.252
+ no shutdown
+interface GigabitEthernet0/2
+ ip address 192.168.3.1 255.255.255.0
+ no shutdown
+!
+ip route 192.168.1.0 255.255.255.0 10.0.13.1
+ip route 192.168.2.0 255.255.255.0 10.0.23.1
+ip route 0.0.0.0 0.0.0.0 10.0.23.1
+
+! ---- Expected on R1 ----
+R1# show ip route static
+! (legend omitted)
+Gateway of last resort is 10.0.12.2 to network 0.0.0.0
+
+S*    0.0.0.0/0 [1/0] via 10.0.12.2
+S     192.168.2.0/24 [1/0] via 10.0.12.2
+      192.168.3.0/24 is variably subnetted, 2 subnets, 2 masks
+S        192.168.3.0/24 [1/0] via 10.0.13.2, GigabitEthernet0/1
+S        192.168.3.10/32 [1/0] via 10.0.12.2
+
+! ---- Trace from PC1 ----
+C:\&gt;tracert 192.168.3.10
+
+Tracing route to 192.168.3.10 over a maximum of 30 hops:
+
+  1   0 ms      0 ms      0 ms      192.168.1.1
+  2   0 ms      0 ms      0 ms      10.0.12.2
+  3   0 ms      0 ms      0 ms      10.0.23.2
+  4   0 ms      0 ms      0 ms      192.168.3.10
+
+Trace complete.
+
+! Notes
+! - Return traffic from the server takes R3 -&gt; R1 directly (asymmetric routing).
+!   Routers do not care; a stateful firewall on only one of the paths would.
+! - Step 6: with R3's route to 192.168.1.0/24 removed, R3 sends PC3's replies
+!   to its default (R2), and R2 forwards them to R1. Ping still works, via a
+!   longer return path. Remove R2's route to 192.168.1.0/24 as well and the
+!   ping fails with timeouts: a missing return route.
+! - Step 7: 10.0.12.6 is outside 10.0.12.0/30, so the recursive lookup fails
+!   and IOS does not install the route.</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-3-3-2">
+<h4>Lab: Floating static route backing up OSPF</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~30 min</p>
+<p>Two 2911 routers joined by two links. Primary: R1 G0/0 10.0.12.1/30 to R2 G0/0 10.0.12.2/30, running OSPF. Backup: R1 G0/1 10.0.21.1/30 to R2 G0/1 10.0.21.2/30, no OSPF. LANs: R1 G0/2 192.168.1.1/24 (PC1 .10), R2 G0/2 192.168.2.1/24 (PC2 .10). Router IDs 1.1.1.1 and 2.2.2.2.</p>
+<ol>
+<li>Address everything. Configure OSPF process 1, area 0, on the primary link and both LANs only. Make the LAN interfaces passive.</li>
+<li>On both routers add a floating static route to the other LAN over the backup link with AD 130.</li>
+<li>Check the routing table: which route to the remote LAN is installed? Is the static route visible?</li>
+<li>Start a continuous ping from PC1 to PC2 (<code>ping -t 192.168.2.10</code>). Shut R1 G0/0. Watch the log and the routing table.</li>
+<li>Bring G0/0 back up. Watch the OSPF route return.</li>
+<li>Change the floating route's AD on R1 to 100 and observe which link is used now. Set it back to 130.</li>
+</ol>
+<p><strong>Verify:</strong></p>
+<ul>
+<li>Before the failure: <code>O 192.168.2.0/24 [110/2] via 10.0.12.2, ..., GigabitEthernet0/0</code>; <code>show ip route static</code> shows nothing; <code>show run | include ip route</code> shows the configured route.</li>
+<li>After <code>shutdown</code>: log <code>%OSPF-5-ADJCHG: ... from FULL to DOWN</code> and <code>S 192.168.2.0/24 [130/0] via 10.0.21.2</code>. The ping loses at most a packet or two.</li>
+<li>With AD 100: the static route is installed even with OSPF healthy and traffic uses G0/1.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! ---- R1 ----
+interface GigabitEthernet0/0
+ ip address 10.0.12.1 255.255.255.252
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 10.0.21.1 255.255.255.252
+ no shutdown
+interface GigabitEthernet0/2
+ ip address 192.168.1.1 255.255.255.0
+ no shutdown
+!
+router ospf 1
+ router-id 1.1.1.1
+ passive-interface GigabitEthernet0/2
+ network 10.0.12.0 0.0.0.3 area 0
+ network 192.168.1.0 0.0.0.255 area 0
+!
+ip route 192.168.2.0 255.255.255.0 10.0.21.2 130
+
+! ---- R2 ----
+interface GigabitEthernet0/0
+ ip address 10.0.12.2 255.255.255.252
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 10.0.21.2 255.255.255.252
+ no shutdown
+interface GigabitEthernet0/2
+ ip address 192.168.2.1 255.255.255.0
+ no shutdown
+!
+router ospf 1
+ router-id 2.2.2.2
+ passive-interface GigabitEthernet0/2
+ network 10.0.12.0 0.0.0.3 area 0
+ network 192.168.2.0 0.0.0.255 area 0
+!
+ip route 192.168.1.0 255.255.255.0 10.0.21.1 130
+
+! ---- Before the failure ----
+R1# show ip route | include 192.168.2
+O     192.168.2.0/24 [110/2] via 10.0.12.2, 00:05:31, GigabitEthernet0/0
+R1# show ip route static
+! (legend only, no routes: the floating static is not installed)
+
+! ---- Failover ----
+R1(config)# interface GigabitEthernet0/0
+R1(config-if)# shutdown
+%OSPF-5-ADJCHG: Process 1, Nbr 2.2.2.2 on GigabitEthernet0/0 from FULL to DOWN, Neighbor Down: Interface down or detached
+%LINK-5-CHANGED: Interface GigabitEthernet0/0, changed state to administratively down
+R1(config-if)# do show ip route | include 192.168.2
+S     192.168.2.0/24 [130/0] via 10.0.21.2
+
+! ---- Recovery ----
+R1(config-if)# no shutdown
+%OSPF-5-ADJCHG: Process 1, Nbr 2.2.2.2 on GigabitEthernet0/0 from LOADING to FULL, Loading Done
+R1(config-if)# do show ip route | include 192.168.2
+O     192.168.2.0/24 [110/2] via 10.0.12.2, 00:00:04, GigabitEthernet0/0
+
+! ---- Step 6: AD 100 beats OSPF's 110 ----
+R1(config-if)# exit
+R1(config)# no ip route 192.168.2.0 255.255.255.0 10.0.21.2 130
+R1(config)# ip route 192.168.2.0 255.255.255.0 10.0.21.2 100
+R1(config)# do show ip route | include 192.168.2
+S     192.168.2.0/24 [100/0] via 10.0.21.2
+! Restore AD 130 afterwards.</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-3-3-3">
+<h4>Lab: IPv6 static routing with link-local next hops and a floating backup</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~40 min</p>
+<p>Three 2911 routers. R1 G0/0 2001:DB8:0:12::1/64 to R2 G0/0 2001:DB8:0:12::2/64. R2 G0/1 2001:DB8:0:23::2/64 to R3 G0/0 2001:DB8:0:23::3/64. Backup link R1 G0/2 2001:DB8:0:13::1/64 to R3 G0/2 2001:DB8:0:13::3/64. LANs: R1 G0/1 2001:DB8:1:1::1/64 with PC1 2001:DB8:1:1::10; R3 G0/1 2001:DB8:3:3::1/64 with Server 2001:DB8:3:3::10 and PC3 2001:DB8:3:3::20. R2 Loopback0 2001:DB8:FFFF::2/128. Set link-local addresses manually: FE80::1 on every R1 interface, FE80::2 on every R2 interface, FE80::3 on every R3 interface. Hosts use the router's FE80 address as their IPv6 gateway.</p>
+<ol>
+<li>Enable IPv6 routing on all three routers and address everything.</li>
+<li>R1: default route to R2 using R2's global address; route to 2001:DB8:3:3::/64 via R2 using R2's link-local address; host route to the server via the backup link (link-local next hop); floating route to 2001:DB8:3:3::/64 via the backup link with AD 200.</li>
+<li>R2: routes to both LANs (one with a global next hop, one with a link-local next hop).</li>
+<li>R3: route to 2001:DB8:1:1::/64 via the backup link (primary) and a floating copy via R2 with AD 200; default route via R2 with a link-local next hop.</li>
+<li>Test: from PC1 ping and trace to PC3, the server and 2001:DB8:FFFF::2.</li>
+<li>Try <code>ipv6 route 2001:DB8:3:3::/64 FE80::2</code> on R1 (no interface). What happens?</li>
+<li>Shut R1 G0/0 and re-check R1's static routes and reachability to PC3 and to 2001:DB8:FFFF::2.</li>
+</ol>
+<p><strong>Verify:</strong></p>
+<ul>
+<li><code>show ipv6 route static</code> on R1 shows ::/0 via 2001:DB8:0:12::2, 2001:DB8:3:3::/64 via FE80::2, GigabitEthernet0/0, and 2001:DB8:3:3::10/128 via FE80::3, GigabitEthernet0/2 (all [1/0]).</li>
+<li>Trace from PC1 to PC3 goes through R2's 2001:DB8:0:12::2; trace to the server goes straight to R3 (2001:DB8:0:13::3).</li>
+<li>Step 6: the command is rejected because a link-local next hop needs an exit interface.</li>
+<li>Step 7: the default route and the /64 via FE80::2 disappear (next hop unresolvable, interface down); <code>S 2001:DB8:3:3::/64 [200/0] via FE80::3, GigabitEthernet0/2</code> appears. PC3 is still reachable; 2001:DB8:FFFF::2 is not (R1 has no default route any more).</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! ---- R1 ----
+ipv6 unicast-routing
+interface GigabitEthernet0/0
+ ipv6 address FE80::1 link-local
+ ipv6 address 2001:DB8:0:12::1/64
+ no shutdown
+interface GigabitEthernet0/1
+ ipv6 address FE80::1 link-local
+ ipv6 address 2001:DB8:1:1::1/64
+ no shutdown
+interface GigabitEthernet0/2
+ ipv6 address FE80::1 link-local
+ ipv6 address 2001:DB8:0:13::1/64
+ no shutdown
+!
+ipv6 route ::/0 2001:DB8:0:12::2
+ipv6 route 2001:DB8:3:3::/64 GigabitEthernet0/0 FE80::2
+ipv6 route 2001:DB8:3:3::10/128 GigabitEthernet0/2 FE80::3
+ipv6 route 2001:DB8:3:3::/64 GigabitEthernet0/2 FE80::3 200
+
+! ---- R2 ----
+ipv6 unicast-routing
+interface GigabitEthernet0/0
+ ipv6 address FE80::2 link-local
+ ipv6 address 2001:DB8:0:12::2/64
+ no shutdown
+interface GigabitEthernet0/1
+ ipv6 address FE80::2 link-local
+ ipv6 address 2001:DB8:0:23::2/64
+ no shutdown
+interface Loopback0
+ ipv6 address 2001:DB8:FFFF::2/128
+!
+ipv6 route 2001:DB8:1:1::/64 2001:DB8:0:12::1
+ipv6 route 2001:DB8:3:3::/64 GigabitEthernet0/1 FE80::3
+
+! ---- R3 ----
+ipv6 unicast-routing
+interface GigabitEthernet0/0
+ ipv6 address FE80::3 link-local
+ ipv6 address 2001:DB8:0:23::3/64
+ no shutdown
+interface GigabitEthernet0/1
+ ipv6 address FE80::3 link-local
+ ipv6 address 2001:DB8:3:3::1/64
+ no shutdown
+interface GigabitEthernet0/2
+ ipv6 address FE80::3 link-local
+ ipv6 address 2001:DB8:0:13::3/64
+ no shutdown
+!
+ipv6 route 2001:DB8:1:1::/64 GigabitEthernet0/2 FE80::1
+ipv6 route 2001:DB8:1:1::/64 GigabitEthernet0/0 FE80::2 200
+ipv6 route ::/0 GigabitEthernet0/0 FE80::2
+
+! ---- Hosts ----
+! PC1: 2001:DB8:1:1::10/64, gateway FE80::1
+! Server: 2001:DB8:3:3::10/64, gateway FE80::3 ; PC3: 2001:DB8:3:3::20/64, gateway FE80::3
+
+! ---- Step 7 on R1 after "shutdown" on G0/0 ----
+R1# show ipv6 route static
+IPv6 Routing Table - default - 7 entries
+! (legend omitted)
+S   2001:DB8:3:3::/64 [200/0]
+     via FE80::3, GigabitEthernet0/2
+S   2001:DB8:3:3::10/128 [1/0]
+     via FE80::3, GigabitEthernet0/2
+! 7 entries = 2 statics + C/L for G0/1 and G0/2 + FF00::/8
+
+! Notes
+! - Traffic PC1 -&gt; PC3 goes via R2; PC3 -&gt; PC1 returns over the backup link
+!   (R3's primary). Asymmetric, and fine for routers.
+! - The same link-local address on several interfaces of one router is legal;
+!   that is exactly why the exit interface is mandatory with an FE80 next hop.</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li><code>ip route prefix mask {next-hop | exit-interface [next-hop]} [AD]</code>. Next-hop form is recursive; interface-only on Ethernet depends on proxy ARP; fully specified is safest.</li>
+<li>A static route is installed only if its next hop resolves (or exit interface is up) and its AD is the lowest offer for that prefix.</li>
+<li>Default 0.0.0.0/0 (S*), network route, host route /32 or /128 (always the longest match), floating static = AD above the primary's (e.g. 130 or 200 over OSPF's 110).</li>
+<li>IPv6: <code>ipv6 unicast-routing</code> first; <code>ipv6 route ::/0 ...</code>; a link-local next hop requires the exit interface.</li>
+<li>Floating statics are invisible in <code>show ip route</code> until the primary disappears; check <code>show running-config</code>.</li>
+<li>Routing must work in both directions: timeouts with a correct forward path usually mean a missing return route.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-3-4" data-topics="3.4,3.4.a,3.4.b,3.4.c,3.4.d">
+<h2>3.4 Configure and verify single-area OSPFv2</h2>
+
+<p>OSPF (Open Shortest Path First, version 2 for IPv4, RFC 2328) is the routing protocol the CCNA tests hands-on. The blueprint limits you to a single area, but within that area you need everything: how adjacencies form, the two network types, DR/BDR election, router ID, configuration both ways, and reading every verification command. Expect exhibit questions that show <code>show ip ospf neighbor</code> or <code>show ip ospf interface</code> output and ask why two routers are not neighbors or who the DR is.</p>
+
+<h3>How link-state routing works</h3>
+<p>A distance-vector protocol (RIP) tells neighbors "I can reach X at distance N". A link-state protocol instead has every router describe its own links (its interfaces, their subnets, their costs, and which neighbors are on them) and flood that description to every router in the area. Each router then holds the same map and computes its own best paths.</p>
+<ol>
+<li><strong>Neighbors:</strong> routers discover each other with Hello packets and form adjacencies.</li>
+<li><strong>Flooding:</strong> each router originates LSAs (link-state advertisements) describing itself and floods them to the area. Every router stores every LSA in its <strong>LSDB</strong> (link-state database). All routers in an area must have identical LSDBs.</li>
+<li><strong>SPF:</strong> each router runs Dijkstra's shortest path first algorithm over the LSDB, with itself as the root, to build a shortest-path tree. The best routes go into the routing table with AD 110 and the total cost as the metric.</li>
+<li><strong>Change:</strong> when a link changes, only the affected LSA is reflooded and SPF reruns. There are no periodic full updates; LSAs are refreshed every 30 minutes and expire at 60 minutes (MaxAge) if not refreshed.</li>
+</ol>
+
+<h4>Areas</h4>
+<p>An area is a group of routers that share one LSDB. Area 0 is the <strong>backbone</strong>; in multi-area designs every other area must attach to it, through ABRs (area border routers). Areas keep the LSDB and SPF work small in big networks. A single-area design simply puts every interface in one area, normally area 0. Area IDs are 32-bit and may be written as a number (<code>0</code>) or dotted decimal (<code>0.0.0.0</code>); both mean the same area.</p>
+
+<h4>LSA types you need</h4>
+<table>
+<thead><tr><th>Type</th><th>Name</th><th>Originated by</th><th>Describes</th><th>Link ID</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Router LSA</td><td>Every router, once per area it is in</td><td>The router's own links (interfaces, stub networks, point-to-point neighbors, transit networks) and their costs</td><td>The router's RID</td></tr>
+<tr><td>2</td><td>Network LSA</td><td>The DR of each multiaccess segment that has neighbors</td><td>The segment's subnet and every router attached to it</td><td>The DR's interface IP</td></tr>
+<tr><td>3</td><td>Summary LSA</td><td>ABRs (multi-area only)</td><td>Prefixes from other areas (O IA routes)</td><td>The prefix</td></tr>
+<tr><td>5</td><td>AS external LSA</td><td>ASBRs</td><td>Redistributed routes, including a default from <code>default-information originate</code> (O E1/E2)</td><td>The prefix</td></tr>
+</tbody>
+</table>
+<p>In single-area OSPF you will see types 1 and 2, plus type 5 if a router originates a default route. Type 3 matters only with multiple areas and is not tested in depth.</p>
+
+<h4>OSPF packets and addresses</h4>
+<p>OSPF runs directly over IP as <strong>IP protocol 89</strong> (not TCP or UDP). It has five packet types: <strong>Hello</strong> (discover and keep neighbors), <strong>DBD</strong> (database description: a list of LSA headers), <strong>LSR</strong> (link-state request), <strong>LSU</strong> (link-state update: carries LSAs) and <strong>LSAck</strong>. Two multicast addresses:</p>
+<ul>
+<li><strong>224.0.0.5 (AllSPFRouters):</strong> every OSPF router listens. Hellos go here, and the DR floods updates here.</li>
+<li><strong>224.0.0.6 (AllDRouters):</strong> only the DR and BDR listen. DROTHERs send their updates here.</li>
+</ul>
+
+<h3>The reference topology</h3>
+<figure class="diagram">
+<svg viewBox="0 0 720 320" role="img" aria-label="OSPF reference topology: R1, R2 and R3 share a switched segment 10.0.123.0/24; R1 has a point-to-point link to R4; R2 connects to an ISP; R3 and R4 have LANs">
+<rect x="300" y="140" width="120" height="36" rx="6" class="d-muted" stroke="currentColor" fill="none"/>
+<text x="360" y="163" text-anchor="middle" class="d-text">SW1</text>
+<text x="360" y="198" text-anchor="middle" class="d-muted">10.0.123.0/24</text>
+<rect x="80" y="40" width="130" height="44" rx="8" class="d-fill" stroke="currentColor"/>
+<text x="145" y="60" text-anchor="middle" class="d-text">R1 1.1.1.1</text>
+<text x="145" y="77" text-anchor="middle" class="d-muted">DROTHER</text>
+<rect x="510" y="40" width="130" height="44" rx="8" class="d-fill" stroke="currentColor"/>
+<text x="575" y="60" text-anchor="middle" class="d-text">R2 2.2.2.2</text>
+<text x="575" y="77" text-anchor="middle" class="d-muted">BDR</text>
+<rect x="510" y="240" width="130" height="44" rx="8" class="d-accent-fill" stroke="currentColor"/>
+<text x="575" y="260" text-anchor="middle" class="d-text">R3 3.3.3.3</text>
+<text x="575" y="277" text-anchor="middle" class="d-muted">DR</text>
+<rect x="80" y="240" width="130" height="44" rx="8" class="d-fill" stroke="currentColor"/>
+<text x="145" y="267" text-anchor="middle" class="d-text">R4 4.4.4.4</text>
+<line x1="210" y1="70" x2="300" y2="150" class="d-line" stroke="currentColor"/>
+<line x1="510" y1="70" x2="420" y2="150" class="d-line" stroke="currentColor"/>
+<line x1="510" y1="255" x2="420" y2="170" class="d-line" stroke="currentColor"/>
+<line x1="145" y1="84" x2="145" y2="240" class="d-line" stroke="currentColor"/>
+<text x="216" y="104" class="d-muted">G0/0 .1</text>
+<text x="440" y="104" class="d-muted">.2 G0/0</text>
+<text x="440" y="236" class="d-muted">.3 G0/0</text>
+<text x="155" y="150" class="d-text">10.0.14.0/30</text>
+<text x="155" y="168" class="d-muted">point-to-point</text>
+<text x="155" y="186" class="d-muted">R1 G0/1 .1, R4 G0/0 .2</text>
+<line x1="640" y1="62" x2="700" y2="62" class="d-line" stroke="currentColor"/>
+<text x="560" y="24" class="d-muted">G0/1 203.0.113.2/30 to ISP</text>
+<text x="500" y="308" class="d-muted">G0/1 192.168.3.0/24 (passive)</text>
+<text x="20" y="308" class="d-muted">G0/1 192.168.4.0/24 (passive)</text>
+</svg>
+<figcaption>Topology O, used for all OSPF outputs in this section and in Lab 3.4-1. All router interfaces are GigabitEthernet; loopbacks carry the router IDs.</figcaption>
+</figure>
+
+<h3>Basic configuration: network commands</h3>
+<pre class="cli">R1(config)# interface Loopback0
+R1(config-if)# ip address 1.1.1.1 255.255.255.255
+R1(config-if)# exit
+R1(config)# router ospf 1
+R1(config-router)# router-id 1.1.1.1
+R1(config-router)# network 1.1.1.1 0.0.0.0 area 0
+R1(config-router)# network 10.0.123.0 0.0.0.255 area 0
+R1(config-router)# network 10.0.14.0 0.0.0.3 area 0</pre>
+<ul>
+<li><strong><code>router ospf 1</code>:</strong> the process ID (1 to 65535) is locally significant. Neighbors do not need the same process ID. (This is a common distractor: matching process IDs are <em>not</em> an adjacency requirement.)</li>
+<li><strong><code>network <em>address wildcard</em> area <em>id</em></code>:</strong> enables OSPF on every interface whose primary IP address matches the address/wildcard pair, and puts that interface in the area.</li>
+</ul>
+<h4>How network command matching works</h4>
+<p>The wildcard is an inverse mask: a 0 bit means "must match", a 1 bit means "ignore". IOS compares each interface's IP address (not its subnet) against the statement. If it matches, OSPF is enabled on the interface; the router then sends hellos there and advertises the interface's real subnet and mask, whatever range the network command covered.</p>
+<table>
+<thead><tr><th>Statement</th><th>Matches</th></tr></thead>
+<tbody>
+<tr><td><code>network 10.0.123.0 0.0.0.255 area 0</code></td><td>Any interface with an address 10.0.123.0 to 10.0.123.255</td></tr>
+<tr><td><code>network 10.0.123.1 0.0.0.0 area 0</code></td><td>Only the interface whose address is exactly 10.0.123.1 (precise, popular in production)</td></tr>
+<tr><td><code>network 10.0.0.0 0.255.255.255 area 0</code></td><td>Every interface in 10.0.0.0/8</td></tr>
+<tr><td><code>network 0.0.0.0 255.255.255.255 area 0</code></td><td>Every interface on the router</td></tr>
+<tr><td><code>network 10.0.123.0 0.0.0.0 area 0</code></td><td>Only an interface with address 10.0.123.0. No interface has that address, so nothing is enabled: a classic mistake.</td></tr>
+<tr><td><code>network 10.0.14.0 255.255.255.252 area 0</code></td><td>A subnet mask typed where a wildcard belongs. IOS recognizes a contiguous subnet mask here and stores it inverted (<code>network 10.0.14.0 0.0.0.3 area 0</code>), so it happens to work. Do not rely on that: write the wildcard yourself (255.255.255.255 minus the mask), as exam answers and ACLs expect.</td></tr>
+</tbody>
+</table>
+
+<h4>Alternative: interface configuration</h4>
+<p>Instead of network statements you can enable OSPF directly on each interface. The result is identical; it is more explicit and avoids wildcard errors. Interface configuration takes precedence if both methods cover an interface.</p>
+<pre class="cli">R1(config)# router ospf 1
+R1(config-router)# router-id 1.1.1.1
+R1(config-router)# exit
+R1(config)# interface Loopback0
+R1(config-if)# ip ospf 1 area 0
+R1(config-if)# interface GigabitEthernet0/0
+R1(config-if)# ip ospf 1 area 0
+R1(config-if)# interface GigabitEthernet0/1
+R1(config-if)# ip ospf 1 area 0</pre>
+<p><code>show ip ospf interface</code> tells you which method enabled an interface: "Attached via Network Statement" or "Attached via Interface Enable". <code>show ip protocols</code> lists network statements under "Routing for Networks" and interface-enabled interfaces under "Routing on Interfaces Configured Explicitly".</p>
+
+<h4>Passive interfaces</h4>
+<p>A passive interface still has its subnet advertised into OSPF, but OSPF sends no hellos on it and ignores hellos received there, so no neighbor can form. Use it on every LAN where no OSPF router should exist: it saves overhead and stops a rogue device from forming an adjacency and injecting routes.</p>
+<pre class="cli">R4(config)# router ospf 1
+R4(config-router)# passive-interface GigabitEthernet0/1
+! Or make everything passive and enable only the transit links:
+R4(config-router)# passive-interface default
+R4(config-router)# no passive-interface GigabitEthernet0/0</pre>
+<p>Loopbacks never send hellos anyway, so they do not need to be made passive.</p>
+<div class="callout trap"><p><strong>Exam trap:</strong> "Passive" does not mean "not advertised". The passive LAN's subnet still appears in every other router's table. If a question says a LAN is missing from other routers, passive-interface is not the cause; a missing network statement is. If two routers will not become neighbors over a link, passive-interface on that link is a prime suspect.</p></div>
+
+<h4>Advertising a default route</h4>
+<pre class="cli">R2(config)# ip route 0.0.0.0 0.0.0.0 203.0.113.1
+R2(config)# router ospf 1
+R2(config-router)# default-information originate</pre>
+<p>R2 becomes an ASBR and floods a type 5 LSA for 0.0.0.0/0. Other routers install it as <code>O*E2 0.0.0.0/0 [110/1]</code> (external type 2, metric 1 by default) and their gateway of last resort points toward R2. Without the <code>always</code> keyword, R2 advertises the default only while it has a default route in its own table; if the static default is withdrawn, the OSPF default is withdrawn too. <code>default-information originate always</code> advertises it unconditionally.</p>
+
+<h4>Cost and reference bandwidth</h4>
+<p>OSPF interface cost = reference bandwidth / interface bandwidth, rounded down, minimum 1. The default reference is 100 Mbps (10^8 bps).</p>
+<table>
+<thead><tr><th>Interface</th><th>Bandwidth</th><th>Cost, default reference (100 Mbps)</th><th>Cost, reference 10000 (10 Gbps)</th></tr></thead>
+<tbody>
+<tr><td>Serial T1</td><td>1544 kbps</td><td>64</td><td>6476</td></tr>
+<tr><td>Ethernet</td><td>10 Mbps</td><td>10</td><td>1000</td></tr>
+<tr><td>FastEthernet</td><td>100 Mbps</td><td>1</td><td>100</td></tr>
+<tr><td>GigabitEthernet</td><td>1 Gbps</td><td>1</td><td>10</td></tr>
+<tr><td>TenGigabitEthernet</td><td>10 Gbps</td><td>1</td><td>1</td></tr>
+<tr><td>Loopback</td><td>n/a</td><td>1</td><td>1</td></tr>
+</tbody>
+</table>
+<p>With the default reference, every link of 100 Mbps or faster costs 1, so OSPF cannot prefer a 10 Gbps path over a FastEthernet one. Three ways to influence cost:</p>
+<ul>
+<li><code>auto-cost reference-bandwidth <em>mbps</em></code> under <code>router ospf</code>: changes the formula for every interface. Set the same value on <strong>every</strong> router in the area, or costs become inconsistent. IOS warns: <code>% OSPF: Reference bandwidth is changed. Please ensure reference bandwidth is consistent across all routers.</code></li>
+<li><code>ip ospf cost <em>1-65535</em></code> on an interface: sets that interface's cost directly, overriding the formula.</li>
+<li><code>bandwidth <em>kbps</em></code> on an interface: changes the bandwidth value OSPF (and EIGRP and QoS) use in calculations. It does not change the physical speed. Mostly used on serial links.</li>
+</ul>
+<p>Cost is counted on <strong>outgoing</strong> interfaces only: a route's metric is the sum of the costs of each router's exit interface along the path, including the destination subnet's interface on the last router. R1's route to R3's LAN 192.168.3.0/24 = R1 Gi0/0 (1) + R3 Gi0/1 (1) = 2. To R2's loopback = 1 + 1 (loopback cost) = 2.</p>
+<p>OSPF installs up to 4 equal-cost paths by default (<code>maximum-paths</code>, see 3.2).</p>
+
+<h3 id="t-3-4-a">3.4.a Neighbor adjacencies</h3>
+<p>Every <strong>hello interval</strong> an OSPF router multicasts a Hello on each OSPF-enabled, non-passive interface. If it hears nothing from a neighbor for the <strong>dead interval</strong>, it declares the neighbor down. Defaults:</p>
+<table>
+<thead><tr><th>Network type</th><th>Hello</th><th>Dead</th></tr></thead>
+<tbody>
+<tr><td>Broadcast (Ethernet default)</td><td>10 s</td><td>40 s</td></tr>
+<tr><td>Point-to-point (HDLC/PPP serial default, or configured)</td><td>10 s</td><td>40 s</td></tr>
+<tr><td>Non-broadcast (NBMA) and point-to-multipoint</td><td>30 s</td><td>120 s</td></tr>
+</tbody>
+</table>
+<p>Change them per interface with <code>ip ospf hello-interval</code> and <code>ip ospf dead-interval</code>. If you change only the hello interval, IOS automatically sets the dead interval to 4 times the new hello.</p>
+<h4>What a Hello carries (and what must match)</h4>
+<p>A Hello contains the sender's router ID, area ID, hello and dead intervals, network mask, authentication data, option flags (including the stub-area flag), router priority, the current DR and BDR, and the list of neighbor RIDs it has heard from on that link. Two routers become neighbors only if these agree:</p>
+<table>
+<thead><tr><th>Must match / be true</th><th>If not</th></tr></thead>
+<tbody>
+<tr><td>Same area ID on the link</td><td>Hellos rejected; log message about mismatched area</td></tr>
+<tr><td>Same subnet (and on broadcast networks, same mask)</td><td>Hellos rejected; no neighbor</td></tr>
+<tr><td>Hello and dead intervals identical</td><td>Hellos rejected; neighbor never appears</td></tr>
+<tr><td>Authentication type and key identical</td><td>Hellos rejected</td></tr>
+<tr><td>Stub-area flag identical</td><td>Hellos rejected (multi-area feature, but it is a hello field)</td></tr>
+<tr><td>Unique router IDs</td><td>Adjacency fails or routes flap; duplicate RID log messages</td></tr>
+<tr><td>Interface not passive on either side; OSPF packets (protocol 89, 224.0.0.5/6) not blocked by an ACL</td><td>No hellos exchanged in one or both directions</td></tr>
+<tr><td>IP MTU identical</td><td>Neighbors appear but stick in ExStart/Exchange; never Full</td></tr>
+<tr><td>Compatible network types (both broadcast or both point-to-point)</td><td>Adjacency may even reach Full, but routes across the link are missing because the two routers describe the link differently</td></tr>
+</tbody>
+</table>
+<p>Things that do <strong>not</strong> need to match: process ID, router priority, interface cost, and (for single-area) anything about other interfaces.</p>
+
+<h4>Neighbor states</h4>
+<figure class="diagram">
+<svg viewBox="0 0 720 330" role="img" aria-label="OSPF neighbor state machine: Down, Init, 2-Way, ExStart, Exchange, Loading, Full, with the event that moves each state and the typical cause when stuck">
+<rect x="20" y="40" width="110" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="75" y="65" text-anchor="middle" class="d-text">Down</text>
+<rect x="255" y="40" width="110" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="310" y="65" text-anchor="middle" class="d-text">Init</text>
+<rect x="490" y="40" width="110" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="545" y="65" text-anchor="middle" class="d-text">2-Way</text>
+<rect x="490" y="180" width="110" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="545" y="205" text-anchor="middle" class="d-text">ExStart</text>
+<rect x="255" y="180" width="110" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="310" y="205" text-anchor="middle" class="d-text">Exchange</text>
+<rect x="20" y="180" width="110" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="75" y="205" text-anchor="middle" class="d-text">Loading</text>
+<rect x="20" y="270" width="110" height="40" rx="6" class="d-accent-fill" stroke="currentColor"/>
+<text x="75" y="295" text-anchor="middle" class="d-text">Full</text>
+<line x1="130" y1="60" x2="255" y2="60" class="d-line" stroke="currentColor"/>
+<polygon points="255,60 245,55 245,65" class="d-fill" stroke="currentColor"/>
+<line x1="365" y1="60" x2="490" y2="60" class="d-line" stroke="currentColor"/>
+<polygon points="490,60 480,55 480,65" class="d-fill" stroke="currentColor"/>
+<line x1="545" y1="80" x2="545" y2="180" class="d-line" stroke="currentColor"/>
+<polygon points="545,180 540,170 550,170" class="d-fill" stroke="currentColor"/>
+<line x1="490" y1="200" x2="365" y2="200" class="d-line" stroke="currentColor"/>
+<polygon points="365,200 375,195 375,205" class="d-fill" stroke="currentColor"/>
+<line x1="255" y1="200" x2="130" y2="200" class="d-line" stroke="currentColor"/>
+<polygon points="130,200 140,195 140,205" class="d-fill" stroke="currentColor"/>
+<line x1="75" y1="220" x2="75" y2="270" class="d-line" stroke="currentColor"/>
+<polygon points="75,270 70,260 80,260" class="d-fill" stroke="currentColor"/>
+<text x="140" y="30" class="d-muted">hello heard</text>
+<text x="375" y="30" class="d-muted">my RID in its hello</text>
+<text x="556" y="112" class="d-muted">DR/BDR elected;</text>
+<text x="556" y="130" class="d-muted">DROTHER pairs</text>
+<text x="556" y="148" class="d-muted">stay in 2-Way</text>
+<text x="372" y="190" class="d-muted">master by RID</text>
+<text x="140" y="190" class="d-muted">DBDs done</text>
+<text x="88" y="250" class="d-muted">LSRs answered</text>
+<text x="200" y="250" class="d-text">Stuck in Init: hellos only one way (ACL, L2 fault)</text>
+<text x="200" y="272" class="d-text">Stuck in 2-Way: normal for DROTHERs; else no DR (all priority 0)</text>
+<text x="200" y="294" class="d-text">Stuck in ExStart/Exchange: MTU mismatch (or duplicate RID)</text>
+<text x="200" y="316" class="d-text">No neighbor at all: area, timers, mask, auth, passive</text>
+</svg>
+<figcaption>The neighbor state machine and what each stuck state usually means.</figcaption>
+</figure>
+<table>
+<thead><tr><th>State</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Down</td><td>No hello received from this neighbor in the dead interval (or the neighbor just went away).</td></tr>
+<tr><td>Attempt</td><td>NBMA only: unicast hellos sent to a manually configured neighbor. Not seen on Ethernet.</td></tr>
+<tr><td>Init</td><td>A hello arrived from the neighbor, but my RID is not in its neighbor list yet: communication is one-way so far.</td></tr>
+<tr><td>2-Way</td><td>Each router sees its own RID in the other's hello. Bidirectional communication. On broadcast segments, the DR/BDR election happens here, and two DROTHERs stop here permanently (that is normal).</td></tr>
+<tr><td>ExStart</td><td>The two routers decide who is master (higher RID) for the database exchange and agree on a starting sequence number.</td></tr>
+<tr><td>Exchange</td><td>They exchange DBD packets listing the LSA headers each has.</td></tr>
+<tr><td>Loading</td><td>Each requests (LSR) the LSAs it is missing or has older copies of, and receives them in LSUs.</td></tr>
+<tr><td>Full</td><td>LSDBs synchronized. This is a full adjacency.</td></tr>
+</tbody>
+</table>
+<p>Cisco's <a href="https://www.cisco.com/c/en/us/support/docs/ip/open-shortest-path-first-ospf/13685-13.html" target="_blank" rel="noopener">Understand OSPF Neighbor States</a> walks through each state in more depth. Note the difference between a <em>neighbor</em> (reached 2-Way) and an <em>adjacency</em> (reached Full). Routers exchange LSAs only with adjacent neighbors. When a neighbor goes Full, IOS logs <code>%OSPF-5-ADJCHG: Process 1, Nbr 3.3.3.3 on GigabitEthernet0/0 from LOADING to FULL, Loading Done</code>.</p>
+<div class="callout key"><p><strong>Remember:</strong> When hello parameters (area, timers, mask, authentication) mismatch, the neighbor does not appear in <code>show ip ospf neighbor</code> at all, because its hellos are discarded. When the MTU mismatches, the neighbor appears but stays in EXSTART or EXCHANGE.</p></div>
+
+<h3 id="t-3-4-b">3.4.b Point-to-point</h3>
+<p>The OSPF <strong>network type</strong> of an interface controls whether a DR is elected, the default timers, and how the link is described in the router LSA.</p>
+<table>
+<thead><tr><th>Network type</th><th>Default on</th><th>DR/BDR?</th><th>Hello/Dead</th></tr></thead>
+<tbody>
+<tr><td>Broadcast</td><td>Ethernet</td><td>Yes</td><td>10/40</td></tr>
+<tr><td>Point-to-point</td><td>Serial with HDLC or PPP, GRE tunnels</td><td>No</td><td>10/40</td></tr>
+<tr><td>Non-broadcast (NBMA)</td><td>Frame Relay (legacy)</td><td>Yes</td><td>30/120</td></tr>
+<tr><td>Loopback</td><td>Loopback interfaces</td><td>n/a</td><td>No hellos; advertised as a /32 host route</td></tr>
+</tbody>
+</table>
+<p>A point-to-point link has exactly two routers, so there is nothing to elect: the two routers go straight from 2-Way to forming a full adjacency, without the 40-second wait timer that broadcast interfaces use before the first election, and no type 2 LSA is created. Modern Ethernet links between two routers (routed uplinks, WAN handoffs) are often configured as point-to-point for exactly these reasons:</p>
+<pre class="cli">R1(config)# interface GigabitEthernet0/1
+R1(config-if)# ip ospf network point-to-point
+R4(config)# interface GigabitEthernet0/0
+R4(config-if)# ip ospf network point-to-point</pre>
+<p>Configure it on <strong>both</strong> ends. In <code>show ip ospf neighbor</code> a point-to-point neighbor shows priority 0 and state <code>FULL/  -</code> (no DR or BDR role), and <code>show ip ospf interface</code> shows "Network Type POINT_TO_POINT" and "State POINT_TO_POINT".</p>
+<p>Loopbacks are advertised as /32 even if configured with a shorter mask. Configuring <code>ip ospf network point-to-point</code> on a loopback makes OSPF advertise its real mask (useful in labs that use loopbacks to simulate LANs).</p>
+<div class="callout trap"><p><strong>Exam trap:</strong> If one side of a link is broadcast and the other point-to-point, the hello and dead timers still match (10/40), so the neighbor can come up, sometimes even to Full. But the broadcast side expects a DR and a type 2 LSA, the point-to-point side does not, and SPF cannot build a consistent path over the link: routes through it are missing. Always check <code>show ip ospf interface</code> on both ends.</p></div>
+
+<h3 id="t-3-4-c">3.4.c Broadcast (DR/BDR selection)</h3>
+<p>On a multiaccess segment with <em>n</em> routers, a full mesh of adjacencies would need n(n-1)/2 adjacencies and every change would be flooded by every router to every other. OSPF instead elects a <strong>designated router (DR)</strong> and a <strong>backup designated router (BDR)</strong>. Every other router (a DROTHER) forms a full adjacency only with the DR and BDR; DROTHERs stay in 2-Way with each other. With 10 routers that is 17 adjacencies instead of 45.</p>
+<ul>
+<li>A DROTHER sends LSUs to <strong>224.0.0.6</strong> (heard by DR and BDR only).</li>
+<li>The DR refloods them to <strong>224.0.0.5</strong> (every OSPF router on the segment).</li>
+<li>The DR originates the segment's <strong>type 2 network LSA</strong>.</li>
+<li>The BDR is fully adjacent with everyone and takes over immediately if the DR fails.</li>
+</ul>
+
+<h4>Election rules</h4>
+<ol>
+<li>Only routers with interface priority 1 to 255 are candidates. Priority 0 means never DR or BDR. Default priority is <strong>1</strong>. Set with <code>ip ospf priority <em>0-255</em></code> on the interface.</li>
+<li>Highest priority wins. On a tie, the highest router ID wins (not the highest interface IP).</li>
+<li>The BDR is elected first among non-DR candidates, then the DR. In practice: the best router becomes DR, the second best BDR.</li>
+<li>The election is <strong>non-preemptive</strong>. Once a DR and BDR exist, a newly arriving router with a higher priority does not take over. It becomes DR only when the current DR and BDR fail, or after the OSPF process is reset on the segment. One exception: setting priority 0 on the current DR or BDR makes it ineligible at once, and the other routers rerun the election.</li>
+<li>When the DR fails, the BDR is promoted to DR and a new BDR is elected. When the old DR returns, it becomes a DROTHER.</li>
+<li>When an interface comes up and sees no DR, it waits the <strong>wait timer</strong> (equal to the dead interval, 40 s) before electing, so other routers have a chance to be heard. This is why the first router powered on often becomes DR regardless of priority: it is alone for 40 seconds.</li>
+</ol>
+<p>The DR is a role on a <strong>segment</strong> (an interface), not on a router. R1 can be DR on one LAN, DROTHER on another and have no role at all on its point-to-point links.</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 320" role="img" aria-label="DR and BDR on a shared segment: physically four routers attach to one switch; logically R1 (DR) and R2 (BDR) are fully adjacent with everyone, while DROTHERs R3 and R4 stay in 2-Way with each other">
+<text x="20" y="24" class="d-text">Physical: one segment 10.0.0.0/24</text>
+<line x1="30" y1="200" x2="330" y2="200" class="d-line" stroke="currentColor" stroke-width="3"/>
+<rect x="30" y="90" width="64" height="40" rx="6" class="d-accent-fill" stroke="currentColor"/>
+<text x="62" y="115" text-anchor="middle" class="d-text">R1</text>
+<rect x="110" y="90" width="64" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="142" y="115" text-anchor="middle" class="d-text">R2</text>
+<rect x="190" y="90" width="64" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="222" y="115" text-anchor="middle" class="d-text">R3</text>
+<rect x="270" y="90" width="64" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="302" y="115" text-anchor="middle" class="d-text">R4</text>
+<line x1="62" y1="130" x2="62" y2="200" class="d-line" stroke="currentColor"/>
+<line x1="142" y1="130" x2="142" y2="200" class="d-line" stroke="currentColor"/>
+<line x1="222" y1="130" x2="222" y2="200" class="d-line" stroke="currentColor"/>
+<line x1="302" y1="130" x2="302" y2="200" class="d-line" stroke="currentColor"/>
+<text x="30" y="226" class="d-muted">R1 pri 200, RID 1.1.1.1: DR</text>
+<text x="30" y="246" class="d-muted">R2 pri 100, RID 2.2.2.2: BDR</text>
+<text x="30" y="266" class="d-muted">R3 pri 1, RID 3.3.3.3: DROTHER</text>
+<text x="30" y="286" class="d-muted">R4 pri 0, RID 4.4.4.4: DROTHER</text>
+<text x="400" y="24" class="d-text">Logical adjacencies</text>
+<rect x="400" y="50" width="90" height="40" rx="6" class="d-accent-fill" stroke="currentColor"/>
+<text x="445" y="75" text-anchor="middle" class="d-text">R1 DR</text>
+<rect x="610" y="50" width="90" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="655" y="75" text-anchor="middle" class="d-text">R2 BDR</text>
+<rect x="400" y="210" width="90" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="445" y="235" text-anchor="middle" class="d-text">R3</text>
+<rect x="610" y="210" width="90" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="655" y="235" text-anchor="middle" class="d-text">R4</text>
+<line x1="490" y1="70" x2="610" y2="70" class="d-line" stroke="currentColor" stroke-width="2"/>
+<line x1="445" y1="90" x2="445" y2="210" class="d-line" stroke="currentColor" stroke-width="2"/>
+<line x1="655" y1="90" x2="655" y2="210" class="d-line" stroke="currentColor" stroke-width="2"/>
+<line x1="480" y1="90" x2="630" y2="210" class="d-line" stroke="currentColor" stroke-width="2"/>
+<line x1="620" y1="90" x2="470" y2="210" class="d-line" stroke="currentColor" stroke-width="2"/>
+<line x1="490" y1="230" x2="610" y2="230" class="d-muted" stroke="currentColor" stroke-dasharray="6 5"/>
+<text x="550" y="270" text-anchor="middle" class="d-muted">2-WAY only</text>
+<text x="400" y="296" class="d-text">Solid = FULL. DROTHERs send updates to</text>
+<text x="400" y="314" class="d-text">224.0.0.6; the DR refloods to 224.0.0.5.</text>
+</svg>
+<figcaption>DR/BDR on one broadcast segment (the Lab 3.4-2 end state). Five full adjacencies instead of six; with more routers the saving grows quickly.</figcaption>
+</figure>
+
+<p>From R3, a DROTHER, after the election in that lab:</p>
+<pre class="cli">R3# show ip ospf neighbor
+
+Neighbor ID     Pri   State           Dead Time   Address         Interface
+1.1.1.1         200   FULL/DR         00:00:37    10.0.0.1        GigabitEthernet0/0
+2.2.2.2         100   FULL/BDR        00:00:34    10.0.0.2        GigabitEthernet0/0
+4.4.4.4           0   2WAY/DROTHER    00:00:31    10.0.0.4        GigabitEthernet0/0</pre>
+<p>Reading it: the State column is "adjacency state / the <em>neighbor's</em> role". R3 is Full with the DR and BDR and 2WAY with the other DROTHER. That 2WAY line is healthy, not a fault. From R1 (the DR), every neighbor shows FULL: <code>FULL/BDR</code> for R2 and <code>FULL/DROTHER</code> for R3 and R4.</p>
+<div class="callout trap"><p><strong>Exam trap:</strong> The neighbor table never shows the local router's own role. To know whether R3 itself is DR, BDR or DROTHER, look at <code>show ip ospf interface</code> ("State DROTHER") or infer it: if R3 lists both a DR and a BDR among its neighbors, R3 is neither.</p></div>
+
+<h3 id="t-3-4-d">3.4.d Router ID</h3>
+<p>The router ID (RID) is a 32-bit number written like an IPv4 address that uniquely identifies the router in OSPF: it appears in hellos, it is the Link ID of the router's type 1 LSA, it breaks DR election ties, and it decides the master in ExStart. It does not have to be an address on the router, or even a reachable one. IOS chooses it when the OSPF process starts, in this order:</p>
+<ol>
+<li>The <code>router-id <em>a.b.c.d</em></code> command under <code>router ospf</code>.</li>
+<li>Otherwise, the highest IPv4 address on any <strong>up</strong> loopback interface.</li>
+<li>Otherwise, the highest IPv4 address on any <strong>up</strong> non-loopback interface.</li>
+</ol>
+<p>The interface does not need to be enabled for OSPF to be used for the RID. Example: R5 has Lo0 1.1.1.1, Lo1 11.11.11.11 and Gi0/0 203.0.113.2 and no <code>router-id</code> command: its RID is 11.11.11.11 (any up loopback beats any physical interface, even though 203.0.113.2 is numerically higher). If no interface has an IPv4 address in an up state, the process cannot start (<code>%OSPF-4-NORTRID</code>).</p>
+<h4>When the RID changes</h4>
+<p>The RID is stable: adding a higher loopback, or even typing a new <code>router-id</code>, does not change a running process on classic IOS. IOS tells you so:</p>
+<pre class="cli">R1(config-router)# router-id 1.1.1.1
+% OSPF: Reload or use "clear ip ospf process" command, for this to take effect
+R1(config-router)# end
+R1# clear ip ospf process
+Reset ALL OSPF processes? [no]: yes</pre>
+<p><code>clear ip ospf process</code> (or a reload) restarts OSPF, drops every adjacency on the router and rebuilds them with the new RID. Do it in a maintenance window. (Recent IOS XE releases, from 17.13.1a, apply a new router-id immediately and reset the adjacencies themselves; the CCNA answer is still "clear the process or reload".)</p>
+<p>Best practice is to set the RID explicitly, usually equal to a loopback address that is also advertised, so the RID is predictable and also reachable for troubleshooting.</p>
+<div class="callout key"><p><strong>Remember:</strong> RID order = router-id command, highest up loopback, highest up physical interface. Chosen at process start; changed only by clear ip ospf process or reload. RIDs must be unique within the OSPF domain.</p></div>
+
+<h3>Verification: annotated outputs</h3>
+<p>All outputs below are from R1 in Topology O after Lab 3.4-1 (network-command version): default reference bandwidth, R1-R4 configured as point-to-point, R3 DR and R2 BDR on 10.0.123.0/24, R2 originating a default route.</p>
+
+<h4>show ip ospf neighbor</h4>
+<pre class="cli">R1# show ip ospf neighbor
+
+Neighbor ID     Pri   State           Dead Time   Address         Interface
+4.4.4.4           0   FULL/  -        00:00:36    10.0.14.2       GigabitEthernet0/1
+2.2.2.2           1   FULL/BDR        00:00:33    10.0.123.2      GigabitEthernet0/0
+3.3.3.3           1   FULL/DR         00:00:38    10.0.123.3      GigabitEthernet0/0</pre>
+<ul>
+<li><strong>Neighbor ID</strong> is the neighbor's RID; <strong>Address</strong> is its interface IP on the shared link. Do not confuse them.</li>
+<li><strong>Pri</strong> is the neighbor's priority on that segment; point-to-point neighbors show 0.</li>
+<li><strong>State</strong> is adjacency state / neighbor's role. <code>FULL/  -</code> = point-to-point, no DR.</li>
+<li><strong>Dead Time</strong> counts down from 40 and resets with each hello (every 10 s), so healthy values stay between about 30 and 40. A value that falls toward 0 means hellos have stopped arriving.</li>
+</ul>
+
+<h4>show ip ospf interface</h4>
+<pre class="cli">R1# show ip ospf interface GigabitEthernet0/0
+GigabitEthernet0/0 is up, line protocol is up
+  Internet Address 10.0.123.1/24, Area 0, Attached via Network Statement
+  Process ID 1, Router ID 1.1.1.1, Network Type BROADCAST, Cost: 1
+  Topology-MTID    Cost    Disabled    Shutdown      Topology Name
+        0           1         no          no            Base
+  Transmit Delay is 1 sec, State DROTHER, Priority 1
+  Designated Router (ID) 3.3.3.3, Interface address 10.0.123.3
+  Backup Designated router (ID) 2.2.2.2, Interface address 10.0.123.2
+  Timer intervals configured, Hello 10, Dead 40, Wait 40, Retransmit 5
+    oob-resync timeout 40
+    Hello due in 00:00:06
+  Supports Link-local Signaling (LLS)
+  Cisco NSF helper support enabled
+  IETF NSF helper support enabled
+  Index 1/1/1, flood queue length 0
+  Next 0x0(0)/0x0(0)/0x0(0)
+  Last flood scan length is 1, maximum is 1
+  Last flood scan time is 0 msec, maximum is 0 msec
+  Neighbor Count is 2, Adjacent neighbor count is 2
+    Adjacent with neighbor 3.3.3.3  (Designated Router)
+    Adjacent with neighbor 2.2.2.2  (Backup Designated Router)
+  Suppress hello for 0 neighbor(s)</pre>
+<p>This one command answers most adjacency questions: the area, how OSPF was enabled, the RID, the <strong>network type</strong>, the <strong>cost</strong>, this router's own <strong>state</strong> (DR, BDR, DROTHER, POINT_TO_POINT) and <strong>priority</strong>, who the DR and BDR are (by RID and by interface address), the <strong>hello/dead timers</strong>, and neighbor/adjacency counts. On a passive interface you would see <code>No Hellos (Passive interface)</code> instead of the "Hello due in" line.</p>
+<pre class="cli">R1# show ip ospf interface GigabitEthernet0/1
+GigabitEthernet0/1 is up, line protocol is up
+  Internet Address 10.0.14.1/30, Area 0, Attached via Network Statement
+  Process ID 1, Router ID 1.1.1.1, Network Type POINT_TO_POINT, Cost: 1
+! (topology lines omitted)
+  Transmit Delay is 1 sec, State POINT_TO_POINT
+  Timer intervals configured, Hello 10, Dead 40, Wait 40, Retransmit 5
+! (output trimmed)
+  Neighbor Count is 1, Adjacent neighbor count is 1
+    Adjacent with neighbor 4.4.4.4
+  Suppress hello for 0 neighbor(s)</pre>
+
+<h4>show ip ospf interface brief</h4>
+<pre class="cli">R1# show ip ospf interface brief
+Interface    PID   Area            IP Address/Mask    Cost  State Nbrs F/C
+Lo0          1     0               1.1.1.1/32         1     LOOP  0/0
+Gi0/1        1     0               10.0.14.1/30       1     P2P   1/1
+Gi0/0        1     0               10.0.123.1/24      1     DROTH 2/2</pre>
+<p>One line per OSPF interface. <strong>F/C</strong> is Full neighbors / neighbor Count. On a DROTHER interface on a busy segment, F is lower than C (2-Way neighbors are counted but not Full); on a DR or BDR interface F equals C. An interface missing from this list is not running OSPF at all (wrong network statement). A <code>0/0</code> on a transit link means no neighbors: check passive, timers, area, mask.</p>
+
+<h4>show ip protocols</h4>
+<pre class="cli">R1# show ip protocols
+*** IP Routing is NSF aware ***
+
+Routing Protocol is "ospf 1"
+  Outgoing update filter list for all interfaces is not set
+  Incoming update filter list for all interfaces is not set
+  Router ID 1.1.1.1
+  Number of areas in this router is 1. 1 normal 0 stub 0 nssa
+  Maximum path: 4
+  Routing for Networks:
+    1.1.1.1 0.0.0.0 area 0
+    10.0.14.0 0.0.0.3 area 0
+    10.0.123.0 0.0.0.255 area 0
+  Routing Information Sources:
+    Gateway         Distance      Last Update
+    2.2.2.2              110      00:20:03
+    3.3.3.3              110      00:20:13
+    4.4.4.4              110      00:20:11
+  Distance: (default is 110)</pre>
+<p>Use it to check the RID, the network statements exactly as typed (wildcard mistakes jump out here), maximum paths, passive interfaces (listed under "Passive Interface(s):" when present) and the AD. "Routing Information Sources" lists the RIDs of routers whose LSAs contributed routes. On R4, which uses interface commands and a passive LAN, the middle of the output reads:</p>
+<pre class="cli">  Routing for Networks:
+  Routing on Interfaces Configured Explicitly (Area 0):
+    Loopback0
+    GigabitEthernet0/1
+    GigabitEthernet0/0
+  Passive Interface(s):
+    GigabitEthernet0/1</pre>
+
+<h4>show ip ospf database</h4>
+<pre class="cli">R1# show ip ospf database
+
+            OSPF Router with ID (1.1.1.1) (Process ID 1)
+
+                Router Link States (Area 0)
+
+Link ID         ADV Router      Age         Seq#       Checksum Link count
+1.1.1.1         1.1.1.1         812         0x80000005 0x00A6C1 4
+2.2.2.2         2.2.2.2         815         0x80000004 0x0071D2 2
+3.3.3.3         3.3.3.3         816         0x80000004 0x00B3E7 3
+4.4.4.4         4.4.4.4         810         0x80000003 0x00E512 4
+
+                Net Link States (Area 0)
+
+Link ID         ADV Router      Age         Seq#       Checksum
+10.0.123.3      3.3.3.3         816         0x80000002 0x004A1F
+
+                Type-5 AS External Link States
+
+Link ID         ADV Router      Age         Seq#       Checksum Tag
+0.0.0.0         2.2.2.2         1203        0x80000001 0x00D0B4 1</pre>
+<ul>
+<li><strong>Router Link States</strong> = type 1: one per router in the area, Link ID = its RID. Four routers, four LSAs. Every router in area 0 has this same list.</li>
+<li><strong>Link count</strong>: R1 has 4 (loopback stub, the transit segment, and for the point-to-point link both a point-to-point link to 4.4.4.4 and a stub entry for 10.0.14.0/30). R2 has 2 (loopback, transit segment; its ISP link is not in OSPF). R3 has 3 (loopback, transit, LAN). R4 has 4.</li>
+<li><strong>Net Link States</strong> = type 2: one per DR segment, Link ID = the DR's interface IP (10.0.123.3), advertised by the DR (3.3.3.3). There is none for 10.0.14.0/30 because it is point-to-point.</li>
+<li><strong>Type-5</strong>: the default route originated by R2 (the ASBR).</li>
+<li><strong>Age</strong> in seconds (refreshed at 1800, MaxAge 3600); <strong>Seq#</strong> increments each time the originator changes the LSA.</li>
+</ul>
+
+<h4>show ip route ospf</h4>
+<pre class="cli">R1# show ip route ospf
+! (legend omitted)
+Gateway of last resort is 10.0.123.2 to network 0.0.0.0
+
+O*E2  0.0.0.0/0 [110/1] via 10.0.123.2, 00:20:03, GigabitEthernet0/0
+      2.0.0.0/32 is subnetted, 1 subnets
+O        2.2.2.2 [110/2] via 10.0.123.2, 00:20:13, GigabitEthernet0/0
+      3.0.0.0/32 is subnetted, 1 subnets
+O        3.3.3.3 [110/2] via 10.0.123.3, 00:20:13, GigabitEthernet0/0
+      4.0.0.0/32 is subnetted, 1 subnets
+O        4.4.4.4 [110/2] via 10.0.14.2, 00:20:11, GigabitEthernet0/1
+O     192.168.3.0/24 [110/2] via 10.0.123.3, 00:20:13, GigabitEthernet0/0
+O     192.168.4.0/24 [110/2] via 10.0.14.2, 00:20:11, GigabitEthernet0/1</pre>
+<p>Loopbacks arrive as /32s. The LANs cost 2 (1 for R1's exit interface plus 1 for the LAN interface on R3 or R4). The default route is <code>O*E2</code> with metric 1, pointing at R2, the router that originated it. With <code>show ip ospf</code> you can additionally confirm the RID, the reference bandwidth ("Reference bandwidth unit is 100 mbps") and how often SPF has run.</p>
+<p>After <code>auto-cost reference-bandwidth 10000</code> on all four routers, GigabitEthernet costs 10 and loopbacks still 1:</p>
+<pre class="cli">R1# show ip ospf interface brief
+Interface    PID   Area            IP Address/Mask    Cost  State Nbrs F/C
+Lo0          1     0               1.1.1.1/32         1     LOOP  0/0
+Gi0/1        1     0               10.0.14.1/30       10    P2P   1/1
+Gi0/0        1     0               10.0.123.1/24      10    DROTH 2/2
+R1# show ip route ospf | include 192.168|2.2.2.2
+O        2.2.2.2 [110/11] via 10.0.123.2, 00:00:12, GigabitEthernet0/0
+O     192.168.3.0/24 [110/20] via 10.0.123.3, 00:00:12, GigabitEthernet0/0
+O     192.168.4.0/24 [110/20] via 10.0.14.2, 00:00:12, GigabitEthernet0/1</pre>
+
+<h3>Troubleshooting OSPF adjacencies</h3>
+<p>A systematic order works best: (1) is the interface up/up with the right IP and mask (<code>show ip interface brief</code>); (2) is OSPF running on it and in which area (<code>show ip ospf interface brief</code>); (3) is it passive (<code>show ip protocols</code>); (4) do timers, network type and mask agree on both ends (<code>show ip ospf interface</code>); (5) what state is the neighbor in (<code>show ip ospf neighbor</code>); (6) if still unclear, <code>debug ip ospf adj</code> or <code>debug ip ospf hello</code> (and <code>undebug all</code> afterwards). Log messages differ slightly between IOS releases; the ones below are typical.</p>
+
+<h4>Fault 1: mismatched hello/dead timers</h4>
+<p>R2 has <code>ip ospf hello-interval 5</code> on Gi0/0, which also sets its dead interval to 20. R1 and R2 no longer list each other; R2 disappears from R1's neighbor table after the dead timer expires.</p>
+<pre class="cli">R1# debug ip ospf hello
+OSPF: Rcv hello from 2.2.2.2 area 0 from GigabitEthernet0/0 10.0.123.2
+OSPF: Mismatched hello parameters from 10.0.123.2
+OSPF: Dead R 20 C 40, Hello R 5 C 10  Mask R 255.255.255.0 C 255.255.255.0</pre>
+<p>R = received from the neighbor, C = configured locally. Fix: make both sides match (<code>no ip ospf hello-interval</code> on R2, or set the same values on both).</p>
+
+<h4>Fault 2: area mismatch</h4>
+<p>R4's Gi0/0 is in area 1 (<code>network 10.0.14.0 0.0.0.3 area 1</code>) while R1's Gi0/1 is in area 0. No neighbor forms. R1 logs:</p>
+<pre class="cli">%OSPF-4-ERRRCV: Received invalid packet: mismatched area ID from backbone area must be virtual-link but not found from 10.0.14.2, GigabitEthernet0/1</pre>
+<p>Fix: put both ends of the link in the same area. <code>show ip ospf interface brief</code> on each side shows the area column.</p>
+
+<h4>Fault 3: passive interface on a transit link</h4>
+<p><code>passive-interface GigabitEthernet0/0</code> on R1 by mistake (common after <code>passive-interface default</code> without the matching <code>no passive-interface</code>). R1 has no neighbors on Gi0/0; the 10.0.123.0/24 subnet is still advertised. <code>show ip ospf interface Gi0/0</code> shows <code>No Hellos (Passive interface)</code>; <code>show ip protocols</code> lists Gi0/0 under Passive Interface(s). Fix: <code>no passive-interface GigabitEthernet0/0</code>.</p>
+
+<h4>Fault 4: duplicate router ID</h4>
+<p>R4 was configured with <code>router-id 1.1.1.1</code> (copy-paste from R1). The neighbors on the shared link cannot form a proper adjacency, and IOS logs messages such as:</p>
+<pre class="cli">%OSPF-4-DUP_RTRID_NBR: OSPF detected duplicate router-id 1.1.1.1 from 10.0.14.2 on interface GigabitEthernet0/1</pre>
+<p>If the duplicates are not direct neighbors, the symptom is different: both routers keep originating a type 1 LSA with the same Link ID, each overwriting the other, so routes flap and the LSDB churns. Fix: unique <code>router-id</code> on R4, then <code>clear ip ospf process</code>.</p>
+
+<h4>Fault 5: MTU mismatch (stuck in ExStart/Exchange)</h4>
+<p>R4's Gi0/0 has <code>ip mtu 1400</code>, R1's is 1500. Hellos are small and fine, so the neighbors see each other, but DBD packets carry the interface MTU and a router rejects DBDs from a neighbor whose MTU is larger than its own. The adjacency never completes:</p>
+<pre class="cli">R1# show ip ospf neighbor
+
+Neighbor ID     Pri   State           Dead Time   Address         Interface
+4.4.4.4           0   EXCHANGE/  -    00:00:37    10.0.14.2       GigabitEthernet0/1
+2.2.2.2           1   FULL/BDR        00:00:31    10.0.123.2      GigabitEthernet0/0
+3.3.3.3           1   FULL/DR         00:00:35    10.0.123.3      GigabitEthernet0/0</pre>
+<p>The router with the higher MTU (R1) accepts the neighbor's DBDs and moves on to EXCHANGE; the one with the lower MTU (R4) rejects them and stays in EXSTART, so <code>show ip ospf neighbor</code> on R4 shows 1.1.1.1 in EXSTART. The states may cycle as the neighbor times out and retries. Fix: make the MTUs equal. <code>ip ospf mtu-ignore</code> on the interface disables the check, but Cisco describes it as needed only in rare cases; matching MTU is the correct fix (see <a href="https://www.cisco.com/c/en/us/support/docs/ip/open-shortest-path-first-ospf/13684-12.html" target="_blank" rel="noopener">Troubleshoot OSPF Neighbors Stuck in Exstart/Exchange State</a>).</p>
+
+<h4>Fault 6: subnet mask mismatch on a broadcast network</h4>
+<p>R3's Gi0/0 is 10.0.123.3 255.255.255.128 while R1 and R2 use /24. On broadcast networks the mask in the hello must match, so R3 forms no neighbors and the debug shows <code>Mask R 255.255.255.128 C 255.255.255.0</code>. Two routers in completely different subnets (a typo like 10.0.132.3) also never become neighbors. Fix the addressing. (On point-to-point network types RFC 2328 says the mask field is not checked, which is one reason the same mistake can behave differently on a point-to-point link.)</p>
+
+<h4>Fault 7: network statement wildcard wrong</h4>
+<p>R3 has <code>network 192.168.3.0 0.0.0.0 area 0</code>. That matches only the address 192.168.3.0, not R3's interface 192.168.3.1, so Gi0/1 is not in OSPF and 192.168.3.0/24 vanishes from every other router's table. Symptoms: Gi0/1 missing from <code>show ip ospf interface brief</code> on R3; the bad statement visible in <code>show ip protocols</code>. Fix: <code>no network 192.168.3.0 0.0.0.0 area 0</code> then <code>network 192.168.3.0 0.0.0.255 area 0</code> (or <code>ip ospf 1 area 0</code> on the interface).</p>
+
+<h4>Fault 8: no DR possible (all priorities 0)</h4>
+<p>If every router on a broadcast segment has <code>ip ospf priority 0</code>, no DR or BDR is elected. Neighbors stay <code>2WAY/DROTHER</code> with each other forever, no adjacency reaches Full, and no routes are learned over the segment. Fix: give at least one router a non-zero priority (or use point-to-point if there are only two routers).</p>
+
+<h4>Fault 9: network type mismatch</h4>
+<p>One side <code>ip ospf network point-to-point</code>, the other left as broadcast. Timers match, so a neighbor appears (possibly Full), but routes over the link are missing or one-sided. <code>show ip ospf interface</code> shows "Network Type BROADCAST" on one end and "POINT_TO_POINT" on the other. Fix: same network type on both ends.</p>
+
+<div class="callout tip"><p><strong>Tip:</strong> Also remember the non-OSPF causes: an inbound ACL that denies OSPF (permit <code>ospf</code> or protocol 89 before any deny), mismatched authentication (configure the same type and key on both ends), and an interface that is simply shut down.</p></div>
+
+<div class="lab" id="lab-3-4-1">
+<h4>Lab: Single-area OSPF with network commands, then interface commands</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~60 min</p>
+<p>Build Topology O with four 2911 routers (R1 to R4), a fifth 2911 as ISP, and a 2960 switch (SW1) for the 10.0.123.0/24 segment. Addressing: R1 Gi0/0 10.0.123.1/24, Gi0/1 10.0.14.1/30, Lo0 1.1.1.1/32. R2 Gi0/0 10.0.123.2/24, Gi0/1 203.0.113.2/30, Lo0 2.2.2.2/32. R3 Gi0/0 10.0.123.3/24, Gi0/1 192.168.3.1/24, Lo0 3.3.3.3/32. R4 Gi0/0 10.0.14.2/30, Gi0/1 192.168.4.1/24, Lo0 4.4.4.4/32. ISP Gi0/0 203.0.113.1/30, Lo0 198.51.100.1/32. Add a PC on each of the two LANs. If your Packet Tracer build rejects a command (some builds lack <code>ip ospf network point-to-point</code>), note it and continue.</p>
+<ol>
+<li>Address all devices. On the ISP router add <code>ip route 10.0.0.0 255.0.0.0 203.0.113.2</code> and <code>ip route 192.168.0.0 255.255.0.0 203.0.113.2</code>.</li>
+<li>On R1 to R4, configure OSPF process 1 with <code>router-id</code> equal to the loopback, and enable area 0 with <strong>network commands</strong> on every interface except R2's ISP link. Use wildcards that match each interface's subnet exactly (0.0.0.0 for the /32 loopbacks).</li>
+<li>Make the two LAN interfaces passive. Configure the R1-R4 link as point-to-point on both ends.</li>
+<li>To get the textbook election (R3 DR, R2 BDR), run <code>clear ip ospf process</code> on R1, R2 and R3 within a few seconds of each other once everything is configured.</li>
+<li>On R2, add a static default to the ISP and advertise it into OSPF.</li>
+<li>Verify with every command in the Verification section and compare with the outputs shown there. Ping 198.51.100.1 from both PCs.</li>
+<li>Convert R4 to interface-mode configuration: remove its network statements, then enable OSPF with <code>ip ospf 1 area 0</code> on each interface. Confirm the adjacency recovers and <code>show ip ospf interface</code> says "Attached via Interface Enable".</li>
+<li>Set <code>auto-cost reference-bandwidth 10000</code> on all four routers and predict the new metric for 192.168.3.0/24 on R1 before checking.</li>
+<li>On R2, remove the static default. What happens to the O*E2 route on R1? Put it back, then try <code>default-information originate always</code> and repeat.</li>
+</ol>
+<p><strong>Verify:</strong></p>
+<ul>
+<li><code>show ip ospf neighbor</code> on R1: 4.4.4.4 FULL/ -, 2.2.2.2 FULL/BDR, 3.3.3.3 FULL/DR.</li>
+<li><code>show ip route ospf</code> on R1 matches the output in the Verification section; gateway of last resort 10.0.123.2.</li>
+<li>Both PCs can ping 198.51.100.1 and each other.</li>
+<li>Step 8: 192.168.3.0/24 becomes [110/20]; 2.2.2.2 becomes [110/11].</li>
+<li>Step 9: without <code>always</code>, the O*E2 route disappears from R1 when R2 loses its static default; with <code>always</code>, it stays (and traffic is black-holed at R2 if R2 has no real default).</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! ---- R1 ----
+interface Loopback0
+ ip address 1.1.1.1 255.255.255.255
+interface GigabitEthernet0/0
+ ip address 10.0.123.1 255.255.255.0
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 10.0.14.1 255.255.255.252
+ ip ospf network point-to-point
+ no shutdown
+router ospf 1
+ router-id 1.1.1.1
+ network 1.1.1.1 0.0.0.0 area 0
+ network 10.0.14.0 0.0.0.3 area 0
+ network 10.0.123.0 0.0.0.255 area 0
+
+! ---- R2 ----
+interface Loopback0
+ ip address 2.2.2.2 255.255.255.255
+interface GigabitEthernet0/0
+ ip address 10.0.123.2 255.255.255.0
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 203.0.113.2 255.255.255.252
+ no shutdown
+router ospf 1
+ router-id 2.2.2.2
+ network 2.2.2.2 0.0.0.0 area 0
+ network 10.0.123.0 0.0.0.255 area 0
+ default-information originate
+ip route 0.0.0.0 0.0.0.0 203.0.113.1
+
+! ---- R3 ----
+interface Loopback0
+ ip address 3.3.3.3 255.255.255.255
+interface GigabitEthernet0/0
+ ip address 10.0.123.3 255.255.255.0
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 192.168.3.1 255.255.255.0
+ no shutdown
+router ospf 1
+ router-id 3.3.3.3
+ passive-interface GigabitEthernet0/1
+ network 3.3.3.3 0.0.0.0 area 0
+ network 10.0.123.0 0.0.0.255 area 0
+ network 192.168.3.0 0.0.0.255 area 0
+
+! ---- R4 (network-command version) ----
+interface Loopback0
+ ip address 4.4.4.4 255.255.255.255
+interface GigabitEthernet0/0
+ ip address 10.0.14.2 255.255.255.252
+ ip ospf network point-to-point
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 192.168.4.1 255.255.255.0
+ no shutdown
+router ospf 1
+ router-id 4.4.4.4
+ passive-interface GigabitEthernet0/1
+ network 4.4.4.4 0.0.0.0 area 0
+ network 10.0.14.0 0.0.0.3 area 0
+ network 192.168.4.0 0.0.0.255 area 0
+
+! ---- Step 7: R4 converted to interface mode ----
+R4(config)# router ospf 1
+R4(config-router)# no network 4.4.4.4 0.0.0.0 area 0
+R4(config-router)# no network 10.0.14.0 0.0.0.3 area 0
+R4(config-router)# no network 192.168.4.0 0.0.0.255 area 0
+R4(config-router)# exit
+R4(config)# interface Loopback0
+R4(config-if)# ip ospf 1 area 0
+R4(config-if)# interface GigabitEthernet0/0
+R4(config-if)# ip ospf 1 area 0
+R4(config-if)# interface GigabitEthernet0/1
+R4(config-if)# ip ospf 1 area 0
+! passive-interface GigabitEthernet0/1 under router ospf 1 still applies
+
+! ---- Step 8 (all four routers) ----
+router ospf 1
+ auto-cost reference-bandwidth 10000
+! 192.168.3.0/24 from R1: 10 (R1 Gi0/0) + 10 (R3 Gi0/1) = 20</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-3-4-2">
+<h4>Lab: DR/BDR election on a shared segment</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~35 min</p>
+<p>Four 2911 routers (R1 to R4), each Gi0/0 connected to one 2960 switch, addresses 10.0.0.1 to 10.0.0.4 /24. Loopback0 on each: 1.1.1.1, 2.2.2.2, 3.3.3.3, 4.4.4.4 (/32), also used as <code>router-id</code>. OSPF process 1, area 0, on Gi0/0 and Lo0.</p>
+<ol>
+<li>Configure everything with default priorities. Then run <code>clear ip ospf process</code> on all four routers within a few seconds. Predict the DR and BDR.</li>
+<li>From R1, read <code>show ip ospf neighbor</code> and explain each state.</li>
+<li>Goal: R1 DR, R2 BDR, R4 never DR or BDR. Set priorities R1 200, R2 100, R4 0 (R3 stays 1). Check the neighbor table: did anything change? Why?</li>
+<li>Reset the OSPF process on all four routers again and confirm the new roles.</li>
+<li>Shut R1 Gi0/0. Which router becomes DR, which becomes BDR?</li>
+<li>Bring R1 Gi0/0 back. Does R1 take back the DR role?</li>
+<li>Count the full adjacencies on the segment and compare with a full mesh.</li>
+</ol>
+<p><strong>Verify:</strong></p>
+<ul>
+<li>Step 1 (from R1): 4.4.4.4 FULL/DR, 3.3.3.3 FULL/BDR, 2.2.2.2 2WAY/DROTHER (highest RIDs win when priorities tie).</li>
+<li>Step 3: raising R1 to 200 and R2 to 100 changes nothing by itself, because the election is non-preemptive. But R4, the current DR, becomes ineligible at priority 0, so the others re-elect: R3 (the BDR) is promoted to DR and R1 (highest priority) becomes BDR. Packet Tracer may not re-elect until the process is reset. Step 4 then gives the intended roles.</li>
+<li>Step 4 (from R3): 1.1.1.1 FULL/DR (Pri 200), 2.2.2.2 FULL/BDR (Pri 100), 4.4.4.4 2WAY/DROTHER (Pri 0).</li>
+<li>Step 5: R2 (BDR) becomes DR; R3 becomes BDR (R4 has priority 0).</li>
+<li>Step 6: R1 returns as DROTHER, despite priority 200.</li>
+<li>Step 7: 5 full adjacencies (R1-R2, R1-R3, R1-R4, R2-R3, R2-R4) versus 6 in a full mesh.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! ---- Base config (R1 shown; R2-R4 the same pattern) ----
+interface Loopback0
+ ip address 1.1.1.1 255.255.255.255
+interface GigabitEthernet0/0
+ ip address 10.0.0.1 255.255.255.0
+ no shutdown
+router ospf 1
+ router-id 1.1.1.1
+ network 1.1.1.1 0.0.0.0 area 0
+ network 10.0.0.0 0.0.0.255 area 0
+
+! ---- Step 1-2: default priorities ----
+R1# show ip ospf neighbor
+
+Neighbor ID     Pri   State           Dead Time   Address         Interface
+2.2.2.2           1   2WAY/DROTHER    00:00:33    10.0.0.2        GigabitEthernet0/0
+3.3.3.3           1   FULL/BDR        00:00:39    10.0.0.3        GigabitEthernet0/0
+4.4.4.4           1   FULL/DR         00:00:35    10.0.0.4        GigabitEthernet0/0
+
+! ---- Step 3: priorities ----
+R1(config)# interface GigabitEthernet0/0
+R1(config-if)# ip ospf priority 200
+R2(config)# interface GigabitEthernet0/0
+R2(config-if)# ip ospf priority 100
+R4(config)# interface GigabitEthernet0/0
+R4(config-if)# ip ospf priority 0
+
+! ---- Step 4: on each router, within a few seconds ----
+R1# clear ip ospf process
+Reset ALL OSPF processes? [no]: yes
+
+R1# show ip ospf interface brief
+Interface    PID   Area            IP Address/Mask    Cost  State Nbrs F/C
+Lo0          1     0               1.1.1.1/32         1     LOOP  0/0
+Gi0/0        1     0               10.0.0.1/24        1     DR    3/3
+
+R3# show ip ospf neighbor
+
+Neighbor ID     Pri   State           Dead Time   Address         Interface
+1.1.1.1         200   FULL/DR         00:00:37    10.0.0.1        GigabitEthernet0/0
+2.2.2.2         100   FULL/BDR        00:00:34    10.0.0.2        GigabitEthernet0/0
+4.4.4.4           0   2WAY/DROTHER    00:00:31    10.0.0.4        GigabitEthernet0/0
+
+! ---- Step 6: after R1 Gi0/0 shut and re-enabled ----
+R1# show ip ospf neighbor
+
+Neighbor ID     Pri   State           Dead Time   Address         Interface
+2.2.2.2         100   FULL/DR         00:00:36    10.0.0.2        GigabitEthernet0/0
+3.3.3.3           1   FULL/BDR        00:00:32    10.0.0.3        GigabitEthernet0/0
+4.4.4.4           0   2WAY/DROTHER    00:00:38    10.0.0.4        GigabitEthernet0/0
+! R1 is now a DROTHER. To make it DR again, reset OSPF on R2 and R3
+! (or on all routers) so a new election runs.</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-3-4-3">
+<h4>Lab: OSPF troubleshooting with four planted faults</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~45 min</p>
+<p>Triangle of three 2911 routers. R1 Gi0/0 10.0.12.1/30 to R2 Gi0/0 10.0.12.2/30. R2 Gi0/1 10.0.23.1/30 to R3 Gi0/1 10.0.23.2/30. R1 Gi0/1 10.0.13.1/30 to R3 Gi0/0 10.0.13.2/30. LANs on Gi0/2: 192.168.1.0/24, 192.168.2.0/24, 192.168.3.0/24 (router .1, one PC each). Loopbacks 1.1.1.1, 2.2.2.2, 3.3.3.3. Intended design: everything in area 0, LANs passive, full reachability. Paste in these configurations (interface addressing not repeated; it is correct). They contain exactly four faults.</p>
+<pre class="cli">! ---- R1 ----
+router ospf 1
+ router-id 1.1.1.1
+ passive-interface GigabitEthernet0/0
+ passive-interface GigabitEthernet0/2
+ network 1.1.1.1 0.0.0.0 area 0
+ network 10.0.12.0 0.0.0.3 area 0
+ network 10.0.13.0 0.0.0.3 area 0
+ network 192.168.1.0 0.0.0.255 area 0
+
+! ---- R2 ----
+interface GigabitEthernet0/1
+ ip ospf hello-interval 5
+router ospf 1
+ router-id 2.2.2.2
+ passive-interface GigabitEthernet0/2
+ network 2.2.2.2 0.0.0.0 area 0
+ network 10.0.12.0 0.0.0.3 area 0
+ network 10.0.23.0 0.0.0.3 area 0
+ network 192.168.2.0 0.0.0.255 area 0
+
+! ---- R3 ----
+router ospf 1
+ router-id 3.3.3.3
+ passive-interface GigabitEthernet0/2
+ network 3.3.3.3 0.0.0.0 area 0
+ network 10.0.13.0 0.0.0.3 area 1
+ network 10.0.23.0 0.0.0.3 area 0
+ network 192.168.3.0 0.0.0.0 area 0</pre>
+<p>Trouble ticket: "No OSPF neighbors anywhere, and nobody can reach the other LANs."</p>
+<ol>
+<li>Before looking at the configs in detail, use only show commands and debug on each router to find each fault. Write down which command revealed it.</li>
+<li>Fix one fault at a time and note which adjacency comes up after each fix.</li>
+<li>When all three adjacencies are Full, check whether 192.168.3.0/24 is in R1's table. If not, find the last fault.</li>
+<li>Confirm all three PCs can ping each other.</li>
+</ol>
+<p><strong>Verify:</strong></p>
+<ul>
+<li><code>show ip ospf neighbor</code> on each router lists the two other routers in FULL state.</li>
+<li><code>show ip route ospf</code> on R1 contains 2.2.2.2/32, 3.3.3.3/32, 10.0.23.0/30 (two equal-cost paths), 192.168.2.0/24 and 192.168.3.0/24, all [110/2].</li>
+<li>Every PC pings every other PC.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! FAULT 1 (R1): Gi0/0 is passive, so no hellos on the R1-R2 link.
+!   Found with: show ip protocols (Passive Interface(s)) or
+!   show ip ospf interface Gi0/0 ("No Hellos (Passive interface)").
+R1(config)# router ospf 1
+R1(config-router)# no passive-interface GigabitEthernet0/0
+
+! FAULT 2 (R2): hello 5 / dead 20 on Gi0/1, R3 uses 10/40.
+!   Found with: show ip ospf interface Gi0/1 on both ends, or
+!   debug ip ospf hello: "Mismatched hello parameters from 10.0.23.2"
+R2(config)# interface GigabitEthernet0/1
+R2(config-if)# no ip ospf hello-interval
+
+! FAULT 3 (R3): R1-R3 link placed in area 1, R1 has it in area 0.
+!   Found with: show ip ospf interface brief (Area column), or the log
+!   "%OSPF-4-ERRRCV: Received invalid packet: mismatched area ID ..."
+R3(config)# router ospf 1
+R3(config-router)# no network 10.0.13.0 0.0.0.3 area 1
+R3(config-router)# network 10.0.13.0 0.0.0.3 area 0
+
+! FAULT 4 (R3): wildcard 0.0.0.0 matches only the address 192.168.3.0,
+!   not the interface 192.168.3.1, so the LAN is not advertised.
+!   Found with: show ip ospf interface brief on R3 (Gi0/2 missing) and
+!   show ip protocols (the statement as typed).
+R3(config-router)# no network 192.168.3.0 0.0.0.0 area 0
+R3(config-router)# network 192.168.3.0 0.0.0.255 area 0
+
+! ---- Result on R1 ----
+R1# show ip route ospf
+! (legend omitted)
+Gateway of last resort is not set
+
+      2.0.0.0/32 is subnetted, 1 subnets
+O        2.2.2.2 [110/2] via 10.0.12.2, 00:01:12, GigabitEthernet0/0
+      3.0.0.0/32 is subnetted, 1 subnets
+O        3.3.3.3 [110/2] via 10.0.13.2, 00:01:05, GigabitEthernet0/1
+      10.0.0.0/8 is variably subnetted, 5 subnets, 2 masks
+O        10.0.23.0/30 [110/2] via 10.0.13.2, 00:01:05, GigabitEthernet0/1
+                      [110/2] via 10.0.12.2, 00:01:12, GigabitEthernet0/0
+O     192.168.2.0/24 [110/2] via 10.0.12.2, 00:01:12, GigabitEthernet0/0
+O     192.168.3.0/24 [110/2] via 10.0.13.2, 00:00:20, GigabitEthernet0/1</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>OSPF: link-state, IP protocol 89, hellos to 224.0.0.5, DROTHER updates to 224.0.0.6, AD 110, metric = sum of outgoing interface costs (reference 100 Mbps / bandwidth, min 1).</li>
+<li>Neighbors must match area, subnet/mask (broadcast), hello/dead (10/40 broadcast and p2p, 30/120 NBMA), authentication and stub flag; RIDs unique; MTU equal to reach Full. Process ID and priority need not match.</li>
+<li>States: Down, Init, 2-Way, ExStart, Exchange, Loading, Full. DROTHER pairs stay 2-Way (normal); stuck ExStart/Exchange = MTU.</li>
+<li>Point-to-point: no DR/BDR, neighbor shows FULL/ -; configure <code>ip ospf network point-to-point</code> on both ends.</li>
+<li>DR/BDR: highest priority (default 1, 0 = never), then highest RID; non-preemptive; BDR takes over when DR fails.</li>
+<li>RID: router-id command, else highest up loopback, else highest up interface; change takes effect after <code>clear ip ospf process</code>.</li>
+<li>Network command matches interface IPs with a wildcard; passive-interface stops hellos but still advertises the subnet; <code>default-information originate</code> needs a default route unless <code>always</code>.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-3-5" data-topics="3.5">
+<h2>3.5 Purpose, functions and concepts of first hop redundancy protocols</h2>
+
+<p>The exam topic says "describe purpose, functions and concepts", so expect conceptual questions: what problem FHRPs solve, how the virtual address works, which protocol is Cisco-proprietary, which one load-balances, default priorities, preemption and the virtual MAC formats. Configuration is supporting detail, but HSRP is short to configure and the lab makes the concepts concrete.</p>
+
+<h3>The problem: one default gateway</h3>
+<p>End hosts are configured (statically or by DHCP) with exactly one default gateway IP address. They do not run routing protocols and cannot discover a second router on their own. If a LAN has two routers for redundancy but every host points at R1's address, then when R1 fails every host loses off-subnet connectivity, even though R2 is healthy and connected to the same LAN. Reconfiguring hundreds of hosts is not a recovery plan.</p>
+
+<h3>The solution: a virtual router</h3>
+<p>A first hop redundancy protocol lets two or more routers (or Layer 3 switches) on the same subnet cooperate to present one <strong>virtual router</strong>:</p>
+<ul>
+<li>A <strong>virtual IP address</strong> (VIP) on the subnet. Hosts use the VIP as their default gateway.</li>
+<li>A <strong>virtual MAC address</strong> that goes with the VIP. When a host ARPs for the VIP, the router currently forwarding answers with the virtual MAC, not its own burned-in MAC.</li>
+<li>The routers exchange periodic <strong>hello</strong> messages (multicast) to elect which one forwards traffic for the VIP and to detect failure.</li>
+<li>On failure, a standby router takes over the VIP and virtual MAC and sends a <strong>gratuitous ARP</strong> so the switches update their MAC address tables to the new port. The hosts notice nothing: their ARP cache entry (VIP to virtual MAC) is still correct.</li>
+</ul>
+<p>FHRPs protect the first hop only: the gateway from the host's point of view. They do nothing for routing beyond the gateway; that is the routing protocol's job (and object tracking, below, connects the two).</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 330" role="img" aria-label="HSRP virtual gateway: PCs use 192.168.10.1 as gateway; R1 is active with priority 110 and R2 standby with priority 100; both share a virtual IP and virtual MAC; R1 tracks its uplink">
+<rect x="160" y="20" width="110" height="36" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="215" y="43" text-anchor="middle" class="d-text">PC1 .11</text>
+<rect x="450" y="20" width="110" height="36" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="505" y="43" text-anchor="middle" class="d-text">PC2 .12</text>
+<text x="360" y="44" text-anchor="middle" class="d-muted">gateway 192.168.10.1</text>
+<rect x="300" y="90" width="120" height="34" rx="6" class="d-muted" stroke="currentColor" fill="none"/>
+<text x="360" y="112" text-anchor="middle" class="d-text">SW1</text>
+<line x1="215" y1="56" x2="320" y2="90" class="d-line" stroke="currentColor"/>
+<line x1="505" y1="56" x2="400" y2="90" class="d-line" stroke="currentColor"/>
+<rect x="170" y="150" width="380" height="96" rx="10" class="d-line" stroke="currentColor" stroke-dasharray="6 5" fill="none"/>
+<text x="360" y="172" text-anchor="middle" class="d-text">Virtual router (HSRP v2 group 10)</text>
+<text x="360" y="192" text-anchor="middle" class="d-muted">VIP 192.168.10.1, MAC 0000.0c9f.f00a</text>
+<rect x="190" y="200" width="140" height="40" rx="6" class="d-accent-fill" stroke="currentColor"/>
+<text x="260" y="218" text-anchor="middle" class="d-text">R1 .2 Active</text>
+<text x="260" y="234" text-anchor="middle" class="d-muted">pri 110, preempt</text>
+<rect x="390" y="200" width="140" height="40" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="460" y="218" text-anchor="middle" class="d-text">R2 .3 Standby</text>
+<text x="460" y="234" text-anchor="middle" class="d-muted">pri 100, preempt</text>
+<line x1="330" y1="124" x2="260" y2="200" class="d-line" stroke="currentColor"/>
+<line x1="390" y1="124" x2="460" y2="200" class="d-line" stroke="currentColor"/>
+<line x1="330" y1="215" x2="390" y2="215" class="d-line" stroke="currentColor" stroke-dasharray="3 3"/>
+<text x="360" y="148" text-anchor="middle" class="d-muted">hellos 3 s to 224.0.0.102</text>
+<rect x="300" y="282" width="120" height="36" rx="6" class="d-fill" stroke="currentColor"/>
+<text x="360" y="305" text-anchor="middle" class="d-text">R3 (WAN)</text>
+<line x1="260" y1="240" x2="320" y2="282" class="d-line" stroke="currentColor"/>
+<line x1="460" y1="240" x2="400" y2="282" class="d-line" stroke="currentColor"/>
+<text x="20" y="276" class="d-text">R1 tracks G0/1:</text>
+<text x="20" y="294" class="d-muted">uplink down, pri 110 - 20 = 90,</text>
+<text x="20" y="312" class="d-muted">R2 (100, preempt) takes over</text>
+</svg>
+<figcaption>HSRP: hosts only ever see the virtual IP and virtual MAC. Which physical router answers is decided by priority, preemption and tracking.</figcaption>
+</figure>
+
+<h3>HSRP (Hot Standby Router Protocol)</h3>
+<p>Cisco-proprietary, the most common FHRP on Cisco networks and the one you are most likely to configure.</p>
+<ul>
+<li><strong>Roles:</strong> one <strong>active</strong> router forwards traffic sent to the virtual MAC and answers ARP for the VIP. One <strong>standby</strong> router monitors the active and takes over if it fails. Any other routers in the group are in the listen state.</li>
+<li><strong>Election:</strong> highest priority (0 to 255, default <strong>100</strong>); tie broken by the highest interface IP address.</li>
+<li><strong>Preemption is disabled by default.</strong> A router with a higher priority that comes up later does not take the active role unless <code>standby <em>group</em> preempt</code> is configured on it. Without preempt, whoever became active first stays active.</li>
+<li><strong>Timers:</strong> hello every <strong>3 s</strong>, hold time <strong>10 s</strong> (the standby declares the active dead after 10 s without hellos). Adjustable with <code>standby <em>group</em> timers <em>hello hold</em></code>.</li>
+<li><strong>Transport:</strong> UDP port <strong>1985</strong>.</li>
+<li><strong>States:</strong> Initial, Learn, Listen, Speak, Standby, Active.</li>
+<li><strong>VIP:</strong> must be in the interface's subnet and must be an unused address (not either router's own interface IP).</li>
+</ul>
+<table>
+<thead><tr><th></th><th>HSRP version 1 (default)</th><th>HSRP version 2</th></tr></thead>
+<tbody>
+<tr><td>Group numbers</td><td>0 to 255</td><td>0 to 4095</td></tr>
+<tr><td>Hello multicast</td><td>224.0.0.2</td><td>224.0.0.102</td></tr>
+<tr><td>Virtual MAC</td><td>0000.0c07.acXX (XX = group in hex)</td><td>0000.0c9f.fXXX (XXX = group in hex)</td></tr>
+<tr><td>Example, group 10</td><td>0000.0c07.ac0a</td><td>0000.0c9f.f00a</td></tr>
+<tr><td>IPv6 support</td><td>No</td><td>Yes</td></tr>
+</tbody>
+</table>
+<p>Both routers in a group must run the same version. Group numbers only need to be unique per interface/VLAN, but a common practice is group number = VLAN number, which is one reason v2's larger range matters.</p>
+
+<h4>Load sharing with multiple groups</h4>
+<p>One HSRP group has one active router, so the standby's uplink sits idle. To use both routers, run a separate group per VLAN and make different routers active: R1 active for VLAN 10 (group 10), R2 active for VLAN 20 (group 20). Each router backs up the other. This is per-subnet load sharing, not per-host (compare GLBP).</p>
+
+<h4>Object tracking</h4>
+<p>HSRP hellos only prove that the active router is alive on the LAN. If R1's WAN uplink fails, R1 still sends hellos and stays active, attracting all traffic it can no longer forward. <strong>Tracking</strong> fixes this: R1 watches an object (an interface's line protocol, or a route), and when the object goes down R1 lowers its own HSRP priority by a decrement (default 10). If the reduced priority falls below R2's and R2 has <code>preempt</code> configured, R2 takes over.</p>
+<pre class="cli">R1(config)# track 1 interface GigabitEthernet0/1 line-protocol
+R1(config-track)# exit
+R1(config)# interface GigabitEthernet0/0
+R1(config-if)# standby 10 track 1 decrement 20</pre>
+<div class="callout trap"><p><strong>Exam trap:</strong> Tracking only lowers the priority. The other router takes over only if it has <code>preempt</code> configured and its priority is now higher. And the decrement must be large enough: 110 minus the default decrement of 10 is 100, which only ties R2's 100. Do not design around a tie; use a decrement that takes R1 clearly below the other router (20 here gives 90).</p></div>
+
+<h4>HSRP configuration and verification</h4>
+<pre class="cli">R1(config)# interface GigabitEthernet0/0
+R1(config-if)# ip address 192.168.10.2 255.255.255.0
+R1(config-if)# standby version 2
+R1(config-if)# standby 10 ip 192.168.10.1
+R1(config-if)# standby 10 priority 110
+R1(config-if)# standby 10 preempt
+R1(config-if)# standby 10 track 1 decrement 20
+
+R2(config)# interface GigabitEthernet0/0
+R2(config-if)# ip address 192.168.10.3 255.255.255.0
+R2(config-if)# standby version 2
+R2(config-if)# standby 10 ip 192.168.10.1
+R2(config-if)# standby 10 preempt
+! R2 keeps the default priority 100</pre>
+<pre class="cli">R1# show standby brief
+                     P indicates configured to preempt.
+                     |
+Interface   Grp  Pri P State   Active          Standby         Virtual IP
+Gi0/0       10   110 P Active  local           192.168.10.3    192.168.10.1
+
+R1# show standby
+GigabitEthernet0/0 - Group 10 (version 2)
+  State is Active
+    2 state changes, last state change 00:04:12
+  Virtual IP address is 192.168.10.1
+  Active virtual MAC address is 0000.0c9f.f00a (MAC In Use)
+    Local virtual MAC address is 0000.0c9f.f00a (v2 default)
+  Hello time 3 sec, hold time 10 sec
+    Next hello sent in 1.744 secs
+  Preemption enabled
+  Active router is local
+  Standby router is 192.168.10.3, priority 100 (expires in 9.312 sec)
+  Priority 110 (configured 110)
+    Track object 1 state Up decrement 20
+  Group name is "hsrp-Gi0/0-10" (default)</pre>
+<p>Read <code>show standby brief</code> as: on Gi0/0, group 10, my priority is 110, I preempt (P), I am Active, the active router is me (local), the standby is 192.168.10.3, the VIP is 192.168.10.1. The full output adds the virtual MAC (v2 format for group 10), timers, the standby router's priority and the tracked object.</p>
+
+<h3>VRRP (Virtual Router Redundancy Protocol)</h3>
+<p>The open standard (IETF). VRRPv2 (RFC 3768) is IPv4 only; VRRPv3 (RFC 5798) supports IPv4 and IPv6. Use it in multivendor networks.</p>
+<ul>
+<li><strong>Roles:</strong> one <strong>master</strong> (forwards) and one or more <strong>backups</strong>.</li>
+<li><strong>Priority:</strong> default <strong>100</strong>, configurable 1 to 254. The router that actually owns the VIP (the VIP is its real interface address) is the <strong>IP address owner</strong>, has fixed priority 255 and is always master when it is up.</li>
+<li><strong>VIP can be a real interface address</strong> of one of the routers (unlike HSRP).</li>
+<li><strong>Preemption is enabled by default.</strong></li>
+<li><strong>Timers:</strong> advertisements every 1 s by default; a backup declares the master down after about three advertisement intervals plus a small skew based on its priority (about 3.6 s at priority 100).</li>
+<li><strong>Transport:</strong> its own IP protocol number <strong>112</strong> (not UDP), multicast <strong>224.0.0.18</strong> (IPv6: FF02::12).</li>
+<li><strong>Virtual MAC:</strong> <strong>0000.5e00.01XX</strong>, XX = the VRID (group) in hex (IPv6: 0000.5e00.02XX).</li>
+</ul>
+<pre class="cli">! Classic IOS (VRRPv2)
+R1(config-if)# vrrp 10 ip 192.168.10.1
+R1(config-if)# vrrp 10 priority 110
+! IOS XE with VRRPv3 enabled uses an address-family form instead:
+R1(config)# fhrp version vrrp v3
+R1(config)# interface GigabitEthernet0/0
+R1(config-if)# vrrp 10 address-family ipv4
+R1(config-if-vrrp)# address 192.168.10.1 primary
+R1(config-if-vrrp)# priority 110</pre>
+
+<h3>GLBP (Gateway Load Balancing Protocol)</h3>
+<p>Cisco-proprietary, and the only one of the three that load-balances <strong>within a single group</strong>: different hosts on the same subnet, all using the same gateway IP, are spread across several routers.</p>
+<ul>
+<li><strong>AVG (active virtual gateway):</strong> one per group, elected by highest priority (default 100), then highest IP. The AVG answers every ARP request for the VIP, handing out <em>different</em> virtual MAC addresses to different hosts.</li>
+<li><strong>AVF (active virtual forwarder):</strong> up to <strong>4</strong> per group. Each owns one virtual MAC and forwards traffic sent to it. The AVG is usually also an AVF.</li>
+<li><strong>Virtual MAC:</strong> <strong>0007.b400.XXYY</strong>, XX = group number, YY = AVF number (group 1: 0007.b400.0101, 0007.b400.0102, ...).</li>
+<li><strong>Load-balancing method:</strong> round-robin by default; also weighted and host-dependent.</li>
+<li><strong>Preemption:</strong> off by default for the AVG role; on by default (with a 30 s delay) for the AVF role.</li>
+<li><strong>Transport and timers:</strong> UDP 3222, multicast 224.0.0.102, hello 3 s, hold 10 s. Groups 0 to 1023.</li>
+</ul>
+<pre class="cli">R1(config-if)# glbp 10 ip 192.168.10.1
+R1(config-if)# glbp 10 priority 110
+R1(config-if)# glbp 10 preempt
+R1(config-if)# glbp 10 load-balancing round-robin</pre>
+<p>If an AVF fails, another AVF takes over its virtual MAC, so the hosts that were using it keep working. If the AVG fails, the standby AVG takes over the ARP-answering role.</p>
+
+<h3>Comparison</h3>
+<table>
+<thead><tr><th></th><th>HSRP</th><th>VRRP</th><th>GLBP</th></tr></thead>
+<tbody>
+<tr><td>Standard</td><td>Cisco proprietary</td><td>IETF open standard (RFC 3768 v2, RFC 5798 v3)</td><td>Cisco proprietary</td></tr>
+<tr><td>Forwarding roles</td><td>Active / Standby (others Listen)</td><td>Master / Backup</td><td>AVG plus up to 4 AVFs</td></tr>
+<tr><td>Load balancing in one group</td><td>No (use multiple groups)</td><td>No (use multiple groups)</td><td>Yes, across up to 4 routers</td></tr>
+<tr><td>Default priority</td><td>100</td><td>100 (owner 255)</td><td>100</td></tr>
+<tr><td>Preemption default</td><td>Off</td><td>On</td><td>AVG off, AVF on</td></tr>
+<tr><td>Hello / failover</td><td>3 s / 10 s hold</td><td>1 s advertisements / about 3.6 s</td><td>3 s / 10 s hold</td></tr>
+<tr><td>Multicast address</td><td>224.0.0.2 (v1), 224.0.0.102 (v2)</td><td>224.0.0.18</td><td>224.0.0.102</td></tr>
+<tr><td>Transport</td><td>UDP 1985</td><td>IP protocol 112</td><td>UDP 3222</td></tr>
+<tr><td>Virtual MAC</td><td>0000.0c07.acXX (v1), 0000.0c9f.fXXX (v2)</td><td>0000.5e00.01XX</td><td>0007.b400.XXYY</td></tr>
+<tr><td>VIP may equal a real interface IP</td><td>No</td><td>Yes (that router becomes owner)</td><td>No</td></tr>
+</tbody>
+</table>
+<div class="callout key"><p><strong>Remember:</strong> HSRP = Cisco, active/standby, priority 100, no preempt by default, 0000.0c07.acXX or 0000.0c9f.fXXX. VRRP = open standard, master/backup, preempt on, 224.0.0.18, 0000.5e00.01XX. GLBP = Cisco, AVG/AVF, real load balancing, 0007.b400.XXYY. For all three: hosts point at the virtual IP.</p></div>
+<div class="callout tip"><p><strong>Tip:</strong> In IPv6, hosts can learn several default routers from router advertisements, which gives some gateway redundancy without an FHRP, but failover depends on Neighbor Unreachability Detection and is slow. HSRPv2, VRRPv3 and GLBP all support IPv6 for fast, predictable failover.</p></div>
+
+<div class="lab" id="lab-3-5-1">
+<h4>Lab: HSRP with preemption and interface tracking</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~40 min</p>
+<p>Topology as in the HSRP diagram. Three 2911 routers and a 2960 switch. LAN 192.168.10.0/24 on SW1: R1 Gi0/0 .2, R2 Gi0/0 .3, PC1 .11 and PC2 .12, both with gateway 192.168.10.1. Uplinks: R1 Gi0/1 10.0.13.1/30 to R3 Gi0/0 10.0.13.2/30; R2 Gi0/1 10.0.23.1/30 to R3 Gi0/1 10.0.23.2/30. R3 Loopback0 198.51.100.1/32 is the test destination. Routing is static: R1 and R2 have default routes to R3; R3 has two equal static routes back to 192.168.10.0/24, one via R1 and one via R2. Packet Tracer's HSRP support varies by version: if <code>track</code> objects are rejected, use the older interface form <code>standby 10 track GigabitEthernet0/1 20</code>.</p>
+<ol>
+<li>Address everything and add the static routes. Confirm R1 and R2 can ping 198.51.100.1.</li>
+<li>Configure HSRP version 2, group 10, VIP 192.168.10.1 on both routers. R1 priority 110, R2 default. Configure preempt on both.</li>
+<li>Verify roles with <code>show standby brief</code> on both routers. On PC1, ping 198.51.100.1 then run <code>arp -a</code>: which MAC is listed for 192.168.10.1?</li>
+<li>Start <code>ping -t 198.51.100.1</code> on PC1. Shut R1 Gi0/0 (the LAN side). How many pings are lost? Re-enable it: does R1 become active again, and why?</li>
+<li>Now shut R1 Gi0/1 (the uplink) with no tracking configured. What happens to PC1's pings, and what does <code>show standby brief</code> show? Re-enable it.</li>
+<li>Configure tracking of R1 Gi0/1 with a decrement of 20. Repeat step 5 and compare.</li>
+<li>Remove <code>preempt</code> from R2 and repeat step 6. Explain the result.</li>
+</ol>
+<p><strong>Verify:</strong></p>
+<ul>
+<li>Step 3: R1 Active (priority 110), R2 Standby; PC1's ARP cache maps 192.168.10.1 to 0000.0c9f.f00a (v2 virtual MAC for group 10), not to either router's real MAC.</li>
+<li>Step 4: a few pings time out (up to the 10 s hold time if the failure is not detected locally; less when the interface is shut, because R1 sends a resign). R2 becomes Active. When Gi0/0 comes back, R1 takes over again because both priority and preempt favor it.</li>
+<li>Step 5: R1 stays Active (its LAN side is fine) but has lost its default route, so pings fail with unreachables or timeouts: the problem tracking solves.</li>
+<li>Step 6: R1's priority drops to 90 (configured 110), R2 (100, preempt) becomes Active, pings resume. When Gi0/1 returns, R1 goes back to 110 and preempts.</li>
+<li>Step 7: without preempt on R2, R1's lower priority changes nothing: R1 stays Active and traffic is still black-holed.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! ---- R1 ----
+track 1 interface GigabitEthernet0/1 line-protocol
+!
+interface GigabitEthernet0/0
+ ip address 192.168.10.2 255.255.255.0
+ standby version 2
+ standby 10 ip 192.168.10.1
+ standby 10 priority 110
+ standby 10 preempt
+ standby 10 track 1 decrement 20
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 10.0.13.1 255.255.255.252
+ no shutdown
+ip route 0.0.0.0 0.0.0.0 10.0.13.2
+
+! ---- R2 ----
+interface GigabitEthernet0/0
+ ip address 192.168.10.3 255.255.255.0
+ standby version 2
+ standby 10 ip 192.168.10.1
+ standby 10 preempt
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 10.0.23.1 255.255.255.252
+ no shutdown
+ip route 0.0.0.0 0.0.0.0 10.0.23.2
+
+! ---- R3 ----
+interface GigabitEthernet0/0
+ ip address 10.0.13.2 255.255.255.252
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 10.0.23.2 255.255.255.252
+ no shutdown
+interface Loopback0
+ ip address 198.51.100.1 255.255.255.255
+ip route 192.168.10.0 255.255.255.0 10.0.13.1
+ip route 192.168.10.0 255.255.255.0 10.0.23.1
+
+! ---- Step 3 ----
+R2# show standby brief
+                     P indicates configured to preempt.
+                     |
+Interface   Grp  Pri P State   Active          Standby         Virtual IP
+Gi0/0       10   100 P Standby 192.168.10.2    local           192.168.10.1
+
+C:\&gt;arp -a
+  Internet Address      Physical Address      Type
+  192.168.10.1          0000.0c9f.f00a        dynamic
+
+! ---- Step 6: R1 Gi0/1 shut with tracking ----
+%TRACK-6-STATE: 1 interface Gi0/1 line-protocol Up -&gt; Down
+%HSRP-5-STATECHANGE: GigabitEthernet0/0 Grp 10 state Active -&gt; Speak
+%HSRP-5-STATECHANGE: GigabitEthernet0/0 Grp 10 state Speak -&gt; Standby
+
+R1# show standby brief
+                     P indicates configured to preempt.
+                     |
+Interface   Grp  Pri P State   Active          Standby         Virtual IP
+Gi0/0       10   90  P Standby 192.168.10.3    local           192.168.10.1
+
+! Packet Tracer alternative if "track" objects are not supported:
+R1(config-if)# standby 10 track GigabitEthernet0/1 20</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>FHRPs give hosts one virtual gateway (virtual IP + virtual MAC) backed by several routers; failover is invisible to hosts (gratuitous ARP updates the switches).</li>
+<li>HSRP: Cisco, active/standby, priority 100 (highest wins, tie = highest IP), preempt off by default, hello 3 s / hold 10 s, UDP 1985; v1 224.0.0.2 and 0000.0c07.acXX (groups 0-255), v2 224.0.0.102 and 0000.0c9f.fXXX (0-4095).</li>
+<li>VRRP: IETF standard, master/backup, priority 100 (owner 255), preempt on, 224.0.0.18, IP protocol 112, 0000.5e00.01XX, VIP may be a real interface address.</li>
+<li>GLBP: Cisco, one AVG plus up to 4 AVFs, load balances one subnet across routers, 0007.b400.XXYY, UDP 3222.</li>
+<li>Tracking lowers priority when an uplink fails; it only causes failover if the peer has preempt and a higher resulting priority.</li>
+<li>Verify HSRP with <code>show standby brief</code> and <code>show standby</code>.</li>
+</ul></div>
+</section>
+
+<section class="topic-sources" data-for="3">
+<ul>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/15986-admin-distance.html" target="_blank" rel="noopener">Cisco: What Is Administrative Distance?</a> (default AD table and route selection)</li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/dial-access/floating-static-route/118263-technote-nexthop-00.html" target="_blank" rel="noopener">Cisco: Configure a Next Hop IP Address for Static Routes</a> (interface-only vs next-hop statics, recursion, floating routes)</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ip-routing/b-ip-routing/m_iro-cfg-0.html" target="_blank" rel="noopener">Cisco IP Routing Configuration Guide, IOS XE 17: Configuring OSPF</a> (router ID, reference bandwidth, interface vs network configuration)</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/c9000/lyr3-fwd/ospf/ospf-configuration-guide/ospf.html" target="_blank" rel="noopener">Cisco Catalyst 9000 OSPF Configuration Guide</a> (timers, priority, passive interface)</li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/ip/open-shortest-path-first-ospf/13685-13.html" target="_blank" rel="noopener">Cisco: Understand OSPF Neighbor States</a></li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/ip/open-shortest-path-first-ospf/13684-12.html" target="_blank" rel="noopener">Cisco: Troubleshoot OSPF Neighbors Stuck in Exstart/Exchange State</a> (MTU mismatch)</li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/ip/ip-version-6-ipv6/112100-ospfv3-config-guide.html" target="_blank" rel="noopener">Cisco: OSPFv3 Configuration Example</a> (IPv6 routing table output with link-local next hops)</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ntw-servs/b-network-services/m_fhp-hsrp-0.html" target="_blank" rel="noopener">Cisco Network Services Configuration Guide, IOS XE 17: Configuring HSRP</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/c9000/lyr3-fwd/fhrp/fhrp-configuration-guide/hsrp.html" target="_blank" rel="noopener">Cisco Catalyst 9000 FHRP Configuration Guide: HSRP</a> (default HSRP settings, sample show standby)</li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ntw-servs/b-network-services/m_fhp-vrrp-0.html" target="_blank" rel="noopener">Cisco Network Services Configuration Guide, IOS XE 17: Configuring VRRP</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ntw-servs/b-network-services/m_fhp-glbp-0.html" target="_blank" rel="noopener">Cisco Network Services Configuration Guide, IOS XE 17: Configuring GLBP</a></li>
+<li><a href="https://www.cisco.com/en/US/docs/ios/12_2t/12_2t15/feature/guide/ft_glbp.html" target="_blank" rel="noopener">Cisco: GLBP feature guide</a> (defaults: round-robin, 10 s holdtime, groups 0-1023)</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc2328" target="_blank" rel="noopener">RFC 2328: OSPF Version 2</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc5798.html" target="_blank" rel="noopener">RFC 5798: VRRP Version 3 for IPv4 and IPv6</a></li>
+</ul>
+</section>

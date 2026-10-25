@@ -1,0 +1,1811 @@
+<section class="topic" id="t-5-1" data-topics="5.1">
+<h2>5.1 Key security concepts (threats, vulnerabilities, exploits, mitigation)</h2>
+<p>You already work in security, so this topic is mostly about matching your vocabulary to Cisco's. The exam asks you to define four terms, recognize named attacks from a short description, and pick the Cisco feature that mitigates each one. The second half of the domain (5.3, 5.6, 5.7) is where you configure those mitigations.</p>
+
+<h3>The four core terms as Cisco uses them</h3>
+<dl>
+<dt>Vulnerability</dt>
+<dd>A weakness that could compromise security: a software bug, a weak default password, an open management port, an unlocked wiring closet.</dd>
+<dt>Exploit</dt>
+<dd>The thing that takes advantage of a specific vulnerability: a piece of code, a tool, or a technique. An exploit is useless against a system that does not have the matching vulnerability.</dd>
+<dt>Threat</dt>
+<dd>The potential for a vulnerability to be exploited, usually by a threat actor (person, group, or automated malware). A threat exists when someone has the capability and intent and a vulnerability is present.</dd>
+<dt>Mitigation technique</dt>
+<dd>Any control that reduces or removes the chance that a vulnerability is exploited or limits the damage: patching, ACLs, port security, training, MFA.</dd>
+</dl>
+<p>Two related words show up in answer choices. <strong>Attack vector</strong> is the path an attacker uses to get in (email, an exposed VTY line, a switch port in a lobby). <strong>Risk</strong> combines the likelihood of a threat exploiting a vulnerability with the impact if it does.</p>
+<div class="callout trap"><p><strong>Exam trap:</strong> "A weakness in a system" is a vulnerability, not a threat. "Code written to take advantage of a weakness" is an exploit. "The potential for harm" is a threat. Read the noun the question is defining, not the scenario around it.</p></div>
+
+<h3>The CIA triad</h3>
+<table>
+<thead><tr><th>Goal</th><th>Meaning</th><th>Typical attack against it</th><th>Typical control</th></tr></thead>
+<tbody>
+<tr><td>Confidentiality</td><td>Only authorized parties can read the data</td><td>Sniffing, MITM, data theft</td><td>Encryption (IPsec, WPA2/3, SSH), ACLs, AAA</td></tr>
+<tr><td>Integrity</td><td>Data is not altered without detection</td><td>MITM modification, route or ARP spoofing</td><td>Hashes/HMAC (ESP ICV), digital signatures, DAI</td></tr>
+<tr><td>Availability</td><td>Systems and data are reachable when needed</td><td>DoS/DDoS, DHCP starvation, MAC flooding</td><td>Redundancy, rate limiting, port security, DHCP snooping rate limits</td></tr>
+</tbody>
+</table>
+
+<h3>Attack types the CCNA names</h3>
+<h4>Denial of service (DoS) and distributed DoS (DDoS)</h4>
+<p>A DoS attack exhausts a resource (bandwidth, CPU, memory, a session table) so legitimate users cannot be served. The classic exam example is the <strong>TCP SYN flood</strong>: the attacker sends many SYNs, often from spoofed sources, and never completes the handshake, filling the target's half-open connection table. A DDoS uses many sources at once, typically a <strong>botnet</strong> of compromised hosts directed by a command-and-control server.</p>
+
+<h4>Spoofing</h4>
+<p>Spoofing means faking an identity field to impersonate something else.</p>
+<ul>
+<li><strong>IP address spoofing</strong>: forging the source IP. Used to hide the attacker, to bypass source-based ACLs, and as the basis for reflection attacks.</li>
+<li><strong>MAC address spoofing</strong>: forging the source MAC to impersonate a trusted host or to bypass MAC-based filtering.</li>
+<li><strong>DHCP spoofing</strong>: a rogue DHCP server answers clients first and hands out its own address as the default gateway or DNS server, which sets up a man-in-the-middle.</li>
+<li><strong>DHCP starvation</strong>: the attacker sends a flood of DISCOVERs with random client MAC addresses until the real server's pool is empty, often as a first step before running a rogue server.</li>
+</ul>
+
+<h4>Reflection and amplification</h4>
+<p>In a <strong>reflection</strong> attack the attacker sends requests with the victim's IP as the spoofed source, so a third-party server (the reflector) sends its replies to the victim. It becomes <strong>amplification</strong> when the reply is much larger than the request, so a small amount of attacker bandwidth becomes a large flood. Open DNS resolvers and NTP servers answering <code>monlist</code> queries are the standard examples. Both rely on UDP, because there is no handshake to prove the source address.</p>
+
+<h4>Man-in-the-middle (MITM)</h4>
+<p>The attacker places itself in the traffic path so it can read or change data. On a LAN the CCNA example is <strong>ARP poisoning (ARP spoofing)</strong>: the attacker sends gratuitous ARP replies claiming the default gateway's IP maps to the attacker's MAC. Hosts update their ARP caches and send off-subnet traffic to the attacker, which forwards it on to the real gateway after reading it. A rogue DHCP server that names itself as the gateway achieves the same result.</p>
+
+<h4>Reconnaissance</h4>
+<p>Information gathering before an attack: public lookups (whois, DNS queries), ping sweeps, port scans, and banner grabbing. Reconnaissance is not damaging by itself, but it tells the attacker what is worth exploiting.</p>
+
+<h4>Buffer overflow</h4>
+<p>The attacker sends more data than a program's buffer can hold, overwriting adjacent memory. Results range from a crash (a DoS) to running the attacker's code. The mitigation is patching and secure coding, which on network devices means keeping IOS current and disabling services you do not use.</p>
+
+<h4>Malware</h4>
+<table>
+<thead><tr><th>Type</th><th>How it spreads or works</th></tr></thead>
+<tbody>
+<tr><td>Virus</td><td>Attaches to a legitimate program or file and needs a user action (running the program, opening the file) to spread.</td></tr>
+<tr><td>Worm</td><td>Self-propagating: exploits vulnerabilities to copy itself across the network without user action. Spreads fastest.</td></tr>
+<tr><td>Trojan horse</td><td>Disguised as legitimate software the user installs willingly; carries a hidden payload such as a backdoor. Does not self-replicate.</td></tr>
+<tr><td>Ransomware</td><td>Encrypts the victim's data (and often exfiltrates it) and demands payment for the key.</td></tr>
+</tbody>
+</table>
+
+<h4>Social engineering</h4>
+<p>Attacks against people instead of systems.</p>
+<table>
+<thead><tr><th>Term</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>Phishing</td><td>Mass fraudulent email that leads to a credential-harvesting site or malware.</td></tr>
+<tr><td>Spear phishing</td><td>Phishing aimed at a specific person or group, using details about them to look credible.</td></tr>
+<tr><td>Whaling</td><td>Spear phishing aimed at senior executives.</td></tr>
+<tr><td>Vishing</td><td>Voice phishing over the phone or VoIP.</td></tr>
+<tr><td>Smishing</td><td>Phishing by SMS text message.</td></tr>
+<tr><td>Pretexting</td><td>The attacker invents a believable scenario (a help-desk technician, an auditor) to get information.</td></tr>
+<tr><td>Tailgating (piggybacking)</td><td>Following an authorized person through a secured door without badging in.</td></tr>
+<tr><td>Watering hole</td><td>Compromising a website the target group is known to visit.</td></tr>
+</tbody>
+</table>
+
+<h4>Password attacks</h4>
+<ul>
+<li><strong>Dictionary attack</strong>: tries words from a list of common passwords and their variations.</li>
+<li><strong>Brute-force attack</strong>: tries every possible combination; guaranteed to succeed eventually, so length is the defense.</li>
+<li>Both can run <strong>online</strong> (guessing against a login prompt, which login rate limiting stops) or <strong>offline</strong> (cracking a stolen hash, which strong hashing such as scrypt type 9 slows down).</li>
+</ul>
+
+<h3>Mapping attacks to CCNA mitigation features</h3>
+<p>This table is the bridge to the rest of the domain. Expect questions of the form "which feature prevents X".</p>
+<table>
+<thead><tr><th>Attack</th><th>CCNA mitigation</th><th>Topic</th></tr></thead>
+<tbody>
+<tr><td>Rogue DHCP server (DHCP spoofing)</td><td>DHCP snooping: untrusted ports drop server messages</td><td>5.7</td></tr>
+<tr><td>DHCP starvation</td><td>DHCP snooping rate limit and MAC verification, port security</td><td>5.7</td></tr>
+<tr><td>ARP poisoning (MITM)</td><td>Dynamic ARP Inspection, using the DHCP snooping binding table</td><td>5.7</td></tr>
+<tr><td>MAC flooding (CAM table overflow)</td><td>Port security (limit MACs per port)</td><td>5.7</td></tr>
+<tr><td>MAC spoofing</td><td>Port security with static or sticky MACs, 802.1X</td><td>5.7, 5.8</td></tr>
+<tr><td>IP spoofing, reflection</td><td>Ingress ACLs that drop impossible source addresses (for example private or your own prefixes arriving from the Internet)</td><td>5.6</td></tr>
+<tr><td>Unauthorized device management</td><td>Passwords, <code>login local</code>, VTY <code>access-class</code>, SSH, AAA</td><td>5.3, 5.6, 5.8</td></tr>
+<tr><td>Online password guessing</td><td><code>login block-for</code>, AAA lockout, MFA</td><td>5.3, 5.4</td></tr>
+<tr><td>Offline cracking of stolen configs</td><td><code>enable secret</code> and <code>username ... secret</code> with type 8 or 9 hashing; never rely on type 7</td><td>5.3</td></tr>
+<tr><td>Eavesdropping across the Internet</td><td>IPsec site-to-site or remote-access VPN</td><td>5.5</td></tr>
+<tr><td>Wireless eavesdropping and offline PSK cracking</td><td>WPA2/WPA3, strong PSK, WPA3 SAE, 802.1X Enterprise</td><td>5.9, 5.10</td></tr>
+<tr><td>Phishing and other social engineering</td><td>User awareness and training, MFA</td><td>5.2, 5.4</td></tr>
+<tr><td>Malware, exploits</td><td>Patching, next-generation firewall and IPS, endpoint protection</td><td>1.1</td></tr>
+</tbody>
+</table>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Vulnerability = weakness; exploit = what uses the weakness; threat = potential for exploitation; mitigation = control that reduces it.</li>
+<li>Reflection uses a spoofed source so a third party floods the victim; amplification makes the reply bigger than the request (DNS, NTP).</li>
+<li>ARP poisoning is the LAN MITM example; DAI is its mitigation. Rogue DHCP is stopped by DHCP snooping. MAC flooding is stopped by port security.</li>
+<li>Worms self-propagate; viruses need a user action; trojans pose as legitimate software.</li>
+<li>Phishing (mass), spear phishing (targeted), whaling (executives), vishing (voice), smishing (SMS), pretexting (invented scenario), tailgating (physical).</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-5-2" data-topics="5.2">
+<h2>5.2 Security program elements (user awareness, training, physical access control)</h2>
+<p>A security program is the organization-wide set of policies and practices around the technology. The CCNA names three elements. Questions are short and usually turn on the difference between awareness and training, or on which physical control stops which attack.</p>
+
+<h3>User awareness</h3>
+<p>Ongoing, informal efforts that keep security in everyone's mind: posters, newsletter reminders, banners, and especially <strong>simulated phishing campaigns</strong>, where the security team sends harmless fake phishing emails and tracks who clicks. Awareness reaches all users and tells them that threats exist and what to watch for.</p>
+
+<h3>User training</h3>
+<p>Formal, structured instruction: scheduled classes or required online courses, often with a test, covering specific policies and procedures (how to report a suspected phish, how to handle sensitive data, acceptable use). Training is usually tracked for compliance and repeated on a schedule.</p>
+<div class="callout trap"><p><strong>Exam trap:</strong> Phishing simulation emails and reminder messages are <em>awareness</em>. A formal course that users must attend or complete is <em>training</em>. Both are part of a security program; neither is a technical control.</p></div>
+
+<h3>Physical access control</h3>
+<p>Physical access defeats most technical controls: anyone at a console port can run password recovery, and anyone in a wiring closet can plug in a rogue device. Cisco expects you to know these controls:</p>
+<table>
+<thead><tr><th>Control</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td>Locks (key, combination, electronic)</td><td>Keep equipment rooms, racks and wiring closets (IDFs) closed to unauthorized people.</td></tr>
+<tr><td>Badge (card) readers</td><td>Grant entry per person and log who entered and when. Badges can be revoked centrally.</td></tr>
+<tr><td>Access control vestibule (mantrap)</td><td>A small room with two doors where only one can be open at a time, so each person must authenticate before the inner door opens. Defeats tailgating.</td></tr>
+<tr><td>Biometric readers</td><td>Fingerprint, palm, iris or face scanners for high-security rooms.</td></tr>
+<tr><td>Security cameras (CCTV)</td><td>Deter and record; detective rather than preventive.</td></tr>
+<tr><td>Guards and visitor logs</td><td>Human verification and escorting.</td></tr>
+</tbody>
+</table>
+<div class="callout tip"><p><strong>Tip:</strong> If a question describes someone following an employee through a door, the best physical answer is an access control vestibule (mantrap); the best program answer is awareness and training about tailgating.</p></div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Three program elements: user awareness, user training, physical access control.</li>
+<li>Awareness is ongoing and informal (phishing simulations, reminders); training is formal and structured (courses, tests).</li>
+<li>An access control vestibule (mantrap) stops tailgating; badge readers add per-person logging.</li>
+<li>Physical access to a device's console allows password recovery, so locking closets and racks is a security control.</li>
+</ul></div>
+</section>
+<section class="topic" id="t-5-3" data-topics="5.3">
+<h2>5.3 Configure and verify device access control using local passwords</h2>
+<p>This is a configuration topic, and the exam tests it in two ways: you configure from a requirement, and you read a <code>show running-config</code> and predict what a user will experience (password prompt or not, user mode or privileged mode, readable password or not). Know where each command lives (line mode or global) and how the commands interact.</p>
+
+<h3>The three access paths and what protects each</h3>
+<table>
+<thead><tr><th>Path</th><th>Mode to configure</th><th>Protected by</th></tr></thead>
+<tbody>
+<tr><td>Console (physical)</td><td><code>line console 0</code></td><td><code>password</code> + <code>login</code>, or <code>login local</code></td></tr>
+<tr><td>Remote (Telnet/SSH)</td><td><code>line vty 0 4</code> or <code>line vty 0 15</code></td><td><code>password</code> + <code>login</code>, or <code>login local</code> (SSH requires <code>login local</code> or AAA)</td></tr>
+<tr><td>Privileged EXEC (enable)</td><td>Global</td><td><code>enable secret</code> (preferred) or <code>enable password</code></td></tr>
+</tbody>
+</table>
+
+<h3>Line passwords: password + login</h3>
+<pre class="cli">R1(config)# line console 0
+R1(config-line)# password C0ns0le!Pass
+R1(config-line)# login
+R1(config-line)# exec-timeout 5 0
+R1(config-line)# exit
+R1(config)# line vty 0 4
+R1(config-line)# password Vty!Pass2026
+R1(config-line)# login
+R1(config-line)# transport input ssh telnet</pre>
+<ul>
+<li><code>password</code> sets the shared line password. <code>login</code> tells the line to <em>prompt</em> for it. You need both.</li>
+<li>Console with <code>password</code> but no <code>login</code>: no prompt; anyone at the console gets user EXEC. A factory-default console behaves the same way, because it has neither a password nor <code>login</code>.</li>
+<li>VTY with <code>login</code> but no password: the router rejects remote logins with "Password required, but none set" and closes the session. VTY lines default to <code>login</code>, so a fresh router cannot be telnetted to until you set a password or <code>login local</code>.</li>
+<li>VTY with <code>no login</code>: anyone who can reach an IP on the device gets in with no password. Never do this.</li>
+</ul>
+
+<h3>login local: per-user accounts</h3>
+<pre class="cli">R1(config)# username admin privilege 15 algorithm-type scrypt secret Adm1n!2026xyz
+R1(config)# username noc algorithm-type scrypt secret N0cRead0nly!
+R1(config)# line vty 0 4
+R1(config-line)# login local
+R1(config-line)# exit
+R1(config)# line console 0
+R1(config-line)# login local</pre>
+<ul>
+<li><code>login local</code> makes the line prompt for a <strong>username and password</strong> checked against the local <code>username</code> database. Any <code>password</code> configured on that line is ignored while <code>login local</code> is set.</li>
+<li>Per-user accounts give accountability (logs show who logged in) and let you remove one person without changing a shared password.</li>
+<li>SSH needs a username, so SSH on the VTY lines requires <code>login local</code> (or AAA). Line password with plain <code>login</code> works for Telnet only. SSH itself is covered in topic 4.8.</li>
+<li>If <code>login local</code> is set and no usernames exist, nobody can log in on that line (on the console this can lock you out until password recovery).</li>
+</ul>
+
+<h4>Privilege levels</h4>
+<p>IOS has levels 0 to 15. Level 1 is user EXEC (<code>R1&gt;</code>), level 15 is privileged EXEC (<code>R1#</code>). Levels 2 to 14 are unused until you move commands into them. A user defined with <code>privilege 15</code> who logs in through a line using <code>login local</code> lands directly at <code>R1#</code> without typing <code>enable</code>. A user with no privilege keyword is level 1 and must use <code>enable</code> plus the enable secret.</p>
+<pre class="cli">R1# show privilege
+Current privilege level is 15</pre>
+
+<h3>Protecting privileged mode: enable password vs enable secret</h3>
+<pre class="cli">R1(config)# enable secret En@ble!Secret26
+! or choose the algorithm explicitly:
+R1(config)# enable algorithm-type scrypt secret En@ble!Secret26</pre>
+<ul>
+<li><code>enable password</code> stores the password in clear text (or type 7 if <code>service password-encryption</code> is on). Legacy; avoid it.</li>
+<li><code>enable secret</code> stores a one-way hash. <strong>If both are configured, the enable secret is used and the enable password is ignored.</strong> IOS warns you if you set them to the same value.</li>
+<li>Telnet/SSH users cannot reach privileged mode at all if no enable password or secret exists (they get "% No password set"), unless their username has <code>privilege 15</code>. The console allows <code>enable</code> with no password when none is set.</li>
+</ul>
+<div class="callout key"><p><strong>Remember:</strong> enable secret beats enable password whenever both exist. Line passwords need <code>login</code> to take effect. <code>login local</code> ignores the line password and uses the username database.</p></div>
+
+<h3>Password storage types</h3>
+<table>
+<thead><tr><th>Type</th><th>Algorithm</th><th>Reversible?</th><th>How you get it</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>Clear text</td><td>Not hidden at all</td><td><code>password</code>, <code>enable password</code>, <code>username X password</code> without encryption service</td></tr>
+<tr><td>7</td><td>Cisco proprietary (Vigenère-style)</td><td><strong>Yes</strong>, trivially (free online decoders)</td><td><code>service password-encryption</code></td></tr>
+<tr><td>5</td><td>Salted MD5</td><td>No, but fast to brute-force</td><td><code>enable secret</code> on older IOS, or <code>algorithm-type md5</code></td></tr>
+<tr><td>8</td><td>PBKDF2 with SHA-256</td><td>No</td><td><code>algorithm-type sha256</code></td></tr>
+<tr><td>9</td><td>scrypt</td><td>No (memory-hard, best)</td><td><code>algorithm-type scrypt</code>; default for <code>enable secret</code> on current IOS XE releases (for example 17.x)</td></tr>
+<tr><td>4</td><td>Flawed SHA-256 implementation</td><td>No, but weak</td><td>Deprecated; no longer supported</td></tr>
+</tbody>
+</table>
+<p>The <code>algorithm-type</code> keyword works for both commands:</p>
+<pre class="cli">R1(config)# enable algorithm-type sha256 secret An0ther!Secret
+R1(config)# username backup algorithm-type sha256 secret B@ckup!2026pw
+R1(config)# username admin algorithm-type scrypt secret Adm1n!2026xyz</pre>
+<p>Older IOS releases default <code>enable secret</code> and <code>username ... secret</code> to type 5 (MD5). Newer IOS XE defaults <code>enable secret</code> to type 9. Either way, you can also paste an existing hash by giving the type number first, for example <code>enable secret 9 $9$...</code>, which is how configs are restored from backups.</p>
+
+<h4>service password-encryption</h4>
+<pre class="cli">R1(config)# service password-encryption</pre>
+<ul>
+<li>Converts every clear-text password in the configuration (line passwords, <code>enable password</code>, <code>username ... password</code>) to type 7, now and when new ones are entered.</li>
+<li>It does not touch secrets, which are already hashed.</li>
+<li>Type 7 only prevents shoulder-surfing of a printed config. It is reversible, so treat a type 7 string as clear text.</li>
+<li><code>no service password-encryption</code> does <em>not</em> decrypt passwords already stored as type 7; it only stops encrypting new ones.</li>
+</ul>
+<div class="callout trap"><p><strong>Exam trap:</strong> <code>username bob password X</code> plus <code>service password-encryption</code> gives a reversible type 7 password. <code>username bob secret X</code> gives a hash (type 5, 8 or 9). If a question asks for the most secure local user, pick <code>secret</code>, ideally with <code>algorithm-type scrypt</code>.</p></div>
+
+<h3>Other hardening commands in scope</h3>
+<h4>exec-timeout</h4>
+<p>Logs out an idle session. Syntax is <code>exec-timeout minutes [seconds]</code> in line mode. The default is 10 minutes. <code>exec-timeout 0 0</code> disables the timer (common in labs, a finding in an audit).</p>
+
+<h4>login block-for (online brute-force protection)</h4>
+<pre class="cli">R1(config)# login block-for 120 attempts 3 within 60
+R1(config)# login quiet-mode access-class 5
+R1(config)# login on-failure log
+R1(config)# login on-success log</pre>
+<ul>
+<li>Read it as: if there are 3 failed logins within 60 seconds, block all logins for 120 seconds. The 120-second block is called <strong>quiet mode</strong>.</li>
+<li>During quiet mode the device refuses Telnet, SSH and HTTP logins from everyone, except hosts permitted by the optional <code>login quiet-mode access-class</code> ACL (use it so your admin subnet is never locked out). The console is not blocked.</li>
+<li>Once <code>login block-for</code> is on, a default delay of 1 second applies between login attempts (<code>login delay</code> changes it).</li>
+<li>Configure <code>login block-for</code> before the related <code>login quiet-mode</code> and <code>login delay</code> commands.</li>
+</ul>
+<pre class="cli">R1# show login
+     A default login delay of 1 seconds is applied.
+     Quiet-Mode access list 5 is applied.
+     All successful login is logged.
+     All failed login is logged.
+
+     Router enabled to watch for login Attacks.
+     If more than 3 login failures occur in 60 seconds or less,
+     logins will be disabled for 120 seconds.
+
+     Router presently in Normal-Mode.
+     Current Watch Window
+         Time remaining: 41 seconds.
+         Login failures for current window: 1.
+     Total login failures: 1.</pre>
+
+<h4>security passwords min-length</h4>
+<pre class="cli">R1(config)# security passwords min-length 10
+R1(config)# enable secret short
+% Password too short - must be at least 10 characters. Password not configured.</pre>
+<p>Global command that rejects new user, enable and line passwords and secrets shorter than the value. The feature is off by default; Cisco's command reference lists 6 characters as the default length value. It is checked when a password is set, so set it first, then configure passwords.</p>
+
+<h4>Banner (legal notice)</h4>
+<pre class="cli">R1(config)# banner motd # Authorized access only. Activity is monitored. #</pre>
+<p>A banner does not enforce anything, but a warning banner supports legal action against intruders. The <code>#</code> is the delimiter you choose.</p>
+
+<h3>Reading show running-config: worked example</h3>
+<pre class="cli">R1# show running-config
+!
+service password-encryption
+!
+hostname R1
+!
+security passwords min-length 10
+enable secret 9 $9$nhEmQVczB7dQCU$zrZsHhG0ruBuFAxATZvbCdZOGdpY/ytdAWYzsiObQb.
+enable password 7 0822455D0A16544541
+!
+username admin privilege 15 secret 9 $9$e8yAYkEc4nFuv.$yP1L7bKXq3CRVgRlwkf6s0sTztC9jCdYAnUPOD4m4dU
+username helpdesk password 7 14141B180F0B7B7977
+!
+login block-for 120 attempts 3 within 60
+!
+line con 0
+ exec-timeout 5 0
+ password 7 02050D4808095E731F1A
+ login
+line aux 0
+line vty 0 4
+ exec-timeout 10 0
+ password 7 045802150C2E1D1C5A
+ login local
+ transport input ssh telnet
+!
+end</pre>
+<p>Questions you should be able to answer from this output:</p>
+<ol>
+<li><strong>Which password works for <code>enable</code>?</strong> The enable secret (type 9). The type 7 enable password is ignored because a secret exists.</li>
+<li><strong>What happens at the console?</strong> The console prompts for the line password (<code>login</code>), with no username. Idle sessions close after 5 minutes.</li>
+<li><strong>What happens on Telnet?</strong> <code>login local</code> means a username and password prompt; the VTY line password is ignored. <code>admin</code> lands at <code>R1#</code> (privilege 15). <code>helpdesk</code> lands at <code>R1&gt;</code> and needs the enable secret.</li>
+<li><strong>Which stored credentials can an attacker with this config recover?</strong> Every type 7 string: the console and VTY passwords, the unused enable password and the helpdesk password. The type 9 hashes would need an offline brute-force attack against scrypt.</li>
+<li><strong>Weakness to fix?</strong> The helpdesk account should use <code>secret</code>, the unused <code>enable password</code> should be removed, and only lines 0 to 4 exist in this config (fine for this router; on a switch, check <code>line vty 5 15</code> too).</li>
+</ol>
+
+<h3>Verification commands</h3>
+<table>
+<thead><tr><th>Command</th><th>What it shows</th></tr></thead>
+<tbody>
+<tr><td><code>show running-config | section line</code></td><td>Console and VTY settings</td></tr>
+<tr><td><code>show running-config | include username|enable|service</code></td><td>Users, enable secret, encryption service</td></tr>
+<tr><td><code>show users</code></td><td>Who is logged in on which line, and idle time</td></tr>
+<tr><td><code>show privilege</code></td><td>Your current privilege level</td></tr>
+<tr><td><code>show login</code> / <code>show login failures</code></td><td>Login block-for state and recent failures</td></tr>
+</tbody>
+</table>
+<pre class="cli">R1# show users
+    Line       User       Host(s)              Idle       Location
+*  0 con 0                idle                 00:00:00
+ 578 vty 0     admin      idle                 00:00:12 10.1.10.10
+
+  Interface    User               Mode         Idle     Peer Address</pre>
+
+<h3>Common mistakes and their symptoms</h3>
+<table>
+<thead><tr><th>Mistake</th><th>Symptom</th></tr></thead>
+<tbody>
+<tr><td><code>password</code> on a line without <code>login</code></td><td>No prompt; anyone gets in</td></tr>
+<tr><td><code>login local</code> with no usernames defined</td><td>Nobody can log in on that line</td></tr>
+<tr><td>Only <code>line vty 0 4</code> secured on a switch with lines 0 to 15</td><td>Sessions 6 to 16 use whatever lines 5 to 15 have</td></tr>
+<tr><td>No enable password or secret</td><td>Remote users stuck at <code>&gt;</code> with "% No password set"</td></tr>
+<tr><td>Relying on <code>service password-encryption</code></td><td>Passwords recoverable from any config backup</td></tr>
+<tr><td><code>login block-for</code> without a quiet-mode ACL</td><td>An attacker can lock out administrators too (a DoS on management)</td></tr>
+<tr><td>Switch with no SVI IP or no <code>ip default-gateway</code></td><td>Telnet/SSH to the switch fails even though passwords are right</td></tr>
+</tbody>
+</table>
+
+<div class="lab" id="lab-5-3-1">
+<h4>Lab: Harden local access on a router and a switch</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~40 min</p>
+<p>Topology: R1 (2911) G0/0 10.1.10.1/24 connects to SW1 (2960) Fa0/24. PC-A (10.1.10.10/24, gateway 10.1.10.1) is on SW1 Fa0/1 and also has a console cable to R1 (RS-232 to Console). SW1 is managed through interface VLAN 1 at 10.1.10.2/24.</p>
+<ol>
+<li>On R1, enable <code>security passwords min-length 10</code>, then try <code>enable secret cisco</code> and confirm it is rejected.</li>
+<li>Set an enable secret using scrypt. Also set <code>enable password</code> to a different value, then prove which one <code>enable</code> accepts.</li>
+<li>Create users <code>admin</code> (privilege 15) and <code>helpdesk</code> (level 1) with scrypt secrets.</li>
+<li>Console: line password, <code>login</code>, <code>exec-timeout 5 0</code>. VTY 0 4: <code>login local</code>, <code>exec-timeout 10 0</code>, <code>transport input telnet ssh</code>.</li>
+<li>Add <code>login block-for 60 attempts 3 within 30</code> and <code>service password-encryption</code>, plus a MOTD banner.</li>
+<li>On SW1, configure VLAN 1 SVI, <code>ip default-gateway 10.1.10.1</code>, and the same hardening on <code>line vty 0 15</code>.</li>
+<li>From PC-A, telnet to R1 as <code>helpdesk</code> and then as <code>admin</code>; note the prompt each lands on. Fail three logins in a row and observe quiet mode.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li><code>show running-config | include secret|password|username</code>: secrets show type 9 (or type 5 if your PT build lacks scrypt), line passwords show type 7.</li>
+<li>Telnet as helpdesk lands at <code>R1&gt;</code>; as admin lands at <code>R1#</code>.</li>
+<li>After three failures, <code>show login</code> reports "Router presently in Quiet-Mode" and new Telnet attempts are refused for 60 seconds. The console still works.</li>
+<li><code>show users</code> on R1 lists the VTY session with the username.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">R1(config)# security passwords min-length 10
+R1(config)# enable secret cisco
+% Password too short - must be at least 10 characters. Password not configured.
+R1(config)# enable algorithm-type scrypt secret En@ble!Secret26
+! If Packet Tracer rejects algorithm-type, use: enable secret En@ble!Secret26
+R1(config)# enable password Legacy!Pass99
+R1(config)# username admin privilege 15 algorithm-type scrypt secret Adm1n!2026xyz
+R1(config)# username helpdesk algorithm-type scrypt secret Help!Desk2026
+R1(config)# line console 0
+R1(config-line)# password C0ns0le!Pass
+R1(config-line)# login
+R1(config-line)# exec-timeout 5 0
+R1(config-line)# line vty 0 4
+R1(config-line)# login local
+R1(config-line)# exec-timeout 10 0
+R1(config-line)# transport input telnet ssh
+R1(config-line)# exit
+R1(config)# login block-for 60 attempts 3 within 30
+R1(config)# service password-encryption
+R1(config)# banner motd # Authorized access only #
+R1(config)# end
+R1# copy running-config startup-config
+! enable test: only En@ble!Secret26 works; Legacy!Pass99 is ignored
+
+SW1(config)# security passwords min-length 10
+SW1(config)# enable algorithm-type scrypt secret En@ble!Secret26
+SW1(config)# username admin privilege 15 algorithm-type scrypt secret Adm1n!2026xyz
+SW1(config)# interface vlan 1
+SW1(config-if)# ip address 10.1.10.2 255.255.255.0
+SW1(config-if)# no shutdown
+SW1(config-if)# exit
+SW1(config)# ip default-gateway 10.1.10.1
+SW1(config)# line console 0
+SW1(config-line)# password C0ns0le!Pass
+SW1(config-line)# login
+SW1(config-line)# exec-timeout 5 0
+SW1(config-line)# line vty 0 15
+SW1(config-line)# login local
+SW1(config-line)# exec-timeout 10 0
+SW1(config-line)# exit
+SW1(config)# service password-encryption
+SW1(config)# end
+SW1# copy running-config startup-config</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Line access needs <code>password</code> + <code>login</code>; <code>login local</code> uses the username database and ignores the line password.</li>
+<li><code>enable secret</code> wins over <code>enable password</code>. Use <code>algorithm-type scrypt</code> (type 9) or <code>sha256</code> (type 8); type 5 is MD5; type 7 is reversible.</li>
+<li><code>service password-encryption</code> only produces type 7 and does not affect secrets.</li>
+<li><code>username X privilege 15</code> logs straight into privileged EXEC via <code>login local</code>.</li>
+<li><code>exec-timeout</code> default is 10 minutes; <code>login block-for S attempts N within T</code> stops online guessing; <code>security passwords min-length</code> enforces length on new passwords.</li>
+</ul></div>
+</section>
+<section class="topic" id="t-5-4" data-topics="5.4">
+<h2>5.4 Password policy elements (management, complexity, alternatives: MFA, certificates, biometrics)</h2>
+<p>This is a "describe" topic. You will not configure anything; you need to recognize policy elements and the three alternatives Cisco names. Watch for the gap between the traditional policy many exam items still assume and current NIST guidance; where they differ, answer the question as written.</p>
+
+<h3>Password management</h3>
+<ul>
+<li><strong>Lifetime and rotation</strong>: traditional policies force a change every 60 to 90 days. NIST SP 800-63B now says verifiers should <em>not</em> require periodic changes, and should force a change only when there is evidence of compromise, because forced rotation produces predictable patterns (Spring2026!, Summer2026!).</li>
+<li><strong>History (no reuse)</strong>: prevent reusing the last N passwords, and never reuse the same password across systems.</li>
+<li><strong>Password managers</strong>: store long unique passwords so users do not have to remember them. NIST says verifiers should allow paste and autofill so managers work.</li>
+<li><strong>Account lockout or throttling</strong>: lock or slow down an account after repeated failures to stop online guessing. On IOS this is <code>login block-for</code> (5.3) or the AAA <code>aaa local authentication attempts max-fail</code> command. Lockout can be abused to lock out legitimate users, so throttling is often preferred.</li>
+<li><strong>Default passwords</strong>: change them before a device goes into production.</li>
+</ul>
+
+<h3>Complexity and length</h3>
+<table>
+<thead><tr><th>Element</th><th>Traditional policy</th><th>Current NIST SP 800-63B</th></tr></thead>
+<tbody>
+<tr><td>Minimum length</td><td>8 characters</td><td>15 when the password is the only factor; 8 when it is part of MFA</td></tr>
+<tr><td>Maximum length</td><td>Often capped</td><td>Allow at least 64 characters</td></tr>
+<tr><td>Composition</td><td>Require upper, lower, digit, symbol</td><td>Do not impose composition rules</td></tr>
+<tr><td>Rotation</td><td>Every 60 to 90 days</td><td>Only on evidence of compromise</td></tr>
+<tr><td>Screening</td><td>Rarely</td><td>Check against lists of common, expected or breached passwords</td></tr>
+</tbody>
+</table>
+<p>The common thread is that <strong>length is the strongest factor</strong>: each added character multiplies the brute-force search space, and long passphrases are easier to remember than short complex strings.</p>
+
+<h3>Alternatives to (or additions to) passwords</h3>
+<h4>Multifactor authentication (MFA)</h4>
+<p>MFA requires factors from at least two <em>different</em> categories:</p>
+<table>
+<thead><tr><th>Factor</th><th>Examples</th></tr></thead>
+<tbody>
+<tr><td>Something you know (knowledge)</td><td>Password, PIN, security question</td></tr>
+<tr><td>Something you have (possession)</td><td>Phone with an authenticator app or push approval, hardware token, smart card</td></tr>
+<tr><td>Something you are (inherence)</td><td>Fingerprint, face, iris, voice</td></tr>
+</tbody>
+</table>
+<div class="callout trap"><p><strong>Exam trap:</strong> A password plus a PIN is two factors of the same category, so it is <em>not</em> MFA. A password plus a one-time code from an app on your phone is MFA (know + have).</p></div>
+
+<h4>Digital certificates</h4>
+<p>A digital certificate binds an identity (a user, a device, a server name) to a public key, and is signed by a <strong>certificate authority (CA)</strong>. The set of CAs, policies and processes that issue and revoke certificates is a <strong>public key infrastructure (PKI)</strong>. The certificate format is X.509. To authenticate, the holder proves it has the matching private key; the verifier checks the CA's signature, validity dates, and revocation status. Certificates replace passwords in EAP-TLS (802.1X and WPA2/WPA3-Enterprise), in IPsec peer authentication with RSA signatures, and for HTTPS servers. Their strength is that the private key never leaves the device and cannot be phished like a password.</p>
+
+<h4>Biometrics</h4>
+<p>Authentication by a physical trait: fingerprint, face, iris or retina, palm, voice. Biometrics are convenient and hard to share, but cannot be changed if compromised, and have error rates: a <strong>false acceptance</strong> lets the wrong person in, a <strong>false rejection</strong> keeps the right person out. In practice biometrics usually unlock a possession factor (a phone or laptop's key store) rather than being sent over the network.</p>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Password management: rotation, history/no reuse, password managers, lockout or throttling, change defaults.</li>
+<li>Length beats complexity; NIST: 15+ characters as a single factor, no composition rules, no forced periodic change, screen against breached lists.</li>
+<li>MFA = two or more different categories: know, have, are.</li>
+<li>Certificates: CA-signed X.509 binding of identity to public key, managed by a PKI; used by EAP-TLS and IPsec.</li>
+<li>Biometrics: something you are; cannot be reset if stolen.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-5-5" data-topics="5.5">
+<h2>5.5 IPsec remote access and site-to-site VPNs</h2>
+<p>Another "describe" topic: no configuration is required on the CCNA. You need the two VPN types, the IPsec building blocks with their protocol and port numbers, the difference between tunnel and transport mode, and recognition of GRE over IPsec and DMVPN.</p>
+
+<h3>Why VPNs</h3>
+<p>A VPN carries private traffic across an untrusted network (usually the Internet) while providing the CIA goals: <strong>confidentiality</strong> (encryption), <strong>integrity</strong> (a keyed hash detects changes), <strong>authentication</strong> of the peers, and <strong>anti-replay</strong> (sequence numbers reject copied packets).</p>
+
+<h3>Site-to-site VPN</h3>
+<ul>
+<li>Connects two or more <strong>networks</strong> through VPN gateways (routers or firewalls) at each site.</li>
+<li>The tunnel is typically <strong>always on</strong> (or comes up automatically when matching traffic appears) and is configured by administrators.</li>
+<li><strong>End hosts are unaware</strong> of the VPN: they send normal packets to their default gateway, and the gateway encrypts traffic headed to the other site.</li>
+<li>Uses IPsec in <strong>tunnel mode</strong>, because the gateways protect packets on behalf of other hosts.</li>
+</ul>
+
+<h3>Remote-access VPN</h3>
+<ul>
+<li>Connects a <strong>single user device</strong> to the corporate network (teleworkers, travelers).</li>
+<li>The tunnel is <strong>on demand</strong>: the user starts it, and VPN <strong>client software</strong> runs on the device. Cisco's client is <strong>Cisco Secure Client</strong> (formerly AnyConnect).</li>
+<li>Two common technologies: <strong>TLS (SSL) VPN</strong>, running over TLS on TCP 443 (and DTLS over UDP for performance), which passes through almost any firewall; and <strong>IPsec</strong> with IKEv2. Cisco Secure Client supports both. Some headends also offer a clientless, browser-based portal for limited access to web applications.</li>
+<li>The headend is usually a firewall (Cisco Secure Firewall ASA or FTD) or a router.</li>
+</ul>
+<table>
+<thead><tr><th></th><th>Site-to-site</th><th>Remote access</th></tr></thead>
+<tbody>
+<tr><td>Connects</td><td>Network to network</td><td>One device to a network</td></tr>
+<tr><td>Initiated</td><td>Always on, between gateways</td><td>On demand, by the user</td></tr>
+<tr><td>Client software on hosts</td><td>None; hosts unaware</td><td>Required (Secure Client) for full tunnel</td></tr>
+<tr><td>Typical protocol</td><td>IPsec (tunnel mode)</td><td>TLS/DTLS or IPsec IKEv2</td></tr>
+</tbody>
+</table>
+
+<h3>IPsec building blocks</h3>
+<p>IPsec is a framework (RFC 4301) rather than a single protocol. It combines:</p>
+<table>
+<thead><tr><th>Component</th><th>Identifier</th><th>Provides</th></tr></thead>
+<tbody>
+<tr><td>IKE (Internet Key Exchange), built on ISAKMP</td><td>UDP 500</td><td>Authenticates the peers (pre-shared key or RSA certificates), negotiates algorithms, uses Diffie-Hellman to create shared keys, and builds the security associations (SAs)</td></tr>
+<tr><td>NAT Traversal (NAT-T)</td><td>UDP 4500</td><td>Wraps ESP in UDP when a NAT device is detected between peers, so the NAT can track it by port</td></tr>
+<tr><td>ESP (Encapsulating Security Payload)</td><td>IP protocol 50</td><td>Confidentiality (encryption), integrity, data origin authentication, anti-replay</td></tr>
+<tr><td>AH (Authentication Header)</td><td>IP protocol 51</td><td>Integrity, data origin authentication, anti-replay. <strong>No encryption.</strong> Authenticates the outer IP header too, so it is incompatible with NAT</td></tr>
+</tbody>
+</table>
+<p>Within those, IPsec uses interchangeable algorithms for each job, which is why it is called a framework:</p>
+<ul>
+<li>Encryption (confidentiality): AES (DES and 3DES are obsolete).</li>
+<li>Integrity/hashing: SHA-2 family HMAC (MD5 and SHA-1 are legacy).</li>
+<li>Peer authentication: pre-shared key or RSA digital signatures (certificates).</li>
+<li>Key exchange: Diffie-Hellman groups.</li>
+</ul>
+<p>With IKEv1, phase 1 builds a protected management tunnel (the ISAKMP or IKE SA) and phase 2 negotiates the IPsec SAs that carry data. IKEv2 does the same work in fewer messages. IPsec SAs are one-way, so each tunnel uses at least one pair (the IKE SA itself is bidirectional).</p>
+<div class="callout key"><p><strong>Remember:</strong> IKE UDP 500, NAT-T UDP 4500, ESP protocol 50 (encrypts), AH protocol 51 (no encryption, breaks with NAT). Real deployments use ESP.</p></div>
+
+<h3>Tunnel mode vs transport mode</h3>
+<ul>
+<li><strong>Tunnel mode</strong>: the entire original IP packet, header included, is encrypted and placed behind a new outer IP header that carries the gateway addresses. Used by site-to-site VPNs and the default for Cisco routers.</li>
+<li><strong>Transport mode</strong>: the original IP header is kept and only the payload (TCP/UDP and data) is protected. Used host to host, or to protect a GRE tunnel whose own header already provides the outer addresses.</li>
+</ul>
+<figure class="diagram">
+<svg viewBox="0 0 720 330" role="img" aria-label="ESP packet layouts: original packet, transport mode, and tunnel mode, with encrypted and authenticated spans">
+<text class="d-text" x="10" y="44">Original</text>
+<rect x="150" y="25" width="80" height="30" class="d-fill" stroke="currentColor"/><text class="d-text" x="190" y="45" text-anchor="middle">IP hdr</text>
+<rect x="230" y="25" width="60" height="30" class="d-fill" stroke="currentColor"/><text class="d-text" x="260" y="45" text-anchor="middle">TCP</text>
+<rect x="290" y="25" width="120" height="30" class="d-fill" stroke="currentColor"/><text class="d-text" x="350" y="45" text-anchor="middle">Data</text>
+
+<text class="d-text" x="10" y="124">Transport</text>
+<text class="d-text" x="10" y="142">mode</text>
+<rect x="150" y="105" width="80" height="30" class="d-fill" stroke="currentColor"/><text class="d-text" x="190" y="125" text-anchor="middle">IP hdr</text>
+<rect x="230" y="105" width="70" height="30" class="d-accent-fill" stroke="currentColor"/><text class="d-text" x="265" y="125" text-anchor="middle">ESP hdr</text>
+<rect x="300" y="105" width="60" height="30" class="d-fill" stroke="currentColor"/><text class="d-text" x="330" y="125" text-anchor="middle">TCP</text>
+<rect x="360" y="105" width="120" height="30" class="d-fill" stroke="currentColor"/><text class="d-text" x="420" y="125" text-anchor="middle">Data</text>
+<rect x="480" y="105" width="70" height="30" class="d-accent-fill" stroke="currentColor"/><text class="d-text" x="515" y="125" text-anchor="middle">ESP trl</text>
+<rect x="550" y="105" width="70" height="30" class="d-accent-fill" stroke="currentColor"/><text class="d-text" x="585" y="125" text-anchor="middle">ESP ICV</text>
+<line x1="300" y1="145" x2="550" y2="145" class="d-accent" stroke-width="3"/><text class="d-text" x="425" y="162" text-anchor="middle">encrypted</text>
+<line x1="230" y1="172" x2="550" y2="172" class="d-line" stroke-width="2"/><text class="d-text" x="390" y="189" text-anchor="middle">authenticated (ICV)</text>
+
+<text class="d-text" x="10" y="234">Tunnel</text>
+<text class="d-text" x="10" y="252">mode</text>
+<rect x="150" y="215" width="80" height="30" class="d-accent-fill" stroke="currentColor"/><text class="d-text" x="190" y="235" text-anchor="middle">New IP</text>
+<rect x="230" y="215" width="70" height="30" class="d-accent-fill" stroke="currentColor"/><text class="d-text" x="265" y="235" text-anchor="middle">ESP hdr</text>
+<rect x="300" y="215" width="80" height="30" class="d-fill" stroke="currentColor"/><text class="d-text" x="340" y="235" text-anchor="middle">Orig IP</text>
+<rect x="380" y="215" width="50" height="30" class="d-fill" stroke="currentColor"/><text class="d-text" x="405" y="235" text-anchor="middle">TCP</text>
+<rect x="430" y="215" width="80" height="30" class="d-fill" stroke="currentColor"/><text class="d-text" x="470" y="235" text-anchor="middle">Data</text>
+<rect x="510" y="215" width="70" height="30" class="d-accent-fill" stroke="currentColor"/><text class="d-text" x="545" y="235" text-anchor="middle">ESP trl</text>
+<rect x="580" y="215" width="70" height="30" class="d-accent-fill" stroke="currentColor"/><text class="d-text" x="615" y="235" text-anchor="middle">ESP ICV</text>
+<line x1="300" y1="255" x2="580" y2="255" class="d-accent" stroke-width="3"/><text class="d-text" x="440" y="272" text-anchor="middle">encrypted (whole original packet)</text>
+<line x1="230" y1="282" x2="580" y2="282" class="d-line" stroke-width="2"/><text class="d-text" x="405" y="299" text-anchor="middle">authenticated (ICV)</text>
+<text class="d-text" x="150" y="322">With NAT-T, a UDP 4500 header sits between New IP and ESP hdr.</text>
+</svg>
+<figcaption>ESP encapsulation. Shaded boxes are added by IPsec. Tunnel mode hides the original source and destination behind the gateways' addresses.</figcaption>
+</figure>
+
+<h3>GRE over IPsec and DMVPN (recognition level)</h3>
+<ul>
+<li><strong>GRE</strong> (IP protocol 47) builds a virtual point-to-point tunnel interface that can carry multicast and broadcast, so routing protocols such as OSPF can run across it. GRE alone provides <strong>no encryption</strong>.</li>
+<li>A plain IPsec site-to-site tunnel carries only unicast IP. <strong>GRE over IPsec</strong> combines them: GRE carries the routing protocol and multicast, and IPsec encrypts the GRE packets.</li>
+<li><strong>DMVPN</strong> (Dynamic Multipoint VPN) is a Cisco design for hub-and-spoke networks with many branches. Spokes need only the hub configured, and spoke-to-spoke tunnels are built dynamically on demand. It uses multipoint GRE, NHRP (to find other spokes' public addresses) and IPsec.</li>
+</ul>
+<div class="callout trap"><p><strong>Exam trap:</strong> If a question asks how to run a routing protocol over an encrypted Internet tunnel, the answer is GRE over IPsec (or DMVPN at scale), not IPsec alone and not GRE alone.</p></div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Site-to-site: gateway to gateway, always on, hosts unaware, tunnel mode. Remote access: user device with client (Cisco Secure Client), TLS/DTLS or IPsec IKEv2.</li>
+<li>IKE UDP 500, NAT-T UDP 4500, ESP protocol 50, AH protocol 51.</li>
+<li>ESP gives confidentiality + integrity + authentication + anti-replay; AH gives no confidentiality and fails through NAT.</li>
+<li>Tunnel mode encrypts the whole original packet and adds a new IP header; transport mode keeps the original header.</li>
+<li>GRE carries multicast/routing protocols but does not encrypt; GRE over IPsec and DMVPN combine both.</li>
+</ul></div>
+</section>
+<section class="topic" id="t-5-6" data-topics="5.6">
+<h2>5.6 Configure and verify access control lists</h2>
+<p>ACLs are among the most heavily tested configuration skills on the CCNA. Expect to write an ACL from a requirement, find the error in one, calculate wildcard masks, pick the right interface and direction, and predict whether a given packet is permitted. This section covers IPv4 ACLs in depth and IPv6 ACLs at recognition level only.</p>
+
+<h3>How an ACL is processed</h3>
+<ol>
+<li>An ACL is an ordered list of entries (ACEs), each <code>permit</code> or <code>deny</code> with match conditions.</li>
+<li>IOS compares the packet against the entries <strong>top down</strong> and stops at the <strong>first match</strong>. That entry's action is applied and no later entry is examined.</li>
+<li>If nothing matches, the packet hits the <strong>implicit deny any</strong> at the end of every ACL. It is invisible in the config and has no counter in <code>show access-lists</code>.</li>
+</ol>
+<p>Consequences you must apply on the exam:</p>
+<ul>
+<li>Put more specific entries above more general ones. A host deny below a subnet permit never matches.</li>
+<li>An ACL with only <code>deny</code> entries blocks everything (the denies, then the implicit deny).</li>
+<li>To see how often the implicit deny is hit, add an explicit <code>deny ip any any</code> (optionally with <code>log</code>) at the end; it then has a counter.</li>
+</ul>
+
+<h3>ACL types and numbers</h3>
+<table>
+<thead><tr><th>Type</th><th>Number ranges</th><th>Matches on</th></tr></thead>
+<tbody>
+<tr><td>Standard numbered</td><td>1-99, 1300-1999</td><td>Source IP address only</td></tr>
+<tr><td>Extended numbered</td><td>100-199, 2000-2699</td><td>Protocol, source and destination IP, source and destination ports, and more</td></tr>
+<tr><td>Standard named</td><td>Name (text)</td><td>Source IP only</td></tr>
+<tr><td>Extended named</td><td>Name (text)</td><td>Same as extended numbered</td></tr>
+</tbody>
+</table>
+<p>Named ACLs behave exactly like numbered ones; the name just documents purpose (<code>ENG-TO-SRV</code> beats <code>117</code>), and they are configured in an ACL sub-mode that makes editing easy. Modern IOS treats numbered ACLs the same way internally, so you can edit a numbered ACL in sub-mode too (shown later).</p>
+
+<h3>Wildcard masks</h3>
+<p>ACLs match addresses with a <strong>wildcard mask</strong>: a 0 bit means "this bit must match", a 1 bit means "ignore this bit". For any contiguous subnet, the wildcard is the subnet mask subtracted from 255.255.255.255.</p>
+<h4>Worked examples: subnet mask to wildcard</h4>
+<table>
+<thead><tr><th>Requirement</th><th>Subnet mask</th><th>255.255.255.255 minus mask</th><th>ACL match</th></tr></thead>
+<tbody>
+<tr><td>10.1.10.0/24</td><td>255.255.255.0</td><td>0.0.0.255</td><td><code>10.1.10.0 0.0.0.255</code></td></tr>
+<tr><td>172.16.32.0/20</td><td>255.255.240.0</td><td>0.0.15.255</td><td><code>172.16.32.0 0.0.15.255</code></td></tr>
+<tr><td>192.168.1.64/27</td><td>255.255.255.224</td><td>0.0.0.31</td><td><code>192.168.1.64 0.0.0.31</code></td></tr>
+<tr><td>10.0.0.4/30</td><td>255.255.255.252</td><td>0.0.0.3</td><td><code>10.0.0.4 0.0.0.3</code></td></tr>
+<tr><td>10.20.0.0/22</td><td>255.255.252.0</td><td>0.0.3.255</td><td><code>10.20.0.0 0.0.3.255</code></td></tr>
+<tr><td>One host 10.1.10.5</td><td>/32</td><td>0.0.0.0</td><td><code>host 10.1.10.5</code> (same as <code>10.1.10.5 0.0.0.0</code>)</td></tr>
+<tr><td>Every address</td><td>/0</td><td>255.255.255.255</td><td><code>any</code> (same as <code>0.0.0.0 255.255.255.255</code>)</td></tr>
+</tbody>
+</table>
+<h4>Worked example: which range does an ACE match?</h4>
+<p><code>access-list 10 permit 172.16.40.0 0.0.7.255</code>: the third octet wildcard is 7 (00000111), so the low 3 bits of the third octet are ignored. 40 is 00101000, a multiple of 8, so the range is 172.16.40.0 to 172.16.47.255 (a /21).</p>
+<p>A trick question: <code>permit 172.16.42.0 0.0.7.255</code>. The ignored bits of 42 (00101<strong>010</strong>) do not matter, so IOS rewrites it as <code>172.16.40.0 0.0.7.255</code> in the running config and it still matches 40.0 to 47.255. IOS zeroes the "don't care" bits for you; the result may cover more than you intended.</p>
+<h4>Summarizing several subnets in one entry</h4>
+<p>Match 192.168.16.0/24 through 192.168.23.0/24: that is 8 consecutive /24s starting at a multiple of 8, so <code>192.168.16.0 0.0.7.255</code>. If the block does not start on the right boundary (for example 192.168.18.0 to 192.168.25.0), one entry cannot match it exactly; use several.</p>
+<h4>Odd (non-contiguous) wildcards</h4>
+<p>Wildcards do not need to be contiguous. <code>10.1.1.1 0.0.0.254</code> means: first three octets must be 10.1.1, last bit must be 1, the other 7 bits of the last octet are ignored. It matches every <strong>odd</strong> address in 10.1.1.0/24. <code>10.1.1.0 0.0.0.254</code> matches every even address. <code>10.0.5.0 0.255.0.255</code> matches any 10.x.5.y, such as the VLAN 5 subnet in every site of a 10.site.vlan.host scheme. You should be able to read these; you will rarely write them.</p>
+<div class="callout trap"><p><strong>Exam trap:</strong> <code>access-list 10 permit 10.1.10.0 255.255.255.0</code> is accepted by IOS but it is a wildcard, not a subnet mask. It ignores the first three octets and requires the last octet to be 0, so it matches 10.1.10.0, 192.168.7.0 and every other address ending in .0, and nothing in the 10.1.10.0/24 host range. A subnet mask in an ACL is almost always a bug.</p></div>
+
+<h3>Standard ACLs</h3>
+<pre class="cli">R2(config)# access-list 10 remark Allow Sales except PC-B to the servers
+R2(config)# access-list 10 deny host 10.1.10.11
+R2(config)# access-list 10 permit 10.1.10.0 0.0.0.255
+R2(config)# interface g0/1
+R2(config-if)# ip access-group 10 out</pre>
+<pre class="cli">R2(config)# ip access-list standard SALES-TO-SRV
+R2(config-std-nacl)# remark Same policy as ACL 10, named
+R2(config-std-nacl)# deny host 10.1.10.11
+R2(config-std-nacl)# permit 10.1.10.0 0.0.0.255
+R2(config-std-nacl)# exit
+R2(config)# interface g0/1
+R2(config-if)# ip access-group SALES-TO-SRV out</pre>
+<ul>
+<li>Standard ACL syntax: <code>access-list number {permit|deny} source [wildcard] [log]</code>. A source given without a wildcard is treated as a host.</li>
+<li>Entries are numbered 10, 20, 30 automatically; you see the sequence numbers in <code>show access-lists</code>.</li>
+<li><code>remark</code> adds a comment line (up to 100 characters); remarks do not affect matching.</li>
+</ul>
+
+<h3>Extended ACLs</h3>
+<p>Syntax: <code>access-list 100-199|2000-2699 {permit|deny} protocol source src-wildcard [operator port] destination dst-wildcard [operator port] [established] [log]</code>. In a named extended ACL the same line follows an optional sequence number.</p>
+<ul>
+<li><strong>Protocol</strong>: <code>ip</code> (any IPv4 packet), <code>tcp</code>, <code>udp</code>, <code>icmp</code>, <code>ospf</code>, <code>eigrp</code>, <code>gre</code>, <code>esp</code>, or a protocol number. Port operators are allowed only with <code>tcp</code> and <code>udp</code>.</li>
+<li><strong>Port position matters</strong>: an operator right after the source address matches the <em>source</em> port; right after the destination address it matches the <em>destination</em> port. Client requests go <em>to</em> a well-known destination port, so <code>... host 192.168.50.10 eq www</code> matches web requests to the server.</li>
+<li><strong>Operators</strong>: <code>eq</code> (equal), <code>neq</code> (not equal), <code>gt</code> (greater than), <code>lt</code> (less than), <code>range</code> low high (inclusive).</li>
+<li><strong>established</strong> (TCP only) matches segments with the ACK or RST bit set, meaning replies within a session someone inside started. A SYN that opens a new connection has no ACK, so it does not match. It is a simple way to let return traffic in without allowing new inbound connections.</li>
+<li>ICMP can be matched by type: <code>permit icmp any any echo</code> and <code>echo-reply</code>.</li>
+</ul>
+<table>
+<thead><tr><th>Keyword</th><th>Port</th><th>Protocol</th></tr></thead>
+<tbody>
+<tr><td><code>ftp-data</code> / <code>ftp</code></td><td>20 / 21</td><td>TCP</td></tr>
+<tr><td><code>22</code> (SSH)</td><td>22</td><td>TCP</td></tr>
+<tr><td><code>telnet</code></td><td>23</td><td>TCP</td></tr>
+<tr><td><code>smtp</code></td><td>25</td><td>TCP</td></tr>
+<tr><td><code>domain</code></td><td>53</td><td>UDP and TCP</td></tr>
+<tr><td><code>bootps</code> / <code>bootpc</code></td><td>67 / 68</td><td>UDP</td></tr>
+<tr><td><code>tftp</code></td><td>69</td><td>UDP</td></tr>
+<tr><td><code>www</code></td><td>80</td><td>TCP</td></tr>
+<tr><td><code>pop3</code></td><td>110</td><td>TCP</td></tr>
+<tr><td><code>ntp</code></td><td>123</td><td>UDP</td></tr>
+<tr><td><code>snmp</code> / <code>snmptrap</code></td><td>161 / 162</td><td>UDP</td></tr>
+<tr><td><code>443</code> (HTTPS)</td><td>443</td><td>TCP</td></tr>
+<tr><td><code>syslog</code></td><td>514</td><td>UDP</td></tr>
+</tbody>
+</table>
+<p>You can type the number or the keyword; IOS displays the keyword where one exists (<code>eq 80</code> shows as <code>eq www</code>).</p>
+
+<h4>Worked example 1: write an extended ACL from a requirement</h4>
+<p><em>Requirement:</em> Hosts in 10.1.20.0/24 (Engineering, behind R1 G0/1) may reach server 192.168.50.10 only for HTTP, HTTPS and DNS. All other Engineering traffic to the 192.168.50.0/24 server LAN is blocked. Engineering traffic to anywhere else is allowed.</p>
+<ol>
+<li>Extended ACL, so place it near the source: inbound on R1 G0/1.</li>
+<li>Permit the specific services first, then deny the rest of the server LAN, then permit everything else (otherwise the implicit deny would block Engineering's other traffic).</li>
+<li>DNS queries use UDP 53 (and TCP 53 for large responses and zone transfers), so permit both.</li>
+</ol>
+<pre class="cli">R1(config)# ip access-list extended ENG-TO-SRV
+R1(config-ext-nacl)# remark Web and DNS to server only
+R1(config-ext-nacl)# permit tcp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq www
+R1(config-ext-nacl)# permit tcp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq 443
+R1(config-ext-nacl)# permit udp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq domain
+R1(config-ext-nacl)# permit tcp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq domain
+R1(config-ext-nacl)# deny ip 10.1.20.0 0.0.0.255 192.168.50.0 0.0.0.255
+R1(config-ext-nacl)# permit ip any any
+R1(config-ext-nacl)# exit
+R1(config)# interface g0/1
+R1(config-if)# ip access-group ENG-TO-SRV in</pre>
+<pre class="cli">R1# show access-lists ENG-TO-SRV
+Extended IP access list ENG-TO-SRV
+    10 permit tcp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq www (38 matches)
+    20 permit tcp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq 443 (112 matches)
+    30 permit udp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq domain (21 matches)
+    40 permit tcp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq domain
+    50 deny ip 10.1.20.0 0.0.0.255 192.168.50.0 0.0.0.255 (8 matches)
+    60 permit ip any any (57 matches)</pre>
+<p>Reading the output: line 40 has no counter yet (no TCP DNS seen). The 8 matches on line 50 are blocked attempts (for example pings to the server). <code>clear access-list counters</code> resets the numbers before a test. Remark lines do not appear in <code>show access-lists</code>; they appear in the running config.</p>
+
+<h4>Worked example 2: protecting the inside with established</h4>
+<pre class="cli">R1(config)# ip access-list extended FROM-INTERNET
+R1(config-ext-nacl)# permit tcp any 10.1.0.0 0.0.255.255 established
+R1(config-ext-nacl)# permit udp host 8.8.8.8 eq domain 10.1.0.0 0.0.255.255
+R1(config-ext-nacl)# permit icmp any 10.1.0.0 0.0.255.255 echo-reply
+R1(config-ext-nacl)# deny ip any any log
+R1(config-ext-nacl)# exit
+R1(config)# interface g0/2
+R1(config-if)# ip access-group FROM-INTERNET in</pre>
+<p>Line 1 lets TCP replies back in but blocks new inbound TCP connections. Line 2 matches the <em>source</em> port 53 because the operator follows the source address: DNS replies come <em>from</em> port 53. Note that <code>established</code> is not stateful; a stateful firewall or zone-based firewall is the real-world answer, but the keyword is fair game on the exam.</p>
+
+<h3>Applying ACLs: interface, direction, limits</h3>
+<ul>
+<li><code>ip access-group {number|name} {in|out}</code> in interface mode applies an ACL to packets routed through that interface.</li>
+<li><strong>in</strong> filters packets arriving on the interface before the routing decision. <strong>out</strong> filters packets leaving the interface after routing.</li>
+<li>Only <strong>one ACL per interface, per direction, per protocol</strong> (one IPv4 in, one IPv4 out, one IPv6 in, one IPv6 out). Applying a second IPv4 ACL in the same direction replaces the first.</li>
+<li>Outbound ACLs do not filter packets the router itself generates (for example its own pings or routing updates).</li>
+<li>An interface referencing an ACL that does not exist (or is empty) permits all traffic.</li>
+<li>Inbound ACLs do filter control-plane traffic arriving on that interface, such as OSPF hellos (protocol 89) and BGP. If you add a final deny, permit routing protocol traffic first, or the neighbor drops.</li>
+</ul>
+
+<h3>Placement guidance</h3>
+<figure class="diagram">
+<svg viewBox="0 0 720 270" role="img" aria-label="ACL placement: extended ACL inbound on R1 near the source LAN, standard ACL outbound on R2 near the destination server LAN">
+<defs><marker id="d5-acl-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="d-accent-fill"/></marker></defs>
+<rect x="15" y="105" width="130" height="60" rx="6" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="80" y="130" text-anchor="middle">Source LAN</text>
+<text class="d-text" x="80" y="150" text-anchor="middle">10.1.20.0/24</text>
+<line x1="145" y1="135" x2="230" y2="135" class="d-line" stroke-width="2"/>
+<circle cx="260" cy="135" r="30" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="260" y="140" text-anchor="middle">R1</text>
+<line x1="290" y1="135" x2="430" y2="135" class="d-line" stroke-width="2"/>
+<text class="d-text" x="360" y="125" text-anchor="middle">WAN</text>
+<circle cx="460" cy="135" r="30" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="460" y="140" text-anchor="middle">R2</text>
+<line x1="490" y1="135" x2="575" y2="135" class="d-line" stroke-width="2"/>
+<rect x="575" y="105" width="130" height="60" rx="6" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="640" y="130" text-anchor="middle">Server LAN</text>
+<text class="d-text" x="640" y="150" text-anchor="middle">192.168.50.0/24</text>
+<rect x="212" y="125" width="14" height="20" class="d-accent-fill" stroke="currentColor"/>
+<text class="d-text" x="196" y="182" text-anchor="middle">G0/1 in</text>
+<rect x="494" y="125" width="14" height="20" class="d-accent-fill" stroke="currentColor"/>
+<text class="d-text" x="524" y="182" text-anchor="middle">G0/1 out</text>
+<text class="d-text" x="160" y="40">Extended ACL</text>
+<text class="d-text" x="160" y="60">near the SOURCE</text>
+<line x1="210" y1="68" x2="219" y2="120" class="d-accent" stroke-width="2" marker-end="url(#d5-acl-arrow)"/>
+<text class="d-text" x="440" y="40">Standard ACL</text>
+<text class="d-text" x="440" y="60">near the DESTINATION</text>
+<line x1="495" y1="68" x2="501" y2="120" class="d-accent" stroke-width="2" marker-end="url(#d5-acl-arrow)"/>
+<line x1="80" y1="225" x2="640" y2="225" class="d-accent" stroke-width="2" marker-end="url(#d5-acl-arrow)"/>
+<text class="d-text" x="360" y="250" text-anchor="middle">traffic flow</text>
+</svg>
+<figcaption>An extended ACL can identify exactly the unwanted traffic, so drop it as early as possible. A standard ACL only knows the source, so placing it near the source would block that source from everything beyond.</figcaption>
+</figure>
+<ul>
+<li><strong>Extended ACLs: as close to the source as possible.</strong> They match source, destination and port precisely, so dropping early saves bandwidth on every later link without collateral damage.</li>
+<li><strong>Standard ACLs: as close to the destination as possible.</strong> They match only the source; placed near the source, they would block that host from every destination behind the interface, not just the one you meant.</li>
+<li>Choose the direction that catches the traffic once: inbound on the interface where it enters, or outbound on the interface toward the destination.</li>
+</ul>
+
+<h3>Editing ACLs with sequence numbers</h3>
+<p>Entries get sequence numbers 10, 20, 30 by default. In ACL sub-mode you can insert, delete, and renumber without retyping the list. This works for named ACLs and also for numbered ACLs entered as <code>ip access-list standard 10</code> or <code>ip access-list extended 101</code>.</p>
+<pre class="cli">R1# show access-lists 10
+Standard IP access list 10
+    10 deny   10.1.10.11
+    20 permit 10.1.10.0, wildcard bits 0.0.0.255
+R1# configure terminal
+R1(config)# ip access-list standard 10
+R1(config-std-nacl)# 15 deny host 10.1.10.12
+R1(config-std-nacl)# no 10
+R1(config-std-nacl)# end
+R1# show access-lists 10
+Standard IP access list 10
+    15 deny   10.1.10.12
+    20 permit 10.1.10.0, wildcard bits 0.0.0.255</pre>
+<pre class="cli">R1(config)# ip access-list resequence ENG-TO-SRV 100 10
+! renumbers the list starting at 100 in steps of 10: 100, 110, 120 ...</pre>
+<ul>
+<li>A new entry with no number goes to the <em>end</em> of the list (last number plus 10). That puts it after any final <code>permit ip any any</code> or <code>deny ip any any</code>, where it never matches. Use a sequence number to place it.</li>
+<li>Reusing an existing sequence number gives "Duplicate sequence number"; delete or pick a free number.</li>
+</ul>
+<div class="callout trap"><p><strong>Exam trap:</strong> In global configuration mode, <code>no access-list 10 deny host 10.1.10.11</code> deletes the <strong>entire</strong> ACL 10, not one line. To remove a single entry from a numbered ACL, enter <code>ip access-list standard 10</code> and use <code>no</code> with the sequence number.</p></div>
+
+<h3>Securing VTY access with access-class</h3>
+<p>To control who may Telnet or SSH to the router itself, filter the VTY lines rather than every interface:</p>
+<pre class="cli">R1(config)# access-list 5 remark Management hosts allowed to the VTYs
+R1(config)# access-list 5 permit host 10.1.10.10
+R1(config)# access-list 5 permit 10.1.99.0 0.0.0.255
+R1(config)# line vty 0 4
+R1(config-line)# access-class 5 in
+R1(config-line)# login local
+R1(config-line)# transport input ssh</pre>
+<ul>
+<li><code>access-class</code> is the line-mode command; <code>ip access-group</code> is the interface command. Mixing them up is a common wrong answer.</li>
+<li><code>access-class in</code> works no matter which of the router's IP addresses the client connects to, which is the advantage over interface ACLs.</li>
+<li>A standard ACL is normal here because only the source matters. <code>access-class out</code> exists too: it limits where users on the router can Telnet/SSH <em>to</em>.</li>
+<li>Apply it to all VTY lines that exist (0 4 or 0 15) or an attacker just gets a different line.</li>
+</ul>
+
+<h3>Verification</h3>
+<pre class="cli">R1# show ip interface g0/1
+GigabitEthernet0/1 is up, line protocol is up
+  Internet address is 10.1.20.1/24
+  Broadcast address is 255.255.255.255
+  Address determined by setup command
+  MTU is 1500 bytes
+  Helper address is not set
+  Directed broadcast forwarding is disabled
+  Outgoing access list is not set
+  Inbound  access list is ENG-TO-SRV
+  Proxy ARP is enabled
+  ...
+R1# show running-config | include access-group|access-class
+ ip access-group ENG-TO-SRV in
+ access-class 5 in</pre>
+<table>
+<thead><tr><th>Command</th><th>Use</th></tr></thead>
+<tbody>
+<tr><td><code>show access-lists</code> / <code>show ip access-lists [name|number]</code></td><td>Entries, sequence numbers, match counters</td></tr>
+<tr><td><code>show ip interface [intf]</code></td><td>Which ACL is applied in and out</td></tr>
+<tr><td><code>show running-config | section access-list</code></td><td>The ACL with its remarks</td></tr>
+<tr><td><code>clear access-list counters [name]</code></td><td>Reset counters before a test</td></tr>
+</tbody>
+</table>
+
+<h3>Find the bug: five worked examples</h3>
+<h4>Bug 1: order</h4>
+<pre class="cli">access-list 20 permit 10.1.10.0 0.0.0.255
+access-list 20 deny host 10.1.10.11</pre>
+<p>Goal: block 10.1.10.11, allow the rest of the subnet. The host is matched by line 1 first and permitted; line 2 never matches. Fix: put the host deny first.</p>
+<h4>Bug 2: direction and placement</h4>
+<pre class="cli">R1(config)# interface g0/1
+R1(config-if)# ip access-group ENG-TO-SRV out</pre>
+<p>G0/1 faces the Engineering LAN, so outbound traffic on it is going <em>to</em> Engineering, sourced from the servers. Every entry matches source 10.1.20.0/24, so nothing matches except <code>permit ip any any</code>: the ACL does nothing. Fix: <code>in</code>.</p>
+<h4>Bug 3: DNS over the wrong transport</h4>
+<pre class="cli">permit tcp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq www
+permit tcp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq domain
+deny ip any any</pre>
+<p>Web pages by IP work, but name resolution fails because normal DNS queries are UDP 53. Fix: add <code>permit udp ... eq domain</code>.</p>
+<h4>Bug 4: ports on the wrong side</h4>
+<pre class="cli">permit tcp 10.1.20.0 0.0.0.255 eq www host 192.168.50.10</pre>
+<p>This matches packets whose <em>source</em> port is 80. Client requests use a random high source port and destination port 80, so web requests are not matched. Fix: put <code>eq www</code> after the destination.</p>
+<h4>Bug 5: the router loses its OSPF neighbor</h4>
+<pre class="cli">R1(config)# ip access-list extended WAN-IN
+R1(config-ext-nacl)# permit tcp any any established
+R1(config-ext-nacl)# deny ip any any
+R1(config-ext-nacl)# interface g0/0
+R1(config-if)# ip access-group WAN-IN in</pre>
+<p>OSPF hellos arriving on G0/0 (IP protocol 89) hit the deny, the dead timer expires and the adjacency drops. Fix: add <code>permit ospf any any</code> (or the neighbor's address) above the deny.</p>
+
+<h3>Predict the result: worked example</h3>
+<p>ACL applied inbound on R1 G0/1 (Engineering LAN):</p>
+<pre class="cli">ip access-list extended TEST
+ 10 deny   tcp host 10.1.20.50 any eq telnet
+ 20 permit tcp 10.1.20.0 0.0.0.255 192.168.50.0 0.0.0.255 range 20 21
+ 30 permit icmp 10.1.20.0 0.0.0.127 any echo
+ 40 deny   udp any any eq tftp
+ 50 permit ip 10.1.20.0 0.0.0.255 host 192.168.50.10</pre>
+<table>
+<thead><tr><th>Packet</th><th>Result</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>10.1.20.50 to 192.168.50.10, TCP dst 23</td><td>Denied</td><td>Line 10</td></tr>
+<tr><td>10.1.20.50 to 192.168.50.10, TCP dst 22</td><td>Permitted</td><td>Not 23, not 20-21; line 50 matches the host destination</td></tr>
+<tr><td>10.1.20.60 to 192.168.50.20, TCP dst 21</td><td>Permitted</td><td>Line 20 (FTP control)</td></tr>
+<tr><td>10.1.20.200 to 8.8.8.8, ICMP echo</td><td>Denied</td><td>Line 30 covers .0 to .127 only; nothing else matches 8.8.8.8, implicit deny</td></tr>
+<tr><td>10.1.20.20 to 8.8.8.8, ICMP echo</td><td>Permitted</td><td>Line 30</td></tr>
+<tr><td>10.1.20.20 to 192.168.50.10, UDP dst 69</td><td>Denied</td><td>Line 40 comes before line 50</td></tr>
+<tr><td>10.1.20.20 to 192.168.50.20, UDP dst 53</td><td>Denied</td><td>Line 50 is only for host .10; implicit deny</td></tr>
+</tbody>
+</table>
+
+<h3>IPv6 ACLs (recognition only)</h3>
+<p>The v1.1 topic says only "access control lists", and Cisco's CCNA study material concentrates on IPv4 ACLs. Recognize the IPv6 syntax:</p>
+<pre class="cli">R1(config)# ipv6 access-list V6-WEB
+R1(config-ipv6-acl)# permit tcp 2001:db8:20::/64 host 2001:db8:50::10 eq www
+R1(config-ipv6-acl)# deny ipv6 2001:db8:20::/64 2001:db8:50::/64
+R1(config-ipv6-acl)# permit ipv6 any any
+R1(config-ipv6-acl)# exit
+R1(config)# interface g0/1
+R1(config-if)# ipv6 traffic-filter V6-WEB in</pre>
+<ul>
+<li>IPv6 ACLs are <strong>named only</strong>, use <strong>prefix lengths</strong> instead of wildcards, are applied with <code>ipv6 traffic-filter</code> (not <code>ip access-group</code>), and with <code>ipv6 access-class</code> on VTY lines.</li>
+<li>They end with an implicit deny. On many IOS routers there are also implicit permits for Neighbor Discovery (neighbor solicitation and advertisement) just before that deny, so ND keeps working. Platforms differ, and an explicit <code>deny ipv6 any any</code> that you add yourself comes before those implicit permits, so permit ND explicitly if you end a list with your own deny.</li>
+</ul>
+
+<div class="lab" id="lab-5-6-1">
+<h4>Lab: Standard ACL near the destination</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~25 min</p>
+<p>Topology (reused by all 5.6 labs): R1 (2911). G0/0 10.1.10.1/24 to SW-SALES with PC-A 10.1.10.10 and PC-B 10.1.10.11. G0/1 10.1.20.1/24 to SW-ENG with PC-C 10.1.20.10. G0/2 192.168.50.1/24 to SW-SRV with Server0 192.168.50.10 (HTTP, HTTPS and DNS services on; add a DNS A record <code>intranet.lab</code> to 192.168.50.10). All PCs use their R1 address as gateway and 192.168.50.10 as DNS.</p>
+<ol>
+<li>Confirm all PCs can ping Server0 before adding any ACL.</li>
+<li>Requirement: only Sales hosts may reach the server LAN, except PC-B, which is blocked. Write a standard numbered ACL 10 with a remark.</li>
+<li>Apply it in the correct place for a standard ACL.</li>
+<li>Test from PC-A, PC-B and PC-C. Then ping between PC-B and PC-C to show PC-B is only blocked toward the servers.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>PC-A pings and browses to 192.168.50.10: success. PC-B and PC-C: "Destination host unreachable" replies from their own gateway address on R1 (10.1.10.1 for PC-B, 10.1.20.1 for PC-C), or request timed out.</li>
+<li>PC-B to PC-C ping succeeds (ACL is only outbound on G0/2).</li>
+<li><code>show access-lists 10</code>: the deny host line counts PC-B's attempts, the permit counts PC-A's. PC-C's packets hit the implicit deny, so they are not counted anywhere.</li>
+<li><code>show ip interface g0/2</code>: "Outgoing access list is 10".</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">R1(config)# access-list 10 remark Sales to servers except PC-B
+R1(config)# access-list 10 deny host 10.1.10.11
+R1(config)# access-list 10 permit 10.1.10.0 0.0.0.255
+R1(config)# interface g0/2
+R1(config-if)# ip access-group 10 out
+R1(config-if)# end
+R1# show access-lists 10
+Standard IP access list 10
+    10 deny   10.1.10.11 (4 matches)
+    20 permit 10.1.10.0, wildcard bits 0.0.0.255 (9 matches)
+! Remove before the next lab:
+R1(config)# interface g0/2
+R1(config-if)# no ip access-group 10 out</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-5-6-2">
+<h4>Lab: Extended ACL permitting web and DNS only</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~30 min</p>
+<p>Topology: same as lab-5-6-1, with ACL 10 removed from G0/2.</p>
+<ol>
+<li>Requirement: Engineering (10.1.20.0/24) may reach Server0 only for HTTP, HTTPS and DNS. All other Engineering traffic to 192.168.50.0/24 is denied. Engineering may still reach the Sales LAN.</li>
+<li>Write a named extended ACL <code>ENG-TO-SRV</code> and apply it in the best place.</li>
+<li>Clear the counters, then from PC-C: browse to <code>http://intranet.lab</code>, browse to <code>https://192.168.50.10</code>, ping 192.168.50.10, ping 10.1.10.10.</li>
+<li>Read the counters and match each test to a line.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>Web by name works (DNS and HTTP permitted). HTTPS works. Ping to Server0 fails. Ping to PC-A works.</li>
+<li><code>show access-lists ENG-TO-SRV</code>: matches on the www, 443 and UDP domain lines; the deny line counts the 4 pings; the final permit counts the pings to PC-A.</li>
+<li><code>show ip interface g0/1</code>: "Inbound access list is ENG-TO-SRV".</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">R1(config)# ip access-list extended ENG-TO-SRV
+R1(config-ext-nacl)# remark Web and DNS to Server0 only
+R1(config-ext-nacl)# permit tcp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq www
+R1(config-ext-nacl)# permit tcp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq 443
+R1(config-ext-nacl)# permit udp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq domain
+R1(config-ext-nacl)# permit tcp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq domain
+R1(config-ext-nacl)# deny ip 10.1.20.0 0.0.0.255 192.168.50.0 0.0.0.255
+R1(config-ext-nacl)# permit ip any any
+R1(config-ext-nacl)# exit
+R1(config)# interface g0/1
+R1(config-if)# ip access-group ENG-TO-SRV in
+R1(config-if)# end
+R1# clear access-list counters ENG-TO-SRV</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-5-6-3">
+<h4>Lab: Edit named and numbered ACLs with sequence numbers</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~20 min</p>
+<p>Topology: same as lab-5-6-2, with <code>ENG-TO-SRV</code> applied inbound on G0/1. Re-create standard ACL 10 from lab-5-6-1 (not applied).</p>
+<ol>
+<li>Allow PC-C (only) to ping Server0 for troubleshooting by inserting one line into <code>ENG-TO-SRV</code> without retyping the list. It must sit above the deny line.</li>
+<li>HTTPS is no longer needed: remove that single line.</li>
+<li>Resequence <code>ENG-TO-SRV</code> to start at 100 in steps of 10.</li>
+<li>In numbered ACL 10, insert a deny for 10.1.10.12 as the first line, using sub-mode, then delete the original PC-B line by its sequence number.</li>
+<li>Show that typing a new entry without a number puts it at the end.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>PC-C ping to Server0 now succeeds; another Engineering host (add PC-D 10.1.20.11) still fails.</li>
+<li><code>show access-lists ENG-TO-SRV</code> shows sequence numbers 100 to 150 with no 443 line, and the ICMP line above the deny.</li>
+<li><code>show access-lists 10</code> shows 5 deny 10.1.10.12 and 20 permit 10.1.10.0 0.0.0.255.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">R1(config)# ip access-list extended ENG-TO-SRV
+R1(config-ext-nacl)# 45 permit icmp host 10.1.20.10 host 192.168.50.10 echo
+R1(config-ext-nacl)# no 20
+R1(config-ext-nacl)# exit
+R1(config)# ip access-list resequence ENG-TO-SRV 100 10
+R1(config)# do show access-lists ENG-TO-SRV
+Extended IP access list ENG-TO-SRV
+    100 permit tcp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq www
+    110 permit udp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq domain
+    120 permit tcp 10.1.20.0 0.0.0.255 host 192.168.50.10 eq domain
+    130 permit icmp host 10.1.20.10 host 192.168.50.10 echo
+    140 deny ip 10.1.20.0 0.0.0.255 192.168.50.0 0.0.0.255
+    150 permit ip any any
+R1(config)# ip access-list standard 10
+R1(config-std-nacl)# 5 deny host 10.1.10.12
+R1(config-std-nacl)# no 10
+R1(config-std-nacl)# deny host 10.1.10.99
+R1(config-std-nacl)# do show access-lists 10
+Standard IP access list 10
+    5 deny   10.1.10.12
+    20 permit 10.1.10.0, wildcard bits 0.0.0.255
+    30 deny   10.1.10.99
+! Line 30 can never match: 10.1.10.99 is already permitted by line 20.
+R1(config-std-nacl)# no 30</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-5-6-4">
+<h4>Lab: Restrict VTY access with access-class</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~15 min</p>
+<p>Topology: same as lab-5-6-1. Remove <code>ENG-TO-SRV</code> from G0/1 first so it does not interfere.</p>
+<ol>
+<li>Create local user <code>admin</code> with privilege 15 and a secret; enable a secret.</li>
+<li>Only PC-A (10.1.10.10) may open a Telnet session to R1. Write standard ACL 5 and apply it to all VTY lines with <code>login local</code>.</li>
+<li>From PC-A, telnet to 10.1.10.1 and then to 192.168.50.1. From PC-B and PC-C, telnet to 10.1.10.1.</li>
+<li>Try (and observe the error) applying <code>ip access-group 5 in</code> under the VTY lines.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>PC-A gets "User Access Verification" on both router addresses: access-class does not care which interface address is used.</li>
+<li>PC-B and PC-C have the connection refused.</li>
+<li><code>show access-lists 5</code> counts PC-A's connections; <code>show running-config | section vty</code> shows <code>access-class 5 in</code>.</li>
+<li><code>ip access-group</code> is rejected in line mode (it is an interface command).</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">R1(config)# interface g0/1
+R1(config-if)# no ip access-group ENG-TO-SRV in
+R1(config-if)# exit
+R1(config)# enable secret En@ble!Secret26
+R1(config)# username admin privilege 15 secret Adm1n!2026xyz
+R1(config)# access-list 5 remark Only PC-A may manage R1
+R1(config)# access-list 5 permit host 10.1.10.10
+R1(config)# line vty 0 4
+R1(config-line)# access-class 5 in
+R1(config-line)# login local
+R1(config-line)# transport input telnet ssh
+R1(config-line)# end
+R1# show access-lists 5
+Standard IP access list 5
+    10 permit 10.1.10.10 (2 matches)</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Top-down, first match, implicit deny any at the end (no counter). Specific entries first.</li>
+<li>Standard 1-99 and 1300-1999 (source only, place near destination); extended 100-199 and 2000-2699 (place near source).</li>
+<li>Wildcard = 255.255.255.255 minus subnet mask; <code>host</code> = 0.0.0.0, <code>any</code> = 255.255.255.255.</li>
+<li>Extended port operators eq, neq, gt, lt, range; the port after the destination is the destination port; <code>established</code> matches ACK or RST.</li>
+<li><code>ip access-group</code> on interfaces (one per interface, direction and protocol); <code>access-class</code> on VTY lines.</li>
+<li>Edit with sequence numbers in <code>ip access-list</code> sub-mode; <code>ip access-list resequence</code>; <code>no access-list N ...</code> in global mode deletes the whole ACL.</li>
+</ul></div>
+</section>
+<section class="topic" id="t-5-7" data-topics="5.7">
+<h2>5.7 Configure and verify Layer 2 security (DHCP snooping, DAI, port security)</h2>
+<p>These three Catalyst features protect the access layer, where untrusted users plug in. They build on each other: port security limits which MAC addresses a port accepts, DHCP snooping stops rogue DHCP servers and records which IP each host leased, and Dynamic ARP Inspection uses that record to stop ARP poisoning. All are off by default.</p>
+
+<h3>Why they matter</h3>
+<table>
+<thead><tr><th>Attack</th><th>What happens</th><th>Feature</th></tr></thead>
+<tbody>
+<tr><td>MAC flooding</td><td>Attacker sends frames from thousands of fake source MACs, filling the MAC table, so the switch floods unknown unicasts and the attacker can capture them</td><td>Port security</td></tr>
+<tr><td>Unauthorized device</td><td>Someone plugs a personal laptop or a switch into a wall jack</td><td>Port security (or 802.1X)</td></tr>
+<tr><td>Rogue DHCP server</td><td>A rogue server answers DISCOVERs and assigns itself as gateway or DNS (MITM)</td><td>DHCP snooping</td></tr>
+<tr><td>DHCP starvation</td><td>Fake DISCOVERs with random client MACs drain the real pool</td><td>DHCP snooping rate limit and MAC check; port security</td></tr>
+<tr><td>ARP poisoning</td><td>Forged ARP replies map the gateway's IP to the attacker's MAC (MITM)</td><td>Dynamic ARP Inspection</td></tr>
+</tbody>
+</table>
+
+<h3>Port security</h3>
+<h4>Configuration</h4>
+<pre class="cli">SW1(config)# interface fa0/1
+SW1(config-if)# switchport mode access
+SW1(config-if)# switchport access vlan 10
+SW1(config-if)# switchport port-security
+SW1(config-if)# switchport port-security maximum 2
+SW1(config-if)# switchport port-security violation restrict
+SW1(config-if)# switchport port-security mac-address sticky
+SW1(config-if)# switchport port-security mac-address 0050.7966.6801</pre>
+<ul>
+<li><code>switchport port-security</code> with no other keyword is what <strong>enables</strong> the feature. All other <code>switchport port-security ...</code> lines are settings; without the enable line nothing is enforced.</li>
+<li>The port must be statically an <strong>access</strong> port or a <strong>trunk</strong>. On a port in the default dynamic mode (dynamic auto or desirable) IOS rejects it: "Command rejected: FastEthernet0/1 is a dynamic port." It is also not supported on EtherChannel members, routed ports or SPAN destination ports.</li>
+<li>Secure MACs are learned three ways: <strong>static</strong> (<code>mac-address H.H.H</code>, saved in config), <strong>dynamic</strong> (learned, lost at reboot or when the port goes down), and <strong>sticky</strong> (learned, and written into the running config as <code>switchport port-security mac-address sticky H.H.H</code>; it survives a reload only if you save the config).</li>
+<li>A port with an IP phone and a PC needs a maximum of at least 2.</li>
+</ul>
+<table>
+<thead><tr><th>Setting</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td>Port security</td><td>Disabled</td></tr>
+<tr><td>Maximum secure MACs</td><td>1</td></tr>
+<tr><td>Violation mode</td><td>shutdown</td></tr>
+<tr><td>Sticky learning</td><td>Disabled</td></tr>
+<tr><td>Aging</td><td>Disabled (time 0, type absolute)</td></tr>
+</tbody>
+</table>
+
+<h4>Violation modes</h4>
+<p>A violation occurs when a frame arrives from a new MAC after the maximum is reached, or when a secure MAC learned on one port appears on another secure port in the same VLAN.</p>
+<table>
+<thead><tr><th>Mode</th><th>Drops offending frames</th><th>Port state</th><th>Syslog and SNMP trap</th><th>Violation counter</th></tr></thead>
+<tbody>
+<tr><td><code>shutdown</code> (default)</td><td>Yes</td><td><strong>err-disabled</strong> (all traffic stops)</td><td>Yes</td><td>Increments (to 1, since the port then goes down)</td></tr>
+<tr><td><code>restrict</code></td><td>Yes</td><td>Stays up; known MACs keep working</td><td>Yes</td><td>Increments for each violating frame</td></tr>
+<tr><td><code>protect</code></td><td>Yes</td><td>Stays up; known MACs keep working</td><td><strong>No</strong></td><td><strong>No</strong></td></tr>
+</tbody>
+</table>
+<p>Newer switches also offer <code>shutdown vlan</code>, which err-disables only the offending VLAN on the port; know that it exists.</p>
+<div class="callout key"><p><strong>Remember:</strong> Protect is silent (drop only). Restrict drops, logs and counts. Shutdown err-disables the port, logs and counts. Defaults: maximum 1, mode shutdown.</p></div>
+
+<h4>Aging</h4>
+<pre class="cli">SW1(config-if)# switchport port-security aging time 60
+SW1(config-if)# switchport port-security aging type inactivity</pre>
+<p>Aging removes dynamic (and optionally static) secure MACs after the timer, in minutes. Type <code>absolute</code> removes the address when the timer expires regardless of activity; <code>inactivity</code> removes it only after the timer passes with no traffic from it. Sticky addresses do not age.</p>
+
+<h4>Recovering from err-disabled</h4>
+<pre class="cli">SW1#
+%PM-4-ERR_DISABLE: psecure-violation error detected on Fa0/1, putting Fa0/1 in err-disable state
+%PORT_SECURITY-2-PSECURE_VIOLATION: Security violation occurred, caused by MAC address 0050.7966.6899 on port FastEthernet0/1.
+%LINK-3-UPDOWN: Interface FastEthernet0/1, changed state to down
+SW1# show interfaces status err-disabled
+
+Port      Name               Status       Reason               Err-disabled Vlans
+Fa0/1                        err-disabled psecure-violation</pre>
+<ul>
+<li><strong>Manual</strong>: remove the offending device, then <code>shutdown</code> followed by <code>no shutdown</code> on the interface.</li>
+<li><strong>Automatic</strong>: <code>errdisable recovery cause psecure-violation</code> and optionally <code>errdisable recovery interval 300</code> (seconds; 300 is the default). The port re-enables itself after the interval; if the violation repeats, it is disabled again. <code>show errdisable recovery</code> shows the timers.</li>
+</ul>
+
+<h4>Verification</h4>
+<p>These outputs come from the lab-5-7-1 switch (maximum 1 on Fa0/1 to Fa0/3, sticky learning; Fa0/1 shutdown, Fa0/2 restrict, Fa0/3 protect), not from the Fa0/1 example above.</p>
+<pre class="cli">SW1# show port-security
+Secure Port  MaxSecureAddr  CurrentAddr  SecurityViolation  Security Action
+                (Count)       (Count)          (Count)
+---------------------------------------------------------------------------
+      Fa0/1              1            1                  1         Shutdown
+      Fa0/2              1            1                 37         Restrict
+      Fa0/3              1            1                  0          Protect
+---------------------------------------------------------------------------
+Total Addresses in System (excluding one mac per port)     : 0
+Max Addresses limit in System (excluding one mac per port) : 4096
+
+SW1# show port-security interface fa0/1
+Port Security              : Enabled
+Port Status                : Secure-shutdown
+Violation Mode             : Shutdown
+Aging Time                 : 0 mins
+Aging Type                 : Absolute
+SecureStatic Address Aging : Disabled
+Maximum MAC Addresses      : 1
+Total MAC Addresses        : 1
+Configured MAC Addresses   : 0
+Sticky MAC Addresses       : 1
+Last Source Address:Vlan   : 0050.7966.6899:10
+Security Violation Count   : 1
+
+SW1# show port-security address
+               Secure Mac Address Table
+-----------------------------------------------------------------------------
+Vlan    Mac Address       Type                          Ports   Remaining Age
+                                                                   (mins)
+----    -----------       ----                          -----   -------------
+  10    0050.7966.6801    SecureSticky                  Fa0/1        -
+  10    0050.7966.6802    SecureSticky                  Fa0/2        -
+  10    0050.7966.6803    SecureSticky                  Fa0/3        -
+-----------------------------------------------------------------------------
+Total Addresses in System (excluding one mac per port)     : 0
+Max Addresses limit in System (excluding one mac per port) : 4096</pre>
+<p>How to read it: Fa0/1 shows "Secure-shutdown" and is err-disabled after one violation; "Last Source Address" is the intruder's MAC. Fa0/2 (restrict) has counted 37 dropped frames and is still up. Fa0/3 (protect) shows 0 violations even if an intruder is connected, which is exactly why protect is hard to troubleshoot. A healthy port shows "Secure-up".</p>
+
+<h3>DHCP snooping</h3>
+<figure class="diagram">
+<svg viewBox="0 0 720 330" role="img" aria-label="DHCP snooping: trusted uplink to legitimate DHCP server, untrusted access ports, rogue server offer dropped">
+<rect x="260" y="20" width="200" height="50" rx="6" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="360" y="42" text-anchor="middle">R1: legitimate DHCP</text>
+<text class="d-text" x="360" y="61" text-anchor="middle">10.1.10.1</text>
+<line x1="360" y1="70" x2="360" y2="140" class="d-line" stroke-width="2"/>
+<text class="d-text" x="372" y="100">Gi0/1 TRUSTED</text>
+<text class="d-text" x="372" y="120">OFFER / ACK allowed</text>
+<rect x="250" y="140" width="220" height="50" rx="6" class="d-accent-fill" stroke="currentColor"/>
+<text class="d-text" x="360" y="170" text-anchor="middle">SW1 (snooping on VLAN 10)</text>
+<line x1="290" y1="190" x2="110" y2="255" class="d-line" stroke-width="2"/>
+<line x1="360" y1="190" x2="360" y2="255" class="d-line" stroke-width="2"/>
+<line x1="430" y1="190" x2="600" y2="255" class="d-line" stroke-width="2"/>
+<rect x="40" y="255" width="140" height="45" rx="6" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="110" y="282" text-anchor="middle">PC1 (Fa0/1)</text>
+<rect x="290" y="255" width="140" height="45" rx="6" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="360" y="282" text-anchor="middle">PC2 (Fa0/2)</text>
+<rect x="530" y="255" width="150" height="45" rx="6" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="605" y="282" text-anchor="middle">Rogue (Fa0/24)</text>
+<text class="d-text" x="40" y="225">untrusted</text>
+<text class="d-text" x="370" y="235">untrusted</text>
+<text class="d-text" x="560" y="215">untrusted</text>
+<line x1="505" y1="205" x2="535" y2="235" class="d-accent" stroke-width="4"/>
+<line x1="535" y1="205" x2="505" y2="235" class="d-accent" stroke-width="4"/>
+<text class="d-text" x="530" y="322" text-anchor="middle">OFFER from rogue: dropped</text>
+</svg>
+<figcaption>Only the trusted uplink may carry DHCP server messages. Clients on untrusted ports can still send DISCOVER and REQUEST, and the switch records each lease in the binding table.</figcaption>
+</figure>
+
+<h4>How it works</h4>
+<ul>
+<li>Every port is <strong>untrusted</strong> by default once snooping is on. Mark ports toward legitimate DHCP servers, and uplinks toward the distribution layer, as <strong>trusted</strong>.</li>
+<li>On an untrusted port the switch <strong>drops DHCP server messages</strong>: OFFER, ACK, NAK and LEASEQUERY packets. That alone stops a rogue server.</li>
+<li>It also drops, on untrusted ports: client messages whose Ethernet source MAC differs from the DHCP client hardware address (chaddr), when MAC verification is on (the default); RELEASE or DECLINE messages for a binding that belongs to a different port (stops an attacker releasing someone else's lease); and packets carrying option 82 or a non-zero relay address (giaddr) arriving on an untrusted port.</li>
+<li>From the client's DHCP exchange the switch builds the <strong>DHCP snooping binding table</strong>: client MAC, leased IP, lease time, VLAN and port. DAI and IP Source Guard use this table.</li>
+<li>Trusted ports are not checked and hosts behind them are not added to the table.</li>
+</ul>
+
+<h4>Configuration</h4>
+<pre class="cli">SW1(config)# ip dhcp snooping
+SW1(config)# ip dhcp snooping vlan 10,20
+SW1(config)# no ip dhcp snooping information option
+SW1(config)# interface g0/1
+SW1(config-if)# description Uplink to R1 / legitimate DHCP
+SW1(config-if)# ip dhcp snooping trust
+SW1(config-if)# exit
+SW1(config)# interface range fa0/1 - 24
+SW1(config-if-range)# ip dhcp snooping limit rate 10</pre>
+<ul>
+<li>Two enable commands are needed: <code>ip dhcp snooping</code> globally <em>and</em> <code>ip dhcp snooping vlan</code> for each VLAN. Either alone does nothing.</li>
+<li><code>ip dhcp snooping limit rate</code> (packets per second) protects against starvation floods. If an untrusted port exceeds it, the port is <strong>err-disabled</strong> (recovery cause <code>dhcp-rate-limit</code>). Cisco suggests no more than 100 pps on untrusted ports. Trusted ports have no limit by default.</li>
+</ul>
+
+<h4>Option 82 and why the lab config disables it</h4>
+<p>By default a snooping switch <strong>inserts DHCP option 82</strong> (relay agent information: which switch and port the request came from) into client requests, but leaves the gateway address field (giaddr) at 0.0.0.0, because the switch is not a relay agent. A Cisco IOS router acting as DHCP server or relay, receiving such a packet on its interface, treats "option 82 present but giaddr is 0" as invalid and drops it. Symptom: snooping is configured correctly, the uplink is trusted, but clients never get an address.</p>
+<p>Fixes, pick one:</p>
+<ul>
+<li>On the switch: <code>no ip dhcp snooping information option</code> (stop inserting option 82). This is the usual choice in small networks and labs.</li>
+<li>On the IOS relay or server: <code>ip dhcp relay information trust-all</code> globally (or <code>ip dhcp relay information trusted</code> on the interface) so it accepts the option.</li>
+</ul>
+<p>A related command, <code>ip dhcp snooping information option allow-untrusted</code>, is for an aggregation switch that receives already-tagged packets from an edge switch on an untrusted port; recognize it, but know the edge-switch fix above first.</p>
+
+<h4>Verification</h4>
+<pre class="cli">SW1# show ip dhcp snooping
+Switch DHCP snooping is enabled
+DHCP snooping is configured on following VLANs:
+10,20
+DHCP snooping is operational on following VLANs:
+10,20
+DHCP snooping is configured on the following L3 Interfaces:
+
+Insertion of option 82 is disabled
+   circuit-id default format: vlan-mod-port
+   remote-id: 0cd9.9612.3400 (MAC)
+Option 82 on untrusted port is not allowed
+Verification of hwaddr field is enabled
+Verification of giaddr field is enabled
+DHCP snooping trust/rate is configured on the following Interfaces:
+
+Interface                  Trusted    Allow option    Rate limit (pps)
+-----------------------    -------    ------------    ----------------
+GigabitEthernet0/1         yes        yes             unlimited
+  Custom circuit-ids:
+FastEthernet0/1            no         no              10
+  Custom circuit-ids:
+FastEthernet0/2            no         no              10
+  Custom circuit-ids:
+...
+
+SW1# show ip dhcp snooping binding
+MacAddress          IpAddress        Lease(sec)  Type           VLAN  Interface
+------------------  ---------------  ----------  -------------  ----  --------------------
+00:50:79:66:68:01   10.1.10.11       86011       dhcp-snooping   10    FastEthernet0/1
+00:50:79:66:68:02   10.1.10.12       86027       dhcp-snooping   10    FastEthernet0/2
+Total number of bindings: 2</pre>
+<div class="callout trap"><p><strong>Exam trap:</strong> DHCP snooping filters <em>server</em> messages on untrusted ports. A port that faces the legitimate server must be trusted, or no client gets an address. A question that says "clients stopped getting addresses after DHCP snooping was enabled" usually means the uplink was not trusted (or the option 82 issue above).</p></div>
+
+<h3>Dynamic ARP Inspection (DAI)</h3>
+<h4>How it works</h4>
+<ul>
+<li>DAI intercepts ARP requests and replies on <strong>untrusted</strong> ports in the VLANs where it is enabled, and checks the sender's IP-to-MAC pair against the <strong>DHCP snooping binding table</strong> (or against <strong>ARP ACLs</strong> for statically addressed hosts). A mismatch is dropped and logged. That stops a host from claiming to be the gateway.</li>
+<li>Therefore <strong>DHCP snooping must be running</strong> for DAI to work with DHCP clients.</li>
+<li>Trusted ports are not inspected. Trust switch uplinks and ports to routers and other devices with static IPs that have no binding (or write an ARP ACL for them). If you forget, the gateway's own ARP replies are dropped and the whole VLAN loses its default gateway.</li>
+<li>Optional extra checks with <code>ip arp inspection validate</code>: <code>src-mac</code> (Ethernet source MAC equals ARP sender MAC), <code>dst-mac</code> (Ethernet destination MAC equals ARP target MAC, on replies), <code>ip</code> (rejects invalid addresses such as 0.0.0.0, 255.255.255.255 and multicast). Off by default. Each <code>validate</code> command replaces the previous one, so put all keywords on one line.</li>
+<li><strong>Rate limit</strong>: untrusted ports default to <strong>15 ARP packets per second</strong> (burst interval 1 second); trusted ports are unlimited. Exceeding the limit <strong>err-disables</strong> the port (recovery cause <code>arp-inspection</code>).</li>
+</ul>
+
+<h4>Configuration</h4>
+<pre class="cli">SW1(config)# ip arp inspection vlan 10
+SW1(config)# ip arp inspection validate src-mac dst-mac ip
+SW1(config)# interface g0/1
+SW1(config-if)# ip arp inspection trust
+SW1(config-if)# exit
+SW1(config)# interface fa0/1
+SW1(config-if)# ip arp inspection limit rate 25
+SW1(config-if)# exit
+! Static host without a DHCP binding:
+SW1(config)# arp access-list STATIC-HOSTS
+SW1(config-arp-nacl)# permit ip host 10.1.10.50 mac host 0050.7966.6850
+SW1(config-arp-nacl)# exit
+SW1(config)# ip arp inspection filter STATIC-HOSTS vlan 10</pre>
+
+<h4>Verification</h4>
+<pre class="cli">SW1# show ip arp inspection vlan 10
+
+Source Mac Validation      : Enabled
+Destination Mac Validation : Enabled
+IP Address Validation      : Enabled
+
+ Vlan     Configuration    Operation   ACL Match          Static ACL
+ ----     -------------    ---------   ---------          ----------
+   10     Enabled          Active      STATIC-HOSTS       No
+
+ Vlan     ACL Logging      DHCP Logging      Probe Logging
+ ----     -----------      ------------      -------------
+   10     Deny             Deny              Off
+
+SW1# show ip arp inspection interfaces
+
+ Interface        Trust State     Rate (pps)    Burst Interval
+ ---------------  -----------     ----------    --------------
+ Gi0/1            Trusted               None               N/A
+ Fa0/1            Untrusted               25                 1
+ Fa0/2            Untrusted               15                 1
+ Fa0/3            Untrusted               15                 1
+
+SW1# show ip arp inspection statistics vlan 10
+
+ Vlan      Forwarded        Dropped     DHCP Drops      ACL Drops
+ ----      ---------        -------     ----------      ---------
+   10            204             14             14              0
+
+ Vlan   DHCP Permits    ACL Permits  Probe Permits   Source MAC Failures
+ ----   ------------    -----------  -------------   -------------------
+   10            198              6              0                     0
+
+ Vlan   Dest MAC Failures   IP Validation Failures   Invalid Protocol Data
+ ----   -----------------   ----------------------   ---------------------
+   10                   0                        0                       0</pre>
+<p>"DHCP Drops" are ARPs that did not match a binding: either an attack, or a legitimate static host you forgot to trust or to put in an ARP ACL.</p>
+
+<div class="callout tip"><p><strong>Tip:</strong> Deploy in this order: DHCP snooping first, let clients renew so the binding table fills, then enable DAI. Hosts that got their address before snooping started have no binding and will lose connectivity when DAI comes on.</p></div>
+
+<h3>Summary of trust and defaults</h3>
+<table>
+<thead><tr><th></th><th>Port security</th><th>DHCP snooping</th><th>DAI</th></tr></thead>
+<tbody>
+<tr><td>Enable</td><td><code>switchport port-security</code> per interface</td><td><code>ip dhcp snooping</code> + <code>ip dhcp snooping vlan X</code></td><td><code>ip arp inspection vlan X</code></td></tr>
+<tr><td>Default port state</td><td>n/a</td><td>Untrusted</td><td>Untrusted</td></tr>
+<tr><td>Trust command</td><td>n/a</td><td><code>ip dhcp snooping trust</code></td><td><code>ip arp inspection trust</code></td></tr>
+<tr><td>Rate limit default</td><td>n/a</td><td>None</td><td>15 pps on untrusted</td></tr>
+<tr><td>Err-disable cause</td><td>psecure-violation</td><td>dhcp-rate-limit</td><td>arp-inspection</td></tr>
+<tr><td>Key show command</td><td><code>show port-security [interface]</code></td><td><code>show ip dhcp snooping binding</code></td><td><code>show ip arp inspection</code></td></tr>
+</tbody>
+</table>
+
+<div class="lab" id="lab-5-7-1">
+<h4>Lab: Port security with all three violation modes</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~35 min</p>
+<p>Topology: SW1 (2960), all ports in VLAN 10, with SVI 10.1.10.2/24. PC1 on Fa0/1 (10.1.10.11), PC2 on Fa0/2 (10.1.10.12), PC3 on Fa0/3 (10.1.10.13). Add a spare laptop, Intruder (10.1.10.99), not yet connected.</p>
+<ol>
+<li>On Fa0/1 to Fa0/3: static access mode in VLAN 10, port security with maximum 1 and sticky learning. Leave Fa0/1 at the default mode, set Fa0/2 to <code>restrict</code> and Fa0/3 to <code>protect</code>.</li>
+<li>Ping the SVI from each PC so the sticky MACs are learned. Check <code>show port-security address</code> and the running config.</li>
+<li>Try enabling port security on Fa0/10 while it is still in the default dynamic mode and note the error.</li>
+<li>For each port in turn: disconnect the PC, connect Intruder to that port, ping 10.1.10.2 several times, then reconnect the PC.</li>
+<li>Recover Fa0/1. Then configure automatic recovery with <code>errdisable recovery cause psecure-violation</code> and a 30-second interval (if your Packet Tracer version rejects these commands, use the manual method only).</li>
+<li>Save the configuration so the sticky MACs survive a reload.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>Fa0/1: after the intruder's first frame the port is err-disabled, the link light goes red, syslog shows PSECURE_VIOLATION, violation count 1. Even after PC1 is reconnected it has no connectivity until recovery.</li>
+<li>Fa0/2: port stays up, intruder pings fail, the violation count climbs with each frame, and log messages appear. PC2 reconnected works immediately.</li>
+<li>Fa0/3: port stays up, intruder pings fail, violation count stays 0, no log. Only the drops show the policy is working.</li>
+<li><code>show running-config interface fa0/1</code> contains <code>switchport port-security mac-address sticky 00xx.xxxx.xxxx</code>.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">SW1(config)# interface range fa0/1 - 3
+SW1(config-if-range)# switchport mode access
+SW1(config-if-range)# switchport access vlan 10
+SW1(config-if-range)# switchport port-security
+SW1(config-if-range)# switchport port-security maximum 1
+SW1(config-if-range)# switchport port-security mac-address sticky
+SW1(config-if-range)# exit
+SW1(config)# interface fa0/2
+SW1(config-if)# switchport port-security violation restrict
+SW1(config-if)# interface fa0/3
+SW1(config-if)# switchport port-security violation protect
+SW1(config-if)# interface fa0/10
+SW1(config-if)# switchport port-security
+Command rejected: FastEthernet0/10 is a dynamic port.
+SW1(config-if)# exit
+! after the Fa0/1 test, with PC1 reconnected:
+SW1(config)# interface fa0/1
+SW1(config-if)# shutdown
+SW1(config-if)# no shutdown
+SW1(config-if)# exit
+SW1(config)# errdisable recovery cause psecure-violation
+SW1(config)# errdisable recovery interval 30
+SW1(config)# end
+SW1# show port-security
+SW1# copy running-config startup-config</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-5-7-2">
+<h4>Lab: DHCP snooping against a rogue server (and DAI)</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~40 min</p>
+<p>Topology: R1 (2911) G0/0 10.1.10.1/24 is the legitimate DHCP server (pool 10.1.10.0/24, default router 10.1.10.1, excluded .1 to .20). R1 G0/0 connects to SW1 (2960) G0/1. PC1 and PC2 (DHCP clients) on Fa0/1 and Fa0/2. A Server-PT named Rogue on Fa0/24 with its DHCP service on, handing out 10.66.66.0/24 with gateway and DNS 10.66.66.1 (give Rogue a static 10.66.66.1/24). All ports in VLAN 1 for simplicity.</p>
+<ol>
+<li>Without snooping, renew DHCP on the PCs several times (Desktop &gt; IP Configuration, toggle Static/DHCP). Note that some leases come from Rogue.</li>
+<li>Enable DHCP snooping globally and for VLAN 1. Trust G0/1. Disable option 82 insertion. Rate-limit Fa0/1 to Fa0/24 at 10 pps.</li>
+<li>Renew both PCs again. Check the binding table.</li>
+<li>Optional DAI step: enable <code>ip arp inspection vlan 1</code>, trust G0/1, and confirm PCs can still ping R1. Then give PC2 a static address 10.1.10.200 and try to ping R1.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>After snooping, every renewal gives a 10.1.10.x address from R1; Rogue's offers are dropped at Fa0/24.</li>
+<li><code>show ip dhcp snooping binding</code> lists PC1 and PC2 with their MAC, IP, VLAN 1 and port.</li>
+<li><code>show ip dhcp binding</code> on R1 shows the same leases.</li>
+<li>If clients get no address at all, check that G0/1 is trusted and that option 82 insertion is off.</li>
+<li>DAI step: DHCP clients keep working; the static PC2 cannot ARP for R1 because it has no binding, and the drops show in <code>show ip arp inspection statistics</code>.</li>
+</ul>
+<p>Packet Tracer note: Packet Tracer's 2960 supports DHCP snooping, but support for <code>ip arp inspection</code> depends on the version. If the command is rejected, do the DAI step in Cisco Modeling Labs Free with an IOL-L2 switch node, or treat it as a reading exercise using the DAI configuration above.</p>
+<details><summary>Solution</summary>
+<pre class="cli">R1(config)# ip dhcp excluded-address 10.1.10.1 10.1.10.20
+R1(config)# ip dhcp pool LAN10
+R1(dhcp-config)# network 10.1.10.0 255.255.255.0
+R1(dhcp-config)# default-router 10.1.10.1
+R1(dhcp-config)# dns-server 10.1.10.1
+R1(dhcp-config)# exit
+
+SW1(config)# ip dhcp snooping
+SW1(config)# ip dhcp snooping vlan 1
+SW1(config)# no ip dhcp snooping information option
+SW1(config)# interface g0/1
+SW1(config-if)# ip dhcp snooping trust
+SW1(config-if)# exit
+SW1(config)# interface range fa0/1 - 24
+SW1(config-if-range)# ip dhcp snooping limit rate 10
+SW1(config-if-range)# end
+SW1# show ip dhcp snooping binding
+
+! Optional DAI
+SW1(config)# ip arp inspection vlan 1
+SW1(config)# interface g0/1
+SW1(config-if)# ip arp inspection trust
+SW1(config-if)# end
+SW1# show ip arp inspection statistics vlan 1</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Port security: access or trunk port (not dynamic), default maximum 1 and violation shutdown; protect is silent, restrict logs and counts, shutdown err-disables.</li>
+<li>Sticky MACs go into the running config; save to keep them. Recover err-disabled ports with shutdown/no shutdown or <code>errdisable recovery cause psecure-violation</code>.</li>
+<li>DHCP snooping needs the global and per-VLAN commands; ports are untrusted by default; untrusted ports drop server messages; trust the uplink to the real server.</li>
+<li>Option 82 insertion is on by default and can make IOS DHCP servers drop requests; <code>no ip dhcp snooping information option</code> fixes it.</li>
+<li>DAI checks ARP against the snooping binding table (or ARP ACLs), trusts uplinks, limits untrusted ports to 15 pps by default, and err-disables on excess.</li>
+</ul></div>
+</section>
+<section class="topic" id="t-5-8" data-topics="5.8">
+<h2>5.8 Authentication, authorization and accounting concepts</h2>
+<p>The exam verb is "compare": know what each A does, local versus server-based AAA, TACACS+ versus RADIUS, and the 802.1X roles. Configuration is not required, but recognizing the basic IOS commands helps with "what does this config do" items.</p>
+
+<h3>The three As</h3>
+<dl>
+<dt>Authentication: who are you?</dt>
+<dd>Verifies identity, for example a username and password, a certificate, or a token code. Example: an admin logs in to R1 over SSH with their Active Directory credentials.</dd>
+<dt>Authorization: what are you allowed to do?</dt>
+<dd>Decides which resources or commands an authenticated user may use. Example: the NOC group may run <code>show</code> commands but not enter configuration mode; a wireless user is placed in VLAN 30.</dd>
+<dt>Accounting: what did you do?</dt>
+<dd>Records activity: login and logout times, commands entered, session duration, data used. Example: an audit log shows that admin entered <code>no shutdown</code> on G0/1 at 14:02.</dd>
+</dl>
+<div class="callout tip"><p><strong>Tip:</strong> A bank analogy works well: showing ID is authentication, the teller checking which accounts you may withdraw from is authorization, and the transaction receipt is accounting.</p></div>
+
+<h3>Local versus server-based AAA</h3>
+<ul>
+<li><strong>Local</strong>: usernames live on each device (<code>username ... secret</code> with <code>login local</code>, as in 5.3). Simple, works when the network is down, but every change must be made on every device and there is no central accounting.</li>
+<li><strong>Server-based</strong>: devices ask a central AAA server, using TACACS+ or RADIUS. One place to add or remove users, central policy and audit logs. Cisco's server is <strong>Cisco Identity Services Engine (ISE)</strong>, which speaks both protocols.</li>
+<li>Best practice is server-based with local as the fallback in case the server is unreachable.</li>
+</ul>
+
+<h3>IOS AAA at a recognition level</h3>
+<pre class="cli">R1(config)# username localadmin privilege 15 algorithm-type scrypt secret L0cal!Fallback26
+R1(config)# aaa new-model
+R1(config)# tacacs server ISE1
+R1(config-server-tacacs)# address ipv4 10.1.100.20
+R1(config-server-tacacs)# key T@cacsK3y2026
+R1(config-server-tacacs)# exit
+R1(config)# aaa authentication login default group tacacs+ local
+R1(config)# aaa authorization exec default group tacacs+ local
+R1(config)# aaa accounting exec default start-stop group tacacs+
+R1(config)# aaa accounting commands 15 default start-stop group tacacs+</pre>
+<ul>
+<li><code>aaa new-model</code> turns on AAA. From then on, method lists control login and the old line-level <code>password</code>/<code>login</code> commands no longer apply. Create a local user first so you cannot lock yourself out.</li>
+<li><code>aaa authentication login default group tacacs+ local</code> is a <strong>method list</strong> named <code>default</code>: try the TACACS+ servers first, then the local database. It applies to all lines unless a line names another list with <code>login authentication NAME</code>.</li>
+<li>The next method is tried <strong>only if the previous one returns an error</strong> (server unreachable or timing out). If the server answers and rejects the password, login fails; it does not fall back to local.</li>
+<li>Older syntax you may also see: <code>tacacs-server host 10.1.100.20</code> and <code>tacacs-server key ...</code>; for RADIUS, <code>radius server NAME</code> with <code>address ipv4 ... auth-port 1812 acct-port 1813</code> or the older <code>radius-server host</code>.</li>
+</ul>
+
+<h3>TACACS+ compared with RADIUS</h3>
+<table>
+<thead><tr><th></th><th>TACACS+</th><th>RADIUS</th></tr></thead>
+<tbody>
+<tr><td>Origin</td><td>Cisco-developed; now documented in RFC 8907</td><td>Open standard (RFC 2865, accounting RFC 2866)</td></tr>
+<tr><td>Transport and ports</td><td>TCP 49</td><td>UDP 1812 authentication/authorization, 1813 accounting (legacy 1645/1646)</td></tr>
+<tr><td>What is protected</td><td>Entire packet body (obfuscated with the shared key); header in clear</td><td>Only the password attribute; usernames and other attributes in clear</td></tr>
+<tr><td>Separation of AAA</td><td>Authentication, authorization and accounting are separate exchanges</td><td>Authentication and authorization combined in one response; accounting separate</td></tr>
+<tr><td>Per-command authorization and accounting</td><td>Yes</td><td>No command authorization; no command accounting</td></tr>
+<tr><td>Main use</td><td><strong>Device administration</strong> (admins logging in to routers, switches, firewalls)</td><td><strong>Network access</strong> (802.1X wired and wireless, VPN users)</td></tr>
+</tbody>
+</table>
+<div class="callout key"><p><strong>Remember:</strong> TACACS+ = TCP 49, whole body protected, separates the three As, per-command control, used for admin access. RADIUS = UDP 1812/1813, only the password hidden, combines authentication and authorization, used for network access and 802.1X.</p></div>
+
+<h3>802.1X port-based network access control</h3>
+<figure class="diagram">
+<svg viewBox="0 0 720 240" role="img" aria-label="802.1X roles: supplicant, authenticator, authentication server, with EAPOL and RADIUS">
+<rect x="20" y="70" width="170" height="70" rx="6" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="105" y="98" text-anchor="middle">Supplicant</text>
+<text class="d-text" x="105" y="120" text-anchor="middle">laptop / phone</text>
+<rect x="275" y="70" width="170" height="70" rx="6" class="d-accent-fill" stroke="currentColor"/>
+<text class="d-text" x="360" y="98" text-anchor="middle">Authenticator</text>
+<text class="d-text" x="360" y="120" text-anchor="middle">switch or WLC/AP</text>
+<rect x="530" y="70" width="170" height="70" rx="6" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="615" y="98" text-anchor="middle">Auth server</text>
+<text class="d-text" x="615" y="120" text-anchor="middle">RADIUS (Cisco ISE)</text>
+<line x1="190" y1="105" x2="275" y2="105" class="d-line" stroke-width="2"/>
+<line x1="445" y1="105" x2="530" y2="105" class="d-line" stroke-width="2"/>
+<text class="d-text" x="232" y="170" text-anchor="middle">EAPOL</text>
+<text class="d-text" x="232" y="190" text-anchor="middle">(EAP over LAN)</text>
+<text class="d-text" x="487" y="170" text-anchor="middle">RADIUS</text>
+<text class="d-text" x="487" y="190" text-anchor="middle">(EAP inside RADIUS)</text>
+<text class="d-text" x="360" y="40" text-anchor="middle">EAP conversation runs end to end, supplicant to server</text>
+<text class="d-text" x="360" y="225" text-anchor="middle">Before success the port passes only EAPOL (plus CDP/STP)</text>
+</svg>
+<figcaption>The authenticator relays EAP between the supplicant and the server; it does not check the credentials itself.</figcaption>
+</figure>
+<ul>
+<li><strong>Supplicant</strong>: the client device and its 802.1X software, requesting access.</li>
+<li><strong>Authenticator</strong>: the switch (wired) or WLC/AP (wireless). It blocks the port, relays authentication messages, and opens the port (and can assign a VLAN or ACL) when the server says yes.</li>
+<li><strong>Authentication server</strong>: a RADIUS server such as Cisco ISE that checks the credentials and returns accept or reject plus authorization attributes.</li>
+<li><strong>EAP</strong> (Extensible Authentication Protocol) is the framework that carries the actual method (EAP-TLS, PEAP and others, covered in 5.9). Between supplicant and authenticator it travels as <strong>EAPOL</strong> frames directly over Ethernet or Wi-Fi (the client has no IP yet). Between authenticator and server it travels inside <strong>RADIUS</strong>.</li>
+</ul>
+<div class="callout trap"><p><strong>Exam trap:</strong> The switch is the authenticator, not the authentication server. And 802.1X uses RADIUS, not TACACS+, to reach the server.</p></div>
+
+<div class="lab" id="lab-5-8-1">
+<h4>Lab: Server-based login with TACACS+ and local fallback</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~25 min</p>
+<p>Topology: R1 (2911) G0/0 10.1.10.1/24 to SW1. PC-A 10.1.10.10 and Server-AAA 10.1.10.100 on SW1. On Server-AAA, Services &gt; AAA: service On, add a client named R1 with IP 10.1.10.1, secret <code>T@cacsK3y2026</code>, server type TACACS; add user <code>netadmin</code> with password <code>Net!Admin2026</code>.</p>
+<ol>
+<li>Create local user <code>localadmin</code> (privilege 15) and an enable secret on R1.</li>
+<li>Enable AAA, define the TACACS+ server and key, and create a default login method list: TACACS+ first, local second. Apply it to the VTY lines.</li>
+<li>From PC-A, telnet to R1 and log in as <code>netadmin</code>. Then try <code>localadmin</code> while the server is up.</li>
+<li>Turn the AAA service off on Server-AAA and log in again as <code>localadmin</code>.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>Server up: <code>netadmin</code> logs in; <code>localadmin</code> is rejected, because the server answered (fail, not error).</li>
+<li>Server down: after the TACACS+ timeout, <code>localadmin</code> works (error triggers the next method).</li>
+<li><code>show running-config | include aaa|tacacs</code> shows the method list; <code>debug aaa authentication</code> (if supported in your version) shows which method answered.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">R1(config)# username localadmin privilege 15 secret L0cal!Fallback26
+R1(config)# enable secret En@ble!Secret26
+R1(config)# aaa new-model
+R1(config)# tacacs-server host 10.1.10.100
+R1(config)# tacacs-server key T@cacsK3y2026
+! On IOS XE the preferred form is: tacacs server AAA1 / address ipv4 10.1.10.100 / key ...
+R1(config)# aaa authentication login default group tacacs+ local
+R1(config)# line vty 0 4
+R1(config-line)# login authentication default
+R1(config-line)# transport input telnet ssh
+R1(config-line)# end</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Authentication = who you are; authorization = what you may do; accounting = what you did.</li>
+<li>Local AAA is per device; server-based AAA (Cisco ISE) is central, with local as fallback only when the server is unreachable.</li>
+<li>TACACS+: TCP 49, full body protected, separates AAA, per-command authorization, device administration.</li>
+<li>RADIUS: UDP 1812/1813, only password hidden, combines authentication and authorization, network access and 802.1X.</li>
+<li>802.1X: supplicant, authenticator (switch/WLC), authentication server (RADIUS); EAPOL on the LAN side, RADIUS to the server.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-5-9" data-topics="5.9">
+<h2>5.9 Wireless security protocols (WPA, WPA2, WPA3)</h2>
+<p>Wireless frames reach anyone in range, so Wi-Fi security must provide authentication (who may join), encryption (confidentiality) and message integrity. Know each generation's cipher and integrity mechanism, Personal versus Enterprise modes, and the improvements in WPA3.</p>
+
+<h3>The generations</h3>
+<table>
+<thead><tr><th>Protocol</th><th>Encryption</th><th>Integrity</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Open</td><td>None</td><td>None</td><td>Anyone can join and read traffic (often paired with a web portal)</td></tr>
+<tr><td>WEP</td><td>RC4 with a static 40- or 104-bit key and a 24-bit IV</td><td>CRC-32 (not cryptographic)</td><td>Broken: key recoverable in minutes. Never use</td></tr>
+<tr><td>WPA (2003)</td><td><strong>TKIP</strong> (still RC4, but per-packet keys)</td><td><strong>MIC</strong> ("Michael")</td><td>Interim fix that ran on WEP hardware; deprecated</td></tr>
+<tr><td>WPA2 (2004)</td><td><strong>AES-CCMP</strong> (CCMP-128)</td><td>CCMP (CBC-MAC)</td><td>Based on the full IEEE 802.11i standard; still the most common</td></tr>
+<tr><td>WPA3 (2018)</td><td>AES-CCMP-128 (Personal and Enterprise); <strong>GCMP-256</strong> in Enterprise 192-bit mode</td><td>Built into CCMP/GCMP</td><td>Current; required on 6 GHz (Wi-Fi 6E)</td></tr>
+</tbody>
+</table>
+<div class="callout key"><p><strong>Remember:</strong> WEP = RC4, broken. WPA = TKIP + MIC. WPA2 = AES-CCMP (802.11i). WPA3 = SAE, mandatory PMF, forward secrecy, GCMP-256 in 192-bit mode.</p></div>
+
+<h3>Personal versus Enterprise</h3>
+<ul>
+<li><strong>Personal</strong> mode: every user shares one passphrase. WPA and WPA2 Personal use a <strong>PSK</strong> (pre-shared key); WPA3 Personal uses <strong>SAE</strong>. Simple, but the key is shared, so removing one user means changing it for everyone, and logs cannot identify individuals.</li>
+<li><strong>Enterprise</strong> mode: each user or device authenticates individually with <strong>802.1X/EAP</strong> to a <strong>RADIUS</strong> server (for example Cisco ISE), and each session gets its own keys. The roles from 5.8 apply: the client is the supplicant, the WLC (or AP) is the authenticator.</li>
+</ul>
+
+<h3>The 4-way handshake</h3>
+<p>Both modes end with a <strong>pairwise master key (PMK)</strong> that the client and AP share: in Personal mode it is derived from the passphrase and SSID; in Enterprise mode it comes from the 802.1X/EAP exchange. The AP and client then run the 4-way handshake: they exchange random numbers (ANonce and SNonce), each derives the <strong>pairwise transient key (PTK)</strong> used to encrypt unicast traffic, they prove to each other that they hold the same PMK, and the AP delivers the <strong>group temporal key (GTK)</strong> for broadcast and multicast. The PMK itself is never sent over the air.</p>
+<p>The weakness in WPA2-Personal: anyone who captures one handshake can run an <strong>offline dictionary attack</strong> against the passphrase, because the handshake lets them test guesses. That is why short PSKs are dangerous, and what SAE fixes.</p>
+
+<h3>WPA3 improvements</h3>
+<ul>
+<li><strong>SAE (Simultaneous Authentication of Equals)</strong> replaces PSK in WPA3-Personal. It is a password-authenticated key exchange: each guess requires a live exchange with the AP, so <strong>offline dictionary attacks do not work</strong>.</li>
+<li><strong>Forward secrecy</strong>: each session key is independent, so capturing traffic today and learning the password later does not decrypt the old traffic.</li>
+<li><strong>Protected Management Frames (PMF, 802.11w) are mandatory</strong>, which blocks forged deauthentication and disassociation frames.</li>
+<li><strong>WPA3-Enterprise 192-bit mode</strong> (CNSA/Suite B) uses GCMP-256 and stronger hashing for high-security environments.</li>
+<li><strong>Transition mode</strong> lets WPA2 (PSK) and WPA3 (SAE) clients share one SSID during migration.</li>
+<li><strong>Enhanced Open (OWE, Opportunistic Wireless Encryption)</strong> is a companion standard, not WPA3 itself: an open network with no password, where each client still gets individual encryption from a Diffie-Hellman exchange. It suits cafes and guest networks.</li>
+</ul>
+
+<h3>EAP methods used with Enterprise mode</h3>
+<table>
+<thead><tr><th>Method</th><th>How the client proves identity</th><th>Server certificate</th><th>Client certificate</th></tr></thead>
+<tbody>
+<tr><td>EAP-TLS</td><td>Its own certificate (mutual certificate authentication)</td><td>Required</td><td>Required</td></tr>
+<tr><td>PEAP</td><td>Username and password (usually MSCHAPv2) inside a TLS tunnel</td><td>Required</td><td>Not needed</td></tr>
+<tr><td>EAP-FAST</td><td>Credentials inside a tunnel built from a Protected Access Credential (PAC); Cisco-developed</td><td>Optional</td><td>Not needed</td></tr>
+<tr><td>EAP-TTLS</td><td>Various inner methods inside a TLS tunnel</td><td>Required</td><td>Not needed</td></tr>
+<tr><td>LEAP</td><td>Cisco legacy, MS-CHAP based</td><td>None</td><td>None; vulnerable to dictionary attacks, do not use</td></tr>
+</tbody>
+</table>
+<p>EAP-TLS is the strongest common choice because it needs no password at all; its cost is issuing and managing certificates on every client (the PKI from 5.4).</p>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>WEP (RC4) is broken; WPA used TKIP and MIC; WPA2 uses AES-CCMP from 802.11i; WPA3 adds SAE, mandatory PMF and forward secrecy, with GCMP-256 in 192-bit Enterprise mode.</li>
+<li>Personal = shared key (PSK in WPA2, SAE in WPA3). Enterprise = 802.1X/EAP with a RADIUS server.</li>
+<li>The 4-way handshake derives the PTK and delivers the GTK from the PMK, which is never transmitted.</li>
+<li>WPA2-PSK handshakes can be cracked offline; SAE prevents that.</li>
+<li>OWE (Enhanced Open) encrypts open networks without a password. EAP-TLS uses certificates on both sides; PEAP uses only a server certificate.</li>
+</ul></div>
+</section>
+<section class="topic" id="t-5-10" data-topics="5.10">
+<h2>5.10 Configure and verify a WLAN in the GUI using WPA2 PSK</h2>
+<p>The exam shows controller GUI screenshots and asks which field to change, or walks through creating a WPA2-PSK WLAN. Cisco Press material uses the AireOS WLC GUI (2504, 3504, 5520 controllers), and current Cisco hardware uses the Catalyst 9800 GUI. Learn the AireOS flow field by field, then map it to the 9800, which spreads the same settings across profiles and tags. Topic 2.9 covers reading the QoS and Advanced tabs; this topic is about creating the WLAN and its security.</p>
+
+<h3>AireOS WLC: step by step</h3>
+<ol>
+<li><strong>Prerequisite: a dynamic interface</strong> for the client VLAN. Under <em>Controller &gt; Interfaces &gt; New</em>, give a name and VLAN ID, then an IP address, mask, gateway, physical port and DHCP server for that VLAN. The WLAN will be mapped to this interface, which decides which VLAN clients land in. (In a small lab you can map the WLAN to the <em>management</em> interface instead.)</li>
+<li><strong>WLANs</strong> tab, choose <strong>Create New</strong> from the drop-down, click <strong>Go</strong>.</li>
+<li>On <em>WLANs &gt; New</em>: Type <strong>WLAN</strong>, <strong>Profile Name</strong> (unique, up to 32 characters, used internally), <strong>SSID</strong> (up to 32 characters, what clients see), <strong>ID</strong> (the WLAN ID number). Click <strong>Apply</strong>; the <em>WLANs &gt; Edit</em> page opens.</li>
+<li><strong>General</strong> tab: tick <strong>Status: Enabled</strong> (a new WLAN is not active until you do), choose the <strong>Interface/Interface Group(G)</strong> (the dynamic interface from step 1), check <strong>Radio Policy</strong> (all bands or specific ones) and leave <strong>Broadcast SSID</strong> ticked.</li>
+<li><strong>Security</strong> tab, <strong>Layer 2</strong> sub-tab: <strong>Layer 2 Security</strong> = <strong>WPA+WPA2</strong>. Under WPA+WPA2 Parameters tick <strong>WPA2 Policy</strong> and <strong>WPA2 Encryption: AES</strong> (leave WPA Policy and TKIP unticked). Under <strong>Authentication Key Management</strong>, tick <strong>PSK</strong> and untick 802.1X (802.1X is the default key management on a new WLAN). Set <strong>PSK Format</strong> to <strong>ASCII</strong> and type the passphrase.</li>
+<li>Check <strong>Layer 3</strong> security is None (no web authentication) unless you want a portal.</li>
+<li>Click <strong>Apply</strong>, then <strong>Save Configuration</strong> (top right) so it survives a reboot.</li>
+</ol>
+<table>
+<thead><tr><th>AireOS field</th><th>Where</th><th>Value for WPA2-PSK</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Profile Name</td><td>WLANs &gt; New</td><td>e.g. STAFF-PSK</td><td>Internal name; must be unique</td></tr>
+<tr><td>SSID</td><td>WLANs &gt; New</td><td>e.g. Staff</td><td>Broadcast network name</td></tr>
+<tr><td>ID</td><td>WLANs &gt; New</td><td>e.g. 2</td><td>WLAN ID; an AP advertises at most 16 WLANs</td></tr>
+<tr><td>Status</td><td>General</td><td>Enabled</td><td>Otherwise the SSID is not broadcast</td></tr>
+<tr><td>Interface/Interface Group(G)</td><td>General</td><td>Dynamic interface for the VLAN</td><td>Determines the client VLAN and subnet</td></tr>
+<tr><td>Layer 2 Security</td><td>Security &gt; Layer 2</td><td>WPA+WPA2</td><td>Other options include None (open) and Static WEP</td></tr>
+<tr><td>WPA2 Policy / Encryption</td><td>Security &gt; Layer 2</td><td>WPA2 Policy ticked, AES ticked</td><td>Do not enable WPA (v1) or TKIP</td></tr>
+<tr><td>Auth Key Mgmt</td><td>Security &gt; Layer 2</td><td>PSK (untick 802.1X)</td><td>802.1X here means WPA2-Enterprise</td></tr>
+<tr><td>PSK Format and key</td><td>Security &gt; Layer 2</td><td>ASCII, 8 to 63 characters</td><td>Or HEX, exactly 64 hex digits</td></tr>
+<tr><td>QoS</td><td>QoS tab</td><td>Default Silver (best effort)</td><td>Platinum voice, Gold video, Bronze background (topic 2.9)</td></tr>
+</tbody>
+</table>
+<div class="callout trap"><p><strong>Exam trap:</strong> A WPA2-PSK WLAN that clients cannot join is usually one of: Status not enabled, Auth Key Mgmt still set to 802.1X instead of PSK, a passphrase shorter than 8 characters, or the WLAN mapped to the wrong interface (clients join but get no IP address).</p></div>
+
+<h3>Verification on AireOS</h3>
+<ul>
+<li><strong>WLANs</strong> list: the WLAN shows Status Enabled and Security Policies "[WPA2][Auth(PSK)]".</li>
+<li><strong>Monitor &gt; Clients</strong>: each associated client with MAC, AP name, WLAN profile, protocol (802.11n/ac/ax) and status Associated. Click a client MAC for detail: its IP address, VLAN, the security policy (RSN, meaning WPA2), cipher CCMP (AES) and key management PSK.</li>
+<li><strong>Wireless &gt; All APs</strong>: the APs have joined the controller (an AP that has not joined broadcasts nothing).</li>
+</ul>
+
+<h3>Catalyst 9800: the same WLAN</h3>
+<p>The 9800 splits what AireOS keeps on one WLAN page into reusable objects, then attaches them to APs with tags:</p>
+<figure class="diagram">
+<svg viewBox="0 0 720 260" role="img" aria-label="Catalyst 9800 configuration model: WLAN profile and policy profile joined by a policy tag, assigned to an AP with site and RF tags">
+<defs><marker id="d5-tag-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="d-accent-fill"/></marker></defs>
+<rect x="20" y="30" width="200" height="60" rx="6" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="120" y="55" text-anchor="middle">WLAN profile</text>
+<text class="d-text" x="120" y="75" text-anchor="middle">SSID + WPA2-PSK</text>
+<rect x="20" y="130" width="200" height="60" rx="6" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="120" y="155" text-anchor="middle">Policy profile</text>
+<text class="d-text" x="120" y="175" text-anchor="middle">VLAN, switching, QoS</text>
+<rect x="280" y="80" width="170" height="60" rx="6" class="d-accent-fill" stroke="currentColor"/>
+<text class="d-text" x="365" y="105" text-anchor="middle">Policy tag</text>
+<text class="d-text" x="365" y="125" text-anchor="middle">WLAN to policy</text>
+<line x1="220" y1="60" x2="280" y2="100" class="d-line" stroke-width="2" marker-end="url(#d5-tag-arrow)"/>
+<line x1="220" y1="160" x2="280" y2="120" class="d-line" stroke-width="2" marker-end="url(#d5-tag-arrow)"/>
+<rect x="540" y="80" width="160" height="60" rx="6" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="620" y="115" text-anchor="middle">Access point</text>
+<line x1="450" y1="110" x2="540" y2="110" class="d-line" stroke-width="2" marker-end="url(#d5-tag-arrow)"/>
+<rect x="300" y="190" width="130" height="45" rx="6" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="365" y="218" text-anchor="middle">Site tag</text>
+<rect x="455" y="190" width="130" height="45" rx="6" class="d-fill" stroke="currentColor"/>
+<text class="d-text" x="520" y="218" text-anchor="middle">RF tag</text>
+<line x1="430" y1="200" x2="580" y2="142" class="d-line" stroke-width="2" marker-end="url(#d5-tag-arrow)"/>
+<line x1="560" y1="190" x2="610" y2="142" class="d-line" stroke-width="2" marker-end="url(#d5-tag-arrow)"/>
+</svg>
+<figcaption>Each AP carries one policy tag, one site tag and one RF tag. The policy tag decides which SSIDs the AP broadcasts and which policy (VLAN) each uses.</figcaption>
+</figure>
+<ol>
+<li><strong>WLAN profile</strong>: <em>Configuration &gt; Tags &amp; Profiles &gt; WLANs &gt; + Add</em>. General tab: Profile Name, SSID, WLAN ID, Status Enabled, Broadcast SSID, radio policy. Security tab &gt; Layer2: WPA2 policy with WPA2 encryption AES (CCMP128), Auth Key Mgmt <strong>PSK</strong> (clear 802.1X), Pre-Shared Key format ASCII and the key. Newer releases present the mode as WPA + WPA2 or WPA2 + WPA3 choices; for this topic select WPA2 only with PSK. Click <strong>Apply to Device</strong>.</li>
+<li><strong>Policy profile</strong>: <em>Configuration &gt; Tags &amp; Profiles &gt; Policy &gt; + Add</em>. General tab: name and Status Enabled (central switching on for a normal local-mode deployment). Access Policies tab: <strong>VLAN</strong> (or VLAN group) for the clients. Apply to Device.</li>
+<li><strong>Policy tag</strong>: <em>Configuration &gt; Tags &amp; Profiles &gt; Tags &gt; Policy &gt; + Add</em>. Name it, then under WLAN-POLICY Maps add the WLAN profile paired with the policy profile. Apply to Device.</li>
+<li><strong>Assign the tag to the AP</strong>: <em>Configuration &gt; Wireless &gt; Access Points</em>, click the AP, General tab, Tags: choose the policy tag (plus site and RF tags), then <strong>Update &amp; Apply to Device</strong>. For many APs at once use <em>Configuration &gt; Wireless Setup &gt; Advanced &gt; Tag APs</em>. The AP rejoins after a tag change, so expect a short outage.</li>
+</ol>
+<table>
+<thead><tr><th>Setting</th><th>AireOS location</th><th>Catalyst 9800 location</th></tr></thead>
+<tbody>
+<tr><td>SSID, WLAN ID, status</td><td>WLAN General tab</td><td>WLAN profile, General</td></tr>
+<tr><td>WPA2, AES, PSK, key</td><td>WLAN Security &gt; Layer 2</td><td>WLAN profile, Security &gt; Layer2</td></tr>
+<tr><td>Client VLAN</td><td>WLAN General: Interface/Interface Group</td><td>Policy profile, Access Policies: VLAN</td></tr>
+<tr><td>QoS and many advanced settings</td><td>WLAN QoS and Advanced tabs</td><td>Policy profile (QoS and AVC, Advanced)</td></tr>
+<tr><td>Which APs broadcast it</td><td>All joined APs by default (or AP groups)</td><td>APs whose policy tag maps the WLAN</td></tr>
+</tbody>
+</table>
+<div class="callout trap"><p><strong>Exam trap:</strong> On a 9800, a WLAN that is configured and enabled but never mapped in the AP's policy tag is not broadcast. The exception: APs start with the <em>default-policy-tag</em>, which automatically maps WLAN IDs 1 to 16 to the <em>default-policy-profile</em> (VLAN 1 unless changed). So a new WLAN may appear on the default VLAN when you meant it to use your own policy profile.</p></div>
+<p>Verify on the 9800 under <em>Monitoring &gt; Wireless &gt; Clients</em> (client MAC, AP, WLAN, IP, state Run) and under <em>Configuration &gt; Wireless &gt; Access Points</em> (APs joined, with their tags). The CLI equivalent <code>show wlan summary</code> and <code>show wireless client summary</code> are useful but not required.</p>
+
+<div class="lab" id="lab-5-10-1">
+<h4>Lab: WPA2-PSK WLAN on a WLC with a wireless client joining</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~45 min</p>
+<p>Topology: R1 (2911) G0/0 10.1.99.1/24 provides DHCP for VLAN 1 (10.1.99.0/24, addresses .1 to .30 excluded) and is the gateway. SW1 is a PoE-capable switch (for example a 3650-24PS with a power supply installed). WLC-3504 (or WLC-2504) on SW1 G1/0/1, management IP 10.1.99.5/24, gateway 10.1.99.1. A lightweight AP (for example 3702i) on SW1 G1/0/2 in the same VLAN; the AP and WLC share a subnet, so CAPWAP discovery works by broadcast, and the solution also adds DHCP option 43 pointing at the WLC as a backup. Admin-PC on SW1 G1/0/3 (10.1.99.20). Laptop with a wireless NIC near the AP. Because the WLAN is mapped to the management interface in this small lab, the same DHCP pool also serves the wireless clients.</p>
+<ol>
+<li>Set the WLC management address (in Packet Tracer either in the WLC's Config tab or through the browser setup wizard; versions differ). From Admin-PC browse to <code>https://10.1.99.5</code> and log in.</li>
+<li>Confirm under <strong>Wireless &gt; All APs</strong> that the AP has joined.</li>
+<li><strong>WLANs &gt; Create New &gt; Go</strong>: Profile Name <code>STAFF-PSK</code>, SSID <code>Staff</code>, ID 1. Apply.</li>
+<li>General tab: Status Enabled, Interface management.</li>
+<li>Security &gt; Layer 2: WPA+WPA2, WPA2 Policy with AES, Auth Key Mgmt PSK, PSK Format ASCII, key <code>Lab!Wpa2Key2026</code>. Apply, then Save Configuration.</li>
+<li>On the laptop, open Config &gt; Wireless0 (or Desktop &gt; PC Wireless): SSID <code>Staff</code>, WPA2-PSK, passphrase <code>Lab!Wpa2Key2026</code>, encryption AES, IP configuration DHCP.</li>
+<li>Change the laptop's passphrase to a wrong one and observe that it cannot associate; then fix it.</li>
+</ol>
+<p><strong>Verify</strong></p>
+<ul>
+<li>The WLANs list shows STAFF-PSK enabled with WPA2 PSK security.</li>
+<li><strong>Monitor &gt; Clients</strong> lists the laptop's MAC, the AP name and WLAN STAFF-PSK.</li>
+<li>The laptop receives a 10.1.99.x address from R1 and can ping 10.1.99.1.</li>
+<li>With a wrong passphrase the laptop does not appear as an associated client.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">R1(config)# interface g0/0
+R1(config-if)# ip address 10.1.99.1 255.255.255.0
+R1(config-if)# no shutdown
+R1(config-if)# exit
+R1(config)# ip dhcp excluded-address 10.1.99.1 10.1.99.30
+R1(config)# ip dhcp pool MGMT-WLAN
+R1(dhcp-config)# network 10.1.99.0 255.255.255.0
+R1(dhcp-config)# default-router 10.1.99.1
+R1(dhcp-config)# option 43 hex f104.0a01.6305
+! f1 = type, 04 = length (one controller), 0a016305 = 10.1.99.5
+R1(dhcp-config)# end
+! WLC GUI (AireOS):
+! WLANs > Create New > Go
+!   Type WLAN, Profile Name STAFF-PSK, SSID Staff, ID 1 > Apply
+! General: Status [x] Enabled, Interface/Interface Group(G) management
+! Security > Layer 2: Layer 2 Security WPA+WPA2
+!   [x] WPA2 Policy  [x] AES  (WPA Policy and TKIP unticked)
+!   Authentication Key Management: [x] PSK  [ ] 802.1X
+!   PSK Format ASCII, key Lab!Wpa2Key2026
+! Apply > Save Configuration
+! Verify: Monitor > Clients</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>AireOS: WLANs &gt; Create New &gt; Go; Profile Name, SSID, ID; General: Status Enabled and Interface/Interface Group (sets the VLAN).</li>
+<li>Security &gt; Layer 2: WPA+WPA2, WPA2 Policy, AES, Auth Key Mgmt PSK (not 802.1X), ASCII key of 8 to 63 characters (or 64 hex).</li>
+<li>Apply, then Save Configuration; verify in Monitor &gt; Clients.</li>
+<li>9800: WLAN profile (SSID and security) + policy profile (VLAN) joined by a policy tag, which is assigned to APs.</li>
+<li>9800 default-policy-tag auto-maps WLAN IDs 1 to 16 to default-policy-profile.</li>
+</ul></div>
+</section>
+
+<section class="topic-sources" data-for="5">
+<ul>
+<li><a href="https://learningcontent.cisco.com/documents/marketing/exam-topics/200-301-CCNA-v1.1.pdf" target="_blank" rel="noopener">Cisco CCNA 200-301 v1.1 exam topics (PDF)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-9/configuration_guide/sec/b_179_sec_9300_cg/controlling_switch_access_with_passwords_and_privilege_levels.html" target="_blank" rel="noopener">Catalyst 9300 (IOS XE 17.9): Controlling switch access with passwords and privilege levels</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/sec_usr_cfg/configuration/xe-16/sec-usr-cfg-xe-16-book/sec-login-enhance.html" target="_blank" rel="noopener">Cisco IOS XE: Login enhancements (login block-for)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/security/s1/sec-s1-cr-book/sec-cr-s1.html" target="_blank" rel="noopener">Cisco IOS Security Command Reference S (security passwords min-length)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/ip/access-lists/13608-21.html" target="_blank" rel="noopener">Cisco: Harden IOS Devices</a></li>
+<li><a href="https://pages.nist.gov/800-63-4/sp800-63b.html" target="_blank" rel="noopener">NIST SP 800-63B: Authentication and lifecycle management (password guidance)</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc4301" target="_blank" rel="noopener">RFC 4301: Security Architecture for IP</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc4303" target="_blank" rel="noopener">RFC 4303: IP Encapsulating Security Payload (ESP)</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc3948" target="_blank" rel="noopener">RFC 3948: UDP Encapsulation of IPsec ESP Packets (NAT-T)</a></li>
+<li><a href="https://blogs.cisco.com/security/more-than-a-vpn-announcing-cisco-secure-client-formerly-anyconnect" target="_blank" rel="noopener">Cisco blog: Cisco Secure Client (formerly AnyConnect)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/security/asa/asa920/configuration/vpn/asa-920-vpn-config/vpn-remote-access.html" target="_blank" rel="noopener">Cisco Secure Firewall ASA 9.20: Remote access IPsec VPNs</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/security/firepower/730/fdm/fptd-fdm-config-guide-730/fptd-fdm-ravpn.html" target="_blank" rel="noopener">Cisco Secure Firewall Device Manager 7.3: Remote access VPN (TLS/DTLS)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/ip/access-lists/26448-ACLsamples.html" target="_blank" rel="noopener">Cisco: Configure commonly used IP ACLs</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/sec_data_acl/configuration/15-e/sec-data-acl-15-e-book/sec-acl-seq-num.html" target="_blank" rel="noopener">Cisco IOS: IP access list entry sequence numbering</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/sec_data_acl/configuration/xe-3s/sec-data-acl-xe-3s-book/ip6-acls-xe.html" target="_blank" rel="noopener">Cisco IOS XE: IPv6 access control lists</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-9/configuration_guide/sec/b_179_sec_9300_cg/port_security.html" target="_blank" rel="noopener">Catalyst 9300 (IOS XE 17.9): Port security</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst2960/software/release/12-2_55_se/configuration/guide/scg_2960/swdhcp82.html" target="_blank" rel="noopener">Catalyst 2960: Configuring DHCP features (DHCP snooping, option 82)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst2960/software/release/12-2_55_se/configuration/guide/scg_2960/swdynarp.html" target="_blank" rel="noopener">Catalyst 2960: Configuring Dynamic ARP Inspection</a></li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/ip/dynamic-host-configuration-protocol-dhcp-dhcpv6/217055-operate-and-troubleshoot-dhcp-snooping.html" target="_blank" rel="noopener">Cisco: Operate and troubleshoot DHCP snooping on Catalyst 9000</a></li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/security-vpn/remote-authentication-dial-user-service-radius/13838-10.html" target="_blank" rel="noopener">Cisco: Compare TACACS+ and RADIUS</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc8907" target="_blank" rel="noopener">RFC 8907: The TACACS+ Protocol</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc2865" target="_blank" rel="noopener">RFC 2865: RADIUS</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-9/configuration_guide/sec/b_179_sec_9300_cg/configuring_ieee_802_1x_port_based_authentication.html" target="_blank" rel="noopener">Catalyst 9300 (IOS XE 17.9): IEEE 802.1X port-based authentication</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/wireless/controller/9800/technical-reference/wpa3-dg.html" target="_blank" rel="noopener">Cisco WPA3 Deployment Guide</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/wireless/controller/8-5/config-guide/b_cg85/wlans.html" target="_blank" rel="noopener">Cisco Wireless Controller (AireOS) 8.5: WLANs</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/wireless/controller/8-5/config-guide/b_cg85/wlan_security.html" target="_blank" rel="noopener">Cisco Wireless Controller (AireOS) 8.5: WLAN security (WPA2-PSK)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/wireless/catalyst-9800-series-wireless-controllers/213911-understand-catalyst-9800-wireless-contro.html" target="_blank" rel="noopener">Cisco: Understand the Catalyst 9800 configuration model (profiles and tags)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/wireless/controller/9800/config-guide/newconfigmodel/b_catalyst-9800-configuration-model/m_configuring-wlan-security.html" target="_blank" rel="noopener">Catalyst 9800: Configuring WLAN security</a></li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/wireless/catalyst-9800-series-wireless-controllers/216130-configure-catalyst-9800-wlc-ipsk-with-ci.html" target="_blank" rel="noopener">Cisco: Catalyst 9800 WLAN, policy profile and policy tag GUI walkthrough (iPSK example)</a></li>
+<li><a href="https://www.netacad.com/cisco-packet-tracer" target="_blank" rel="noopener">Cisco Packet Tracer (free download via NetAcad)</a></li>
+<li><a href="https://developer.cisco.com/docs/modeling-labs/cml-free/" target="_blank" rel="noopener">Cisco Modeling Labs Free</a></li>
+</ul>
+</section>

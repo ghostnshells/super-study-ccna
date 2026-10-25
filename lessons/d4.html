@@ -1,0 +1,2008 @@
+<section class="topic" id="t-4-1" data-topics="4.1">
+<h2>4.1 Configure and verify inside source NAT using static and pools</h2>
+
+<p>Network Address Translation (NAT) rewrites the IP addresses (and with PAT, the TCP/UDP ports) in packets as they cross a router. On the CCNA you only need <strong>inside source NAT</strong>: the router changes the <em>source</em> address of packets going from the inside network to the outside, and reverses the change on the replies. You must be able to configure static NAT, dynamic NAT with a pool, and PAT (overload), read the translation table, and fix the usual mistakes.</p>
+
+<p>NAT exists mainly because of IPv4 address exhaustion. Private ranges (RFC 1918: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) are not routed on the Internet, so a router at the edge has to swap them for a public address. PAT lets thousands of inside hosts share one public address, which is what almost every home and branch router does.</p>
+
+<h3>The four NAT address terms</h3>
+<p>Cisco names every address from two points of view: <strong>inside or outside</strong> (which side of the router the host lives on) and <strong>local or global</strong> (which side of the router the address is seen on). Local = as seen on the inside network. Global = as seen on the outside network.</p>
+
+<dl>
+<dt>Inside local</dt><dd>The real address of the inside host, as the inside network sees it. Usually a private address. Example: PC1 is 192.168.1.10.</dd>
+<dt>Inside global</dt><dd>The address that represents the inside host to the outside world. A public address owned by you or your ISP. Example: 203.0.113.1 (R1's outside interface) or 203.0.113.33 (a static mapping).</dd>
+<dt>Outside local</dt><dd>The address of the outside host as the inside network sees it. With inside source NAT nothing changes the destination, so it equals the outside global.</dd>
+<dt>Outside global</dt><dd>The real address of the outside host, assigned by its owner. Example: web server 198.51.100.10.</dd>
+</dl>
+
+<div class="callout key"><p><strong>Remember:</strong> "Inside/outside" is <em>whose</em> host it is. "Local/global" is <em>where</em> the address is seen. Inside source NAT changes only the inside host's address, so on the CCNA the outside local and outside global columns are always the same.</p></div>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 300" role="img" aria-label="NAT terms: PC1 inside local 192.168.1.10 is translated by R1 to inside global 203.0.113.1 toward server 198.51.100.10, whose outside local and outside global addresses are the same">
+<rect x="20" y="40" width="200" height="200" rx="8" fill="none" stroke="currentColor" class="d-line"/>
+<text x="120" y="30" text-anchor="middle" class="d-text">Inside network</text>
+<rect x="500" y="40" width="200" height="200" rx="8" fill="none" stroke="currentColor" class="d-line"/>
+<text x="600" y="30" text-anchor="middle" class="d-text">Outside network (Internet)</text>
+<rect x="45" y="110" width="110" height="50" rx="6" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="100" y="132" text-anchor="middle" class="d-text">PC1</text>
+<text x="100" y="150" text-anchor="middle" class="d-text">192.168.1.10</text>
+<circle cx="360" cy="135" r="38" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="360" y="132" text-anchor="middle" class="d-text">R1</text>
+<text x="360" y="150" text-anchor="middle" class="d-text">NAT</text>
+<text x="280" y="110" text-anchor="middle" class="d-text">G0/0</text>
+<text x="280" y="126" text-anchor="middle" class="d-text">inside</text>
+<text x="442" y="110" text-anchor="middle" class="d-text">G0/1</text>
+<text x="442" y="126" text-anchor="middle" class="d-text">outside</text>
+<rect x="545" y="110" width="120" height="50" rx="6" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="605" y="132" text-anchor="middle" class="d-text">Web server</text>
+<text x="605" y="150" text-anchor="middle" class="d-text">198.51.100.10</text>
+<line x1="155" y1="135" x2="322" y2="135" stroke="currentColor" class="d-line"/>
+<line x1="398" y1="135" x2="545" y2="135" stroke="currentColor" class="d-line"/>
+<text x="120" y="200" text-anchor="middle" class="d-text">Inside local:</text>
+<text x="120" y="218" text-anchor="middle" class="d-text">192.168.1.10</text>
+<text x="360" y="200" text-anchor="middle" class="d-text">Inside global:</text>
+<text x="360" y="218" text-anchor="middle" class="d-text">203.0.113.1</text>
+<text x="600" y="200" text-anchor="middle" class="d-text">Outside local = global:</text>
+<text x="600" y="218" text-anchor="middle" class="d-text">198.51.100.10</text>
+<text x="360" y="275" text-anchor="middle" class="d-muted">Source address is rewritten here; destination is left alone</text>
+</svg>
+<figcaption>The four NAT terms for inside source NAT. Only the inside host's address changes as packets cross R1.</figcaption>
+</figure>
+
+<h3>Inside and outside interfaces</h3>
+<p>NAT only acts on packets that move between an interface marked <code>ip nat inside</code> and one marked <code>ip nat outside</code>. Forget either command and nothing is translated.</p>
+<pre class="cli">R1(config)# interface GigabitEthernet0/0
+R1(config-if)# description LAN
+R1(config-if)# ip address 192.168.1.1 255.255.255.0
+R1(config-if)# ip nat inside
+R1(config-if)# interface GigabitEthernet0/1
+R1(config-if)# description To ISP
+R1(config-if)# ip address 203.0.113.1 255.255.255.252
+R1(config-if)# ip nat outside</pre>
+
+<p>Scenario used in this section: inside LAN 192.168.1.0/24 behind R1 G0/0. R1 G0/1 is 203.0.113.1/30 toward the ISP (203.0.113.2). The ISP has also routed the public block 203.0.113.32/29 (usable .33 to .38) to R1. An Internet web server is 198.51.100.10.</p>
+
+<h3>Static NAT</h3>
+<p>Static NAT is a permanent one-to-one mapping between an inside local and an inside global address. It works in both directions: inside hosts can start connections out, and outside hosts can start connections in to the inside global address. Use it for servers that must be reachable from the Internet.</p>
+<pre class="cli">R1(config)# ip nat inside source static 192.168.1.100 203.0.113.33
+! Server1 (192.168.1.100) is always 203.0.113.33 on the outside</pre>
+<p>A static entry shows in <code>show ip nat translations</code> immediately, even before any traffic, with dashes in the outside columns. One public address is consumed per static mapping. (Static PAT, also called port forwarding, maps one port only: <code>ip nat inside source static tcp 192.168.1.100 80 203.0.113.33 80</code>. It is useful to know but not the focus of the exam.)</p>
+
+<h3>Dynamic NAT with a pool</h3>
+<p>Dynamic NAT maps inside hosts to public addresses taken from a pool, first come first served, still one-to-one. Three pieces are needed:</p>
+<ol>
+<li>An ACL that matches the inside local addresses allowed to be translated (a standard ACL is normal).</li>
+<li>A pool of inside global addresses.</li>
+<li>The <code>ip nat inside source list</code> command that ties the ACL to the pool.</li>
+</ol>
+<pre class="cli">R1(config)# access-list 1 permit 192.168.1.0 0.0.0.255
+R1(config)# ip nat pool PUBPOOL 203.0.113.34 203.0.113.38 netmask 255.255.255.248
+! or the same thing with a prefix length:
+! R1(config)# ip nat pool PUBPOOL 203.0.113.34 203.0.113.38 prefix-length 29
+R1(config)# ip nat inside source list 1 pool PUBPOOL</pre>
+<p>The <code>netmask</code> or <code>prefix-length</code> keyword is mandatory. It tells IOS which subnet the pool belongs to, and the start and end addresses must fall inside it. The names are case sensitive: <code>pool PUBPOOL</code> and <code>pool pubpool</code> are different pools.</p>
+
+<h4>What happens when the pool runs out</h4>
+<p>Without overload, each inside host holds one public address for as long as its translation lives. This pool has five addresses (.34 to .38). When a sixth inside host sends a packet, R1 has nothing to give it: the packet is <strong>dropped</strong> and R1 sends an ICMP host unreachable back. The <code>misses</code> counter in <code>show ip nat statistics</code> goes up. Users see "some PCs can browse, others cannot".</p>
+<p>It lasts a long time because a simple (non-port) dynamic translation stays in the table until it has been idle for the <strong>translation timeout, 86,400 seconds (24 hours) by default</strong>. Fixes: add <code>overload</code>, enlarge the pool, lower the timeout with <code>ip nat translation timeout <em>seconds</em></code>, or clear stale entries with <code>clear ip nat translation *</code>.</p>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> Dynamic NAT is still one-to-one. A pool of 5 addresses supports at most 5 simultaneous inside hosts unless <code>overload</code> is added. If a question says some hosts work and others do not, check the pool size against the number of hosts.</p></div>
+
+<h3>PAT (NAT overload)</h3>
+<p>Port Address Translation lets many inside hosts share one inside global address. The router tracks each flow by address <em>and</em> port, so the translation table entries are "extended" entries (protocol, address:port on each side). IOS tries to keep the original source port; if that port is already in use on the public address, it picks another one. One address gives roughly 64,000 ports per protocol, so a single public IP serves a whole site.</p>
+
+<h4>PAT using the outside interface address</h4>
+<p>This is the common branch and SOHO design. The public address can even be learned by DHCP; NAT follows the interface address automatically.</p>
+<pre class="cli">R1(config)# access-list 1 permit 192.168.1.0 0.0.0.255
+R1(config)# ip nat inside source list 1 interface GigabitEthernet0/1 overload</pre>
+
+<h4>PAT using a pool</h4>
+<p>Add <code>overload</code> to the dynamic pool command. IOS fills the first address with flows, then moves to the next when it runs out of ports.</p>
+<pre class="cli">R1(config)# ip nat inside source list 1 pool PUBPOOL overload</pre>
+
+<table>
+<thead><tr><th>Type</th><th>Mapping</th><th>Key command</th><th>Typical use</th></tr></thead>
+<tbody>
+<tr><td>Static NAT</td><td>1 inside local : 1 inside global, permanent</td><td><code>ip nat inside source static L G</code></td><td>Servers reachable from outside</td></tr>
+<tr><td>Dynamic NAT</td><td>1 : 1 from a pool, temporary</td><td><code>ip nat inside source list ACL pool NAME</code></td><td>Rare today; when apps break with port changes</td></tr>
+<tr><td>PAT (pool)</td><td>Many : few, by port</td><td><code>... pool NAME overload</code></td><td>Large sites with a small public block</td></tr>
+<tr><td>PAT (interface)</td><td>Many : 1 (interface IP)</td><td><code>... interface G0/1 overload</code></td><td>Branch, SOHO, DHCP-addressed WAN</td></tr>
+</tbody>
+</table>
+
+<h3>Translation walk-through</h3>
+<p>PC1 (192.168.1.10) opens a web page on 198.51.100.10 while R1 runs PAT on its G0/1 address and the static entry for Server1.</p>
+<ol>
+<li>PC1 sends TCP 192.168.1.10:49152 to 198.51.100.10:80. It arrives on G0/0 (inside).</li>
+<li>R1 routes the packet first (default route out G0/1, an outside interface), then checks NAT. The source matches ACL 1, so R1 creates an extended entry and rewrites the source to <strong>203.0.113.1:49152</strong>. The destination stays 198.51.100.10:80.</li>
+<li>The server replies to 203.0.113.1:49152. The reply arrives on G0/1 (outside).</li>
+<li>For outside-to-inside traffic, R1 translates first: it finds the entry and rewrites the destination back to <strong>192.168.1.10:49152</strong>. Then it routes the packet out G0/0 to PC1.</li>
+<li>PC2 (192.168.1.11) also happens to pick source port 49152. That port is already taken on 203.0.113.1, so R1 maps PC2 to a different port, here 203.0.113.1:49153.</li>
+</ol>
+
+<pre class="cli">R1# show ip nat translations
+Pro  Inside global         Inside local          Outside local         Outside global
+tcp  203.0.113.1:49152     192.168.1.10:49152    198.51.100.10:80      198.51.100.10:80
+tcp  203.0.113.1:49153     192.168.1.11:49152    198.51.100.10:80      198.51.100.10:80
+icmp 203.0.113.1:3         192.168.1.10:3        198.51.100.10:3       198.51.100.10:3
+tcp  203.0.113.33:80       192.168.1.100:80      198.51.100.10:51544   198.51.100.10:51544
+---  203.0.113.33          192.168.1.100         ---                   ---</pre>
+<p>How to read each column:</p>
+<ul>
+<li><strong>Pro</strong>: protocol of an extended (port) entry: tcp, udp or icmp. <code>---</code> means a simple entry with no ports (static or dynamic one-to-one).</li>
+<li><strong>Inside global</strong>: the public address (and port) that represents the inside host outside.</li>
+<li><strong>Inside local</strong>: the real inside host address (and its original port).</li>
+<li><strong>Outside local</strong> and <strong>Outside global</strong>: the remote host. Identical here because only the source is translated.</li>
+<li>For ICMP the "port" is the ICMP query identifier, which PAT uses the same way as a port.</li>
+<li>The last line is the static mapping (always present). The line above it is a temporary extended entry created when an outside host (198.51.100.10 from port 51544) connected in to Server1 on TCP 80.</li>
+</ul>
+
+<pre class="cli">R1# show ip nat statistics
+Total active translations: 5 (1 static, 4 dynamic; 4 extended)
+Peak translations: 9, occurred 00:12:40 ago
+Outside interfaces:
+  GigabitEthernet0/1
+Inside interfaces:
+  GigabitEthernet0/0
+Hits: 2214  Misses: 37
+CEF Translated packets: 2190, CEF Punted packets: 61
+Expired translations: 33
+Dynamic mappings:
+-- Inside Source
+[Id: 1] access-list 1 interface GigabitEthernet0/1 refcount 3</pre>
+<ul>
+<li><strong>Total active translations</strong>: static versus dynamic, and how many are extended (port) entries.</li>
+<li><strong>Outside/Inside interfaces</strong>: the fastest way to spot a missing or swapped <code>ip nat inside</code>/<code>outside</code>.</li>
+<li><strong>Hits</strong>: packets that matched an existing entry. <strong>Misses</strong>: packets that needed a new entry (a high, rising miss count with a pool usually means the pool is exhausted).</li>
+<li><strong>Dynamic mappings</strong>: which ACL is tied to which pool or interface, and <code>refcount</code> (how many translations use the mapping). With a pool you also see a line like <code>total addresses 5, allocated 5 (100%), misses 12</code>, which proves exhaustion.</li>
+</ul>
+
+<h3>Clearing and debugging</h3>
+<pre class="cli">R1# clear ip nat translation *
+! removes all dynamic entries; static entries stay
+R1# clear ip nat translation inside 203.0.113.34 192.168.1.12
+! removes one simple dynamic entry (inside global, then inside local)
+R1# debug ip nat
+IP NAT debugging is on
+NAT*: s=192.168.1.10->203.0.113.1, d=198.51.100.10 [4410]
+NAT*: s=198.51.100.10, d=203.0.113.1->192.168.1.10 [8812]
+R1# undebug all</pre>
+<p>In the debug output, the arrow shows the rewrite: outbound the source changes, inbound the destination changes. The asterisk means the packet was translated in the fast (CEF) path. The number in brackets is the IP identification field.</p>
+<p>Timers: <code>ip nat translation timeout</code> (default 86,400 s) governs simple dynamic entries. PAT entries have their own shorter per-protocol timers (for example UDP and ICMP entries age out within minutes), so you rarely need to clear PAT entries by hand.</p>
+
+<h3>Common NAT faults and their symptoms</h3>
+<table>
+<thead><tr><th>Fault</th><th>Symptom</th><th>How to spot it</th></tr></thead>
+<tbody>
+<tr><td><code>ip nat inside</code> and <code>ip nat outside</code> swapped</td><td>No translations created; or traffic leaves with the private source and is dropped by the ISP</td><td><code>show ip nat statistics</code> lists the wrong interfaces</td></tr>
+<tr><td>One of the two commands missing</td><td>No translations at all</td><td>Same, one interface list is empty</td></tr>
+<tr><td>ACL does not match the inside subnet (wrong wildcard, wrong network, wrong ACL number in the NAT command)</td><td>Some or all hosts are not translated</td><td><code>show access-lists</code> shows no matches; host missing from <code>show ip nat translations</code></td></tr>
+<tr><td>Pool exhausted (no <code>overload</code>)</td><td>First N hosts work, the rest do not</td><td>Pool shows 100% allocated, misses rising</td></tr>
+<tr><td>Pool name typo or case mismatch</td><td>No translation</td><td><code>show run | include ip nat</code></td></tr>
+<tr><td>No route back: the ISP does not route the pool or static global addresses to R1</td><td>Translations appear, but replies never arrive</td><td>Entries exist with no return traffic; check the ISP's route for 203.0.113.32/29</td></tr>
+<tr><td>No route out: R1 has no default route</td><td>Packets dropped before NAT</td><td><code>show ip route</code> has no gateway of last resort</td></tr>
+</tbody>
+</table>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> In <code>show ip nat translations</code>, the column order is Inside global, then Inside local. Many people read the private address first by habit. Read the headers.</p></div>
+<div class="callout tip"><p><strong>Tip:</strong> Troubleshoot NAT in this order: interfaces marked correctly, ACL matches, NAT statement references the right ACL and pool or interface, then routing in both directions. <code>show ip nat statistics</code> answers the first three questions at once.</p></div>
+
+<div class="lab" id="lab-4-1-1">
+<h4>Lab: Static NAT for a server plus PAT for users</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~40 min</p>
+<p>Topology: PC1 (192.168.1.10), PC2 (192.168.1.11) and Server1 (192.168.1.100, HTTP on) connect to switch SW1, which connects to R1 G0/0 (192.168.1.1/24). R1 G0/1 (203.0.113.1/30) connects to ISP G0/1 (203.0.113.2/30). ISP G0/0 (198.51.100.1/24) connects to WebSrv (198.51.100.10, HTTP on). Use 2911 routers. All inside hosts use gateway 192.168.1.1; WebSrv uses 198.51.100.1.</p>
+<ol>
+<li>Address all interfaces. On R1 add a default route to 203.0.113.2.</li>
+<li>On ISP, add a static route for the customer block 203.0.113.32/29 pointing to 203.0.113.1. Do <em>not</em> give ISP any route to 192.168.1.0/24.</li>
+<li>Mark R1 G0/0 as NAT inside and G0/1 as NAT outside.</li>
+<li>Create a static NAT mapping Server1 to 203.0.113.33.</li>
+<li>Create ACL 1 for 192.168.1.0/24 and configure PAT using the G0/1 address.</li>
+<li>From PC1 and PC2, browse to 198.51.100.10 and ping it. From WebSrv, browse to 203.0.113.33.</li>
+<li>Break it on purpose: remove <code>ip nat outside</code> from G0/1, retest, read <code>show ip nat statistics</code>, then restore it.</li>
+</ol>
+<p>Verify:</p>
+<ul>
+<li><code>show ip nat translations</code>: one <code>---</code> static line for 203.0.113.33, plus tcp/icmp lines with inside global 203.0.113.1:port for PC1 and PC2.</li>
+<li><code>show ip nat statistics</code>: Outside interfaces lists G0/1, Inside interfaces lists G0/0, 1 static translation.</li>
+<li>WebSrv can open http://203.0.113.33 (static NAT is bidirectional) but cannot reach 192.168.1.100 directly.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! R1
+interface GigabitEthernet0/0
+ ip address 192.168.1.1 255.255.255.0
+ ip nat inside
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 203.0.113.1 255.255.255.252
+ ip nat outside
+ no shutdown
+ip route 0.0.0.0 0.0.0.0 203.0.113.2
+ip nat inside source static 192.168.1.100 203.0.113.33
+access-list 1 permit 192.168.1.0 0.0.0.255
+ip nat inside source list 1 interface GigabitEthernet0/1 overload
+!
+! ISP
+interface GigabitEthernet0/0
+ ip address 198.51.100.1 255.255.255.0
+ no shutdown
+interface GigabitEthernet0/1
+ ip address 203.0.113.2 255.255.255.252
+ no shutdown
+ip route 203.0.113.32 255.255.255.248 203.0.113.1
+!
+! Note: Server1's own outbound traffic uses the static mapping (203.0.113.33),
+! because a static entry takes precedence over the dynamic PAT rule.</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-4-1-2">
+<h4>Lab: Dynamic NAT pool exhaustion, then fix it with overload</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~25 min</p>
+<p>Topology: reuse lab 4.1-1. Add PC3 (192.168.1.12). Remove the PAT statement first: <code>no ip nat inside source list 1 interface GigabitEthernet0/1 overload</code>.</p>
+<ol>
+<li>Create pool SMALL with only two addresses, 203.0.113.34 and 203.0.113.35, using <code>prefix-length 29</code>.</li>
+<li>Configure dynamic NAT from ACL 1 to pool SMALL (no overload).</li>
+<li>Ping WebSrv from PC1, then PC2, then PC3. Note which fail.</li>
+<li>Read <code>show ip nat statistics</code> and <code>show ip nat translations</code>.</li>
+<li>Run <code>clear ip nat translation *</code> and ping from PC3 first. Observe who gets an address now.</li>
+<li>Add <code>overload</code> to the pool statement and retest all three.</li>
+</ol>
+<p>Verify:</p>
+<ul>
+<li>Before overload: two <code>---</code> entries (PC1 to .34, PC2 to .35); PC3's ping fails; statistics show the pool 100% allocated and misses increasing.</li>
+<li>After overload: all three PCs translate to 203.0.113.34 with different ICMP identifiers (icmp entries).</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">R1(config)# no ip nat inside source list 1 interface GigabitEthernet0/1 overload
+R1(config)# ip nat pool SMALL 203.0.113.34 203.0.113.35 prefix-length 29
+R1(config)# ip nat inside source list 1 pool SMALL
+R1(config)# end
+R1# show ip nat statistics
+! look for: total addresses 2, allocated 2 (100%), misses N
+R1# clear ip nat translation *
+R1# configure terminal
+! IOS refuses to remove a mapping that is in use; clear first, then replace it
+R1(config)# no ip nat inside source list 1 pool SMALL
+R1(config)# ip nat inside source list 1 pool SMALL overload</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Inside local = real private address; inside global = public address representing it; outside local/global = the remote host (equal for inside source NAT).</li>
+<li>Every NAT design needs <code>ip nat inside</code> and <code>ip nat outside</code> on the right interfaces.</li>
+<li>Static: <code>ip nat inside source static L G</code>, permanent and bidirectional. Dynamic: ACL + <code>ip nat pool NAME start end netmask|prefix-length</code> + <code>ip nat inside source list ACL pool NAME</code>.</li>
+<li>PAT adds <code>overload</code>, with a pool or with <code>interface X</code>; entries include ports.</li>
+<li>Without overload, an exhausted pool drops new hosts' packets; simple dynamic entries live 24 hours idle by default.</li>
+<li>Verify with <code>show ip nat translations</code>, <code>show ip nat statistics</code>; reset with <code>clear ip nat translation *</code>; watch with <code>debug ip nat</code>.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-4-2" data-topics="4.2">
+<h2>4.2 Configure and verify NTP in client and server mode</h2>
+
+<p>Network Time Protocol (NTP) keeps device clocks synchronized to a common reference, usually within milliseconds on a LAN. NTP runs over <strong>UDP port 123</strong>. The current version is NTPv4 (RFC 5905); Cisco IOS also speaks NTPv3.</p>
+
+<h3>Why accurate time matters</h3>
+<ul>
+<li><strong>Logs and forensics</strong>: syslog timestamps from 50 devices are only useful if they agree. Correlating an incident across a firewall, a switch and a server needs one timeline.</li>
+<li><strong>Certificates and PKI</strong>: certificates have validity dates. A router whose clock says 1993 rejects valid certificates (IPsec, HTTPS management, 802.1X).</li>
+<li><strong>AAA and security protocols</strong>: Kerberos tolerates only a few minutes of skew. Time-based ACLs, accounting records, and SNMPv3 timeliness checks depend on correct time.</li>
+<li><strong>Compliance</strong>: audit trails (for example 21 CFR Part 11 in GxP environments) require trustworthy timestamps.</li>
+</ul>
+<p>A router's software clock starts from the hardware calendar (if it has one) or from a default date at boot. Without NTP it drifts and is often simply wrong.</p>
+
+<h3>Stratum</h3>
+<p>Stratum is the distance, in NTP hops, from an authoritative reference clock. Lower is better.</p>
+<table>
+<thead><tr><th>Stratum</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>The reference clock itself (GPS receiver, atomic clock, radio clock). Not an NTP server on the network; in NTP packets 0 means "unspecified".</td></tr>
+<tr><td>1</td><td>Primary server, directly attached to a stratum 0 source</td></tr>
+<tr><td>2 to 15</td><td>Secondary servers; each hop adds 1 (a client of a stratum 2 server is stratum 3)</td></tr>
+<tr><td>16</td><td>Unsynchronized. A device showing stratum 16 has no usable time source.</td></tr>
+</tbody>
+</table>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 260" role="img" aria-label="NTP stratum hierarchy: GPS reference clock stratum 0, primary server stratum 1, core router stratum 2, other devices stratum 3">
+<rect x="275" y="15" width="170" height="40" rx="6" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="360" y="40" text-anchor="middle" class="d-text">GPS clock (stratum 0)</text>
+<rect x="275" y="80" width="170" height="40" rx="6" fill="none" stroke="currentColor" class="d-line"/>
+<text x="360" y="105" text-anchor="middle" class="d-text">NTP server (st 1)</text>
+<rect x="275" y="145" width="170" height="40" rx="6" fill="none" stroke="currentColor" class="d-line"/>
+<text x="360" y="170" text-anchor="middle" class="d-text">Core R1 (st 2)</text>
+<rect x="90" y="210" width="140" height="40" rx="6" fill="none" stroke="currentColor" class="d-line"/>
+<text x="160" y="235" text-anchor="middle" class="d-text">R2 (st 3)</text>
+<rect x="290" y="210" width="140" height="40" rx="6" fill="none" stroke="currentColor" class="d-line"/>
+<text x="360" y="235" text-anchor="middle" class="d-text">SW1 (st 3)</text>
+<rect x="490" y="210" width="140" height="40" rx="6" fill="none" stroke="currentColor" class="d-line"/>
+<text x="560" y="235" text-anchor="middle" class="d-text">SW2 (st 3)</text>
+<line x1="360" y1="55" x2="360" y2="80" stroke="currentColor" class="d-line"/>
+<line x1="360" y1="120" x2="360" y2="145" stroke="currentColor" class="d-line"/>
+<line x1="360" y1="185" x2="160" y2="210" stroke="currentColor" class="d-line"/>
+<line x1="360" y1="185" x2="360" y2="210" stroke="currentColor" class="d-line"/>
+<line x1="360" y1="185" x2="560" y2="210" stroke="currentColor" class="d-line"/>
+<text x="500" y="100" class="d-muted">Each hop adds 1.</text>
+<text x="500" y="120" class="d-muted">16 = unsynchronized.</text>
+</svg>
+<figcaption>Stratum grows by one per NTP hop. R1 is a client of the stratum 1 server and a server for R2, SW1 and SW2.</figcaption>
+</figure>
+
+<h3>NTP modes on Cisco IOS</h3>
+<dl>
+<dt>Client (and client/server)</dt><dd><code>ntp server <em>address</em></code> makes the device a client of that server. The device synchronizes to the server but never changes the server's clock. Once synchronized, a Cisco router or switch also answers NTP requests from other devices, so it acts as a server for the next layer down. The CCNA calls this client/server mode.</dd>
+<dt>Server (authoritative, own clock)</dt><dd><code>ntp master [<em>stratum</em>]</code> makes the device serve time from its own internal clock even with no upstream source. The stratum range is 1 to 15; the <strong>default is 8</strong>. Use it in labs or isolated networks only: a device with a bad clock and a low stratum can override good sources.</dd>
+<dt>Symmetric active (peer)</dt><dd><code>ntp peer <em>address</em></code> creates a peer relationship: both devices can synchronize each other. Used between devices at the same level (two core routers) for redundancy.</dd>
+<dt>Broadcast/multicast</dt><dd>Exists (<code>ntp broadcast</code>), rarely used, not a CCNA focus.</dd>
+</dl>
+
+<h3>Configuration</h3>
+<pre class="cli">! R1: client of two enterprise servers, prefers the first
+R1(config)# ntp server 10.0.0.100 prefer
+R1(config)# ntp server 10.0.0.101
+R1(config)# ntp source Loopback0
+! source NTP packets from a stable loopback address
+R1(config)# ntp update-calendar
+! also write NTP time into the hardware calendar, so the clock is close after a reload
+R1(config)# clock timezone EST -5
+R1(config)# clock summer-time EDT recurring
+! with no extra arguments, "recurring" uses the US daylight-saving rules
+
+! R2: client of R1 (R1 serves time once it is synchronized)
+R2(config)# ntp server 1.1.1.1
+! 1.1.1.1 is R1's Loopback0 in this scenario
+
+! Lab only: make a router an authoritative server from its own clock
+LAB-R9(config)# ntp master 4</pre>
+<ul>
+<li><code>prefer</code> picks this server when several are otherwise equally good.</li>
+<li><code>ntp source <em>interface</em></code> fixes the source IP of NTP packets. Useful when servers or ACLs only allow a known address. A per-server form also exists: <code>ntp server 10.0.0.100 source Loopback0</code>.</li>
+<li><code>clock timezone</code> and <code>clock summer-time</code> only change how time is <em>displayed</em>. NTP itself always carries UTC.</li>
+<li>Without NTP, set the clock by hand in privileged EXEC mode: <code>clock set 14:05:00 16 Nov 2026</code>.</li>
+</ul>
+
+<h3>NTP authentication (basic)</h3>
+<p>Authentication lets a client accept time only from a server that knows a shared key. It protects against a rogue NTP source; it does not encrypt anything. Configure the same key number and key string on both sides.</p>
+<pre class="cli">! Server side (R1)
+R1(config)# ntp authentication-key 1 md5 NtpK3y
+R1(config)# ntp trusted-key 1
+R1(config)# ntp authenticate
+
+! Client side (R2)
+R2(config)# ntp authentication-key 1 md5 NtpK3y
+R2(config)# ntp trusted-key 1
+R2(config)# ntp authenticate
+R2(config)# ntp server 1.1.1.1 key 1</pre>
+<p>Four pieces: define the key, mark it trusted, turn authentication on, and tie the server to the key with the <code>key</code> keyword. A mismatch leaves the client unsynchronized (stratum 16).</p>
+
+<h3>Verification</h3>
+<pre class="cli">R2# show clock detail
+14:05:12.352 EST Mon Nov 16 2026
+Time source is NTP</pre>
+<p>A leading <code>*</code> before the time means the clock is not authoritative (never set or not synchronized). A leading <code>.</code> means it was set but NTP is not currently synchronized. No symbol means the time is authoritative. "Time source is NTP" confirms where it came from (others include "user configuration" and "hardware calendar").</p>
+
+<pre class="cli">R2# show ntp status
+Clock is synchronized, stratum 3, reference is 1.1.1.1
+nominal freq is 250.0000 Hz, actual freq is 250.0003 Hz, precision is 2**10
+ntp uptime is 3600000 (1/100 of seconds), resolution is 4000
+reference time is EEA5D23B.5A1CAC08 (14:04:27.352 EST Mon Nov 16 2026)
+clock offset is -0.1120 msec, root delay is 2.04 msec
+root dispersion is 7.81 msec, peer dispersion is 1.93 msec
+loopfilter state is 'CTRL' (Normal Controlled Loop), drift is -0.000001198 s/s
+system poll interval is 64, last update was 45 sec ago.</pre>
+<ul>
+<li><strong>Clock is synchronized, stratum 3</strong>: R2 is one hop below R1 (stratum 2). An unsynchronized device shows "Clock is unsynchronized, stratum 16, no reference clock".</li>
+<li><strong>reference is 1.1.1.1</strong>: the server R2 is locked to.</li>
+<li><strong>clock offset</strong>: how far R2 is from the server, in milliseconds.</li>
+<li><strong>poll interval</strong>: seconds between polls (starts at 64, can grow to 1024 as the clock stabilizes).</li>
+</ul>
+
+<pre class="cli">R2# show ntp associations
+
+  address         ref clock       st   when   poll reach  delay  offset   disp
+*~1.1.1.1         10.0.0.100       2     45     64   377  2.040  -0.112  1.937
++~10.0.0.101      .GPS.            1     12     64   377  9.880   0.874  2.105
+ * sys.peer, # selected, + candidate, - outlyer, x falseticker, ~ configured</pre>
+<p>(In this variant R2 has two servers configured: R1 and a stratum 1 server. R2 still chose R1: NTP does not simply pick the lowest stratum. Its selection algorithm weighs each source's delay and dispersion back to the reference clock, and here R1 scores better.)</p>
+<table>
+<thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>*</code></td><td>sys.peer: the server this device is synchronized to right now. Exactly one, if synchronized.</td></tr>
+<tr><td><code>#</code></td><td>Selected: a good source chosen by the selection algorithm but not the sys.peer</td></tr>
+<tr><td><code>+</code></td><td>Candidate: acceptable, could be used if the sys.peer fails</td></tr>
+<tr><td><code>-</code></td><td>Outlyer: discarded by the clustering algorithm</td></tr>
+<tr><td><code>x</code></td><td>Falseticker: its time disagrees with the others, rejected</td></tr>
+<tr><td><code>~</code></td><td>Configured statically (by <code>ntp server</code> or <code>ntp peer</code>)</td></tr>
+<tr><td>address</td><td>The server or peer address</td></tr>
+<tr><td>ref clock</td><td>What that server is synchronized to (an IP, or a code like .GPS., .LOCL. for <code>ntp master</code>, .INIT. while starting)</td></tr>
+<tr><td>st</td><td>The server's stratum (this device will be st + 1)</td></tr>
+<tr><td>when</td><td>Seconds since the last reply</td></tr>
+<tr><td>poll</td><td>Polling interval in seconds</td></tr>
+<tr><td>reach</td><td>Octal shift register of the last 8 polls; 377 = all 8 answered, 0 = never reached</td></tr>
+<tr><td>delay / offset / disp</td><td>Round-trip delay, clock difference, and dispersion (error estimate), in milliseconds</td></tr>
+</tbody>
+</table>
+
+<p>On a router using <code>ntp master 8</code>, the associations list shows the local reference <code>127.127.1.1</code> with ref clock <code>.LOCL.</code> at stratum 7, and <code>show ntp status</code> reports the router itself at stratum 8.</p>
+
+<h3>Troubleshooting NTP</h3>
+<ul>
+<li><strong>Stratum 16, reach 0</strong>: no reply. Check reachability (ping the server from the NTP source interface), UDP 123 blocked by an ACL or firewall, wrong server address.</li>
+<li><strong>reach climbing but no <code>*</code></strong>: normal for the first few minutes; NTP needs several good samples before it selects a source.</li>
+<li><strong>Authentication mismatch</strong>: key number or string differs, or <code>ntp trusted-key</code> missing.</li>
+<li><strong>Time correct but wrong hour</strong>: <code>clock timezone</code> or summer time missing; NTP itself is fine.</li>
+<li><strong>Server unsynchronized</strong>: a client never syncs to a server that is itself stratum 16.</li>
+</ul>
+
+<div class="callout key"><p><strong>Remember:</strong> NTP = UDP 123. <code>ntp server</code> = client (and server for others once synced). <code>ntp master</code> = serve own clock, default stratum 8. Stratum 16 = unsynchronized. In <code>show ntp associations</code>, <code>*</code> = sys.peer, <code>~</code> = configured.</p></div>
+<div class="callout trap"><p><strong>Exam trap:</strong> A device configured with only <code>ntp server</code> can still be a server for other devices. Do not assume <code>ntp master</code> is required for a router to hand time downstream; it is only required when the router has no upstream source.</p></div>
+
+<div class="lab" id="lab-4-2-1">
+<h4>Lab: NTP server, client chain, time zone and authentication</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~30 min</p>
+<p>Topology: NTP-SRV (a Packet Tracer Server, 10.0.0.100/24, gateway 10.0.0.1) connects to R1 G0/0 (10.0.0.1/24). R1 G0/1 (10.1.12.1/30) connects to R2 G0/1 (10.1.12.2/30). R1 has Loopback0 1.1.1.1/32. Use static routes so R2 can reach 1.1.1.1 and 10.0.0.0/24.</p>
+<ol>
+<li>On NTP-SRV, open Services &gt; NTP, turn the service On and set the date and time.</li>
+<li>On R1, point NTP at 10.0.0.100, set the time zone to EST -5 with US summer time, and write NTP time to the hardware calendar.</li>
+<li>Wait one to three minutes, then verify R1 is synchronized.</li>
+<li>On R2, point NTP at R1's Loopback0, sourced from G0/1.</li>
+<li>Add NTP authentication between R1 and R2 with key 1. (Packet Tracer's NTP support is partial. If R2 does not synchronize to R1 in your PT version, point R2 at 10.0.0.100 instead and treat the R1-as-server step as a concept to verify later on real gear or Cisco Modeling Labs.)</li>
+<li>Break it: change R2's key string and watch R2 fall back to unsynchronized over the next polls.</li>
+</ol>
+<p>Verify:</p>
+<ul>
+<li><code>show ntp associations</code> on R1: <code>*~10.0.0.100</code> with reach rising toward 377.</li>
+<li><code>show ntp status</code> on R1: "Clock is synchronized", stratum one higher than NTP-SRV's.</li>
+<li><code>show clock detail</code>: "Time source is NTP", time shown in EST/EDT.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! R1
+interface Loopback0
+ ip address 1.1.1.1 255.255.255.255
+ntp server 10.0.0.100
+ntp update-calendar
+clock timezone EST -5
+clock summer-time EDT recurring
+ntp authentication-key 1 md5 NtpK3y
+ntp trusted-key 1
+ntp authenticate
+!
+! R2
+ip route 1.1.1.1 255.255.255.255 10.1.12.1
+ip route 10.0.0.0 255.255.255.0 10.1.12.1
+ntp authentication-key 1 md5 NtpK3y
+ntp trusted-key 1
+ntp authenticate
+ntp source GigabitEthernet0/1
+ntp server 1.1.1.1 key 1
+clock timezone EST -5
+clock summer-time EDT recurring
+!
+R2# show ntp associations
+R2# show ntp status</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>NTP uses UDP 123 and carries UTC; time zone and summer time are display settings.</li>
+<li>Stratum 0 = reference clock, 1 = primary server, up to 15 usable, 16 = unsynchronized.</li>
+<li><code>ntp server X [prefer]</code> = client; synced Cisco devices also serve others. <code>ntp master [1-15]</code> serves its own clock, default stratum 8. <code>ntp peer</code> = symmetric.</li>
+<li>Authentication: <code>ntp authentication-key</code>, <code>ntp trusted-key</code>, <code>ntp authenticate</code>, <code>ntp server X key N</code>.</li>
+<li>Verify with <code>show ntp status</code>, <code>show ntp associations</code> (<code>*</code> = sys.peer), <code>show clock detail</code>.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-4-3" data-topics="4.3">
+<h2>4.3 Role of DHCP and DNS in the network</h2>
+
+<p>DHCP and DNS are the two services every client depends on before it can do anything useful. DHCP gives a host its IP settings. DNS turns names into addresses. The exam objective is "explain the role", but expect questions on message order, ports, record types and the IOS commands that make a router a DHCP server or a DNS client.</p>
+
+<h3>DHCP: what it provides</h3>
+<p>Dynamic Host Configuration Protocol (RFC 2131) leases an IP address and hands out options. A client typically receives:</p>
+<ul>
+<li>IP address and subnet mask</li>
+<li>Default gateway (option 3, "router")</li>
+<li>DNS server addresses (option 6) and domain name (option 15)</li>
+<li>Lease time (option 51)</li>
+<li>Special options: <strong>option 150</strong> (Cisco: list of TFTP servers where Cisco IP phones fetch their configuration), <strong>option 43</strong> (vendor specific; used by Cisco lightweight APs to learn WLC addresses), option 66 (TFTP server name, a standard alternative to 150)</li>
+</ul>
+<p>DHCP uses UDP: <strong>server port 67, client port 68</strong>. It grew out of BOOTP, which uses the same ports.</p>
+
+<h3>DORA: the four-message exchange</h3>
+<ol>
+<li><strong>Discover</strong> (client to server): the client has no address, so it sends from 0.0.0.0 to the broadcast 255.255.255.255. "Is there a DHCP server out there?"</li>
+<li><strong>Offer</strong> (server to client): the server proposes an address and options. Depending on the client's broadcast flag, the server either broadcasts the Offer or unicasts it to the offered address and the client's MAC.</li>
+<li><strong>Request</strong> (client to server): the client asks for the offered address. It is still a <strong>broadcast</strong>, so that every server that made an offer learns which one was accepted (the Request carries the chosen server's identifier). The others withdraw their offers.</li>
+<li><strong>Ack</strong> (server to client): the server confirms the lease. Broadcast or unicast, following the same rule as the Offer.</li>
+</ol>
+<p>Before using the address, the client normally checks it is free (for example with ARP). If it finds a conflict it sends a <strong>DHCPDECLINE</strong> and starts over. Other messages: <strong>DHCPNAK</strong> (server refuses a request, for example the client moved to another subnet), <strong>DHCPRELEASE</strong> (client gives the address back, unicast), <strong>DHCPINFORM</strong> (client already has an address and only wants options).</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 280" role="img" aria-label="DHCP DORA sequence between client and server: Discover broadcast, Offer, Request broadcast, Ack">
+<text x="120" y="25" text-anchor="middle" class="d-text">Client (UDP 68)</text>
+<text x="600" y="25" text-anchor="middle" class="d-text">DHCP server (UDP 67)</text>
+<line x1="120" y1="35" x2="120" y2="265" stroke="currentColor" class="d-muted"/>
+<line x1="600" y1="35" x2="600" y2="265" stroke="currentColor" class="d-muted"/>
+<line x1="120" y1="70" x2="600" y2="70" stroke="currentColor" class="d-accent"/>
+<polyline points="590,64 600,70 590,76" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="360" y="62" text-anchor="middle" class="d-text">1 Discover: 0.0.0.0 to 255.255.255.255</text>
+<line x1="120" y1="125" x2="600" y2="125" stroke="currentColor" class="d-line"/>
+<polyline points="130,119 120,125 130,131" fill="none" stroke="currentColor" class="d-line"/>
+<text x="360" y="117" text-anchor="middle" class="d-text">2 Offer: proposed address + options</text>
+<line x1="120" y1="180" x2="600" y2="180" stroke="currentColor" class="d-accent"/>
+<polyline points="590,174 600,180 590,186" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="360" y="172" text-anchor="middle" class="d-text">3 Request: broadcast, names chosen server</text>
+<line x1="120" y1="235" x2="600" y2="235" stroke="currentColor" class="d-line"/>
+<polyline points="130,229 120,235 130,241" fill="none" stroke="currentColor" class="d-line"/>
+<text x="360" y="227" text-anchor="middle" class="d-text">4 Ack: lease confirmed</text>
+</svg>
+<figcaption>DORA on a single subnet. Client messages are broadcasts; the server's replies are broadcast or unicast depending on the client's broadcast flag.</figcaption>
+</figure>
+
+<h3>Leases, renewal, T1 and T2</h3>
+<ul>
+<li>Every address is leased for a fixed time. Cisco IOS DHCP server default: <strong>1 day</strong>. Windows Server default: 8 days.</li>
+<li><strong>T1 (renewal), default 50% of the lease</strong>: the client unicasts a Request to the server that gave it the lease. If the server answers with an Ack, the lease restarts. No DORA needed.</li>
+<li><strong>T2 (rebinding), default 87.5% of the lease</strong>: if renewal failed, the client broadcasts a Request to any server.</li>
+<li>Lease expires with no answer: the client must stop using the address and start again with a Discover. Windows then falls back to an APIPA address (169.254.x.x) while it keeps trying.</li>
+</ul>
+<p>With a 1-day lease (86,400 s): renew at 43,200 s (12 h), rebind at 75,600 s (21 h).</p>
+
+<h3>Cisco IOS DHCP server</h3>
+<pre class="cli">R1(config)# ip dhcp excluded-address 192.168.10.1 192.168.10.10
+! keep .1 to .10 for the gateway, servers and printers
+R1(config)# ip dhcp pool LAN10
+R1(dhcp-config)# network 192.168.10.0 255.255.255.0
+! "network 192.168.10.0 /24" is also accepted
+R1(dhcp-config)# default-router 192.168.10.1
+R1(dhcp-config)# dns-server 192.168.10.53 8.8.8.8
+R1(dhcp-config)# domain-name corp.example
+R1(dhcp-config)# lease 2 12 30
+! 2 days, 12 hours, 30 minutes; "lease infinite" is also possible
+R1(dhcp-config)# option 150 ip 192.168.10.20
+! TFTP server for Cisco IP phones
+R1(dhcp-config)# option 43 hex f104.0a0a.0a05
+! TLV for AP discovery: type f1, length 04 (one WLC), 10.10.10.5</pre>
+<ul>
+<li><code>ip dhcp excluded-address</code> is a <em>global</em> command, not inside the pool. Always exclude the router's own address and any static hosts.</li>
+<li>The pool's <code>network</code> must match the subnet of the interface where the requests arrive (or, through a relay, the giaddr subnet). A pool with no matching subnet never answers.</li>
+<li>Before leasing an address the IOS server pings it (by default 2 pings) to detect conflicts. A conflicting address is placed in the conflict table and not handed out until an administrator clears it.</li>
+<li>The DHCP service is on by default (<code>service dhcp</code>). <code>no service dhcp</code> disables both the DHCP server and relay functions.</li>
+</ul>
+
+<h4>Verification</h4>
+<pre class="cli">R1# show ip dhcp binding
+Bindings from all pools not associated with VRF:
+IP address          Client-ID/              Lease expiration        Type
+                    Hardware address/
+                    User name
+192.168.10.11       0100.5079.6668.01       Nov 19 2026 02:41 AM    Automatic
+192.168.10.12       0100.5079.6668.02       Nov 19 2026 02:44 AM    Automatic
+
+R1# show ip dhcp pool
+
+Pool LAN10 :
+ Utilization mark (high/low)    : 100 / 0
+ Subnet size (first/next)       : 0 / 0
+ Total addresses                : 254
+ Leased addresses               : 2
+ Pending event                  : none
+ 1 subnet is currently in the pool :
+ Current index        IP address range                    Leased addresses
+ 192.168.10.14        192.168.10.1     - 192.168.10.254    2
+
+R1# show ip dhcp conflict
+IP address        Detection method   Detection time
+192.168.10.13     Ping               Nov 16 2026 02:46 PM
+
+R1# clear ip dhcp conflict *
+R1# clear ip dhcp binding *</pre>
+<ul>
+<li><strong>binding</strong>: which client (Client-ID is 01 plus the MAC for Ethernet clients) holds which address and until when. "Automatic" means leased from a pool; "Manual" means a reserved host binding.</li>
+<li><strong>pool</strong>: total and leased addresses, and the next index to try. Total addresses counts the whole subnet; excluded addresses are simply skipped.</li>
+<li><strong>conflict</strong>: addresses found in use by someone else (Ping or Gratuitous ARP). A static host inside the pool range is the usual cause.</li>
+</ul>
+
+<h3>DNS: what it does</h3>
+<p>The Domain Name System resolves names to addresses (and the reverse). Without DNS, users would need to know every server's IP address, and services such as email delivery (MX records) would not work.</p>
+
+<h4>Hierarchy</h4>
+<p>DNS is a distributed tree. At the top is the root (written as a trailing dot). Below it are top-level domains (.com, .org, .edu, country codes). Below those are second-level domains (example.com), then any subdomains and hosts (www.example.com). Each zone is served by its own <strong>authoritative</strong> name servers. The root servers know the TLD servers; TLD servers know each domain's authoritative servers.</p>
+
+<h4>Recursive versus iterative resolution</h4>
+<ol>
+<li>A client (stub resolver) sends a <strong>recursive</strong> query to its configured DNS server, the resolver: "give me the final answer for www.example.com".</li>
+<li>If the answer is not cached, the resolver performs <strong>iterative</strong> queries: it asks a root server, which refers it to the .com servers; it asks a .com server, which refers it to example.com's authoritative servers; it asks one of those and gets the A record.</li>
+<li>The resolver returns the answer to the client and caches it for the record's TTL.</li>
+</ol>
+
+<h4>Record types</h4>
+<table>
+<thead><tr><th>Type</th><th>Purpose</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>A</td><td>Name to IPv4 address</td><td>www.example.com A 203.0.113.80</td></tr>
+<tr><td>AAAA</td><td>Name to IPv6 address</td><td>www.example.com AAAA 2001:db8::80</td></tr>
+<tr><td>CNAME</td><td>Alias to another (canonical) name</td><td>web.example.com CNAME www.example.com</td></tr>
+<tr><td>MX</td><td>Mail exchanger for a domain, with preference (lower preferred)</td><td>example.com MX 10 mail.example.com</td></tr>
+<tr><td>NS</td><td>Authoritative name servers for a zone</td><td>example.com NS ns1.example.com</td></tr>
+<tr><td>PTR</td><td>Reverse lookup: address to name (in in-addr.arpa or ip6.arpa)</td><td>80.113.0.203.in-addr.arpa PTR www.example.com</td></tr>
+<tr><td>SOA</td><td>Start of authority: primary server, admin contact, serial number and timers for the zone</td><td>One per zone</td></tr>
+<tr><td>TXT</td><td>Free text; used for SPF, DKIM, domain verification</td><td>example.com TXT "v=spf1 mx -all"</td></tr>
+</tbody>
+</table>
+
+<h4>Transport</h4>
+<p>DNS uses <strong>port 53</strong>. Ordinary queries use <strong>UDP 53</strong>. <strong>TCP 53</strong> is used for zone transfers between servers and for responses too large for UDP (the server sets the truncation flag and the client retries over TCP). The classic UDP limit is 512 bytes, raised by EDNS0.</p>
+
+<h3>DNS on Cisco IOS</h3>
+<pre class="cli">R1(config)# ip domain-lookup
+! enabled by default; newer IOS XE writes it as "ip domain lookup"
+R1(config)# ip name-server 192.168.10.53 8.8.8.8
+R1(config)# ip domain-name corp.example
+R1(config)# ip host FILESRV 192.168.10.30
+! static local name-to-address entry, no DNS server needed
+R1# ping FILESRV
+R1# show hosts</pre>
+<p>A router's DNS settings only matter for commands the router itself runs (ping, traceroute, ssh, copy to a server by name). Clients get their DNS servers from DHCP, not from the router's <code>ip name-server</code>.</p>
+
+<h4>The classic typo problem</h4>
+<p>At the EXEC prompt, IOS treats an unrecognized single word as a host name and tries to Telnet to it. With domain lookup on and no name server configured, it broadcasts a DNS query and you wait while it times out:</p>
+<pre class="cli">R1# shwo
+Translating "shwo"...domain server (255.255.255.255)
+% Unknown command or computer name, or unable to find computer address</pre>
+<p>Two common fixes:</p>
+<pre class="cli">R1(config)# no ip domain-lookup
+! stops all DNS lookups by the router (also breaks "ping FILESRV" via DNS)
+R1(config)# line console 0
+R1(config-line)# transport preferred none
+! keeps DNS working, but a mistyped word is no longer treated as a Telnet target</pre>
+
+<div class="callout key"><p><strong>Remember:</strong> DHCP = UDP 67 (server) and 68 (client), DORA, T1 50%, T2 87.5%, IOS default lease 1 day. DNS = UDP 53 for queries, TCP 53 for zone transfers and large replies. A = IPv4, AAAA = IPv6, PTR = reverse, MX = mail, CNAME = alias.</p></div>
+<div class="callout trap"><p><strong>Exam trap:</strong> The DHCP Request is broadcast even though the client already knows the server (on first lease). It is unicast only when renewing at T1.</p></div>
+
+<div class="lab" id="lab-4-3-1">
+<h4>Lab: Router as DHCP server with a DNS server on the LAN</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~30 min</p>
+<p>Topology: R1 G0/0 (192.168.10.1/24) connects to SW1. On SW1: DNS1 (a Server, static 192.168.10.53/24, gateway .1), WEB1 (a Server, static 192.168.10.30/24, HTTP on), PC1 and PC2 (set to DHCP).</p>
+<ol>
+<li>Exclude 192.168.10.1 to 192.168.10.59 from DHCP.</li>
+<li>Create pool LAN10 with gateway 192.168.10.1, DNS server 192.168.10.53, domain corp.example and a 12-hour lease. (Packet Tracer does not accept the <code>lease</code> command; skip it there and the pool keeps the 1-day default.)</li>
+<li>On DNS1, enable the DNS service and add an A record web.corp.example = 192.168.10.30 and a CNAME intranet.corp.example pointing to web.corp.example.</li>
+<li>Set PC1 and PC2 to DHCP; open a browser on PC1 to http://intranet.corp.example.</li>
+<li>On R1, type a nonsense word at the prompt and time the delay. Fix it without disabling DNS for the router, then configure <code>ip name-server 192.168.10.53</code> and ping web.corp.example from R1.</li>
+<li>Give PC2 a static address 192.168.10.60 (inside the pool), release and renew PC1 a few times, and look for conflicts.</li>
+</ol>
+<p>Verify:</p>
+<ul>
+<li>PC1 <code>ipconfig /all</code>: address from .60 upward, gateway .1, DNS 192.168.10.53.</li>
+<li><code>show ip dhcp binding</code>: PC1 and PC2 MACs with leases about 12 hours out (on real IOS; Packet Tracer uses its default lease).</li>
+<li><code>show ip dhcp pool</code>: Leased addresses equals the number of DHCP clients.</li>
+<li>After step 6: <code>show ip dhcp conflict</code> may list 192.168.10.60 (detected by ping) if the server tried to lease it.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">R1(config)# ip dhcp excluded-address 192.168.10.1 192.168.10.59
+R1(config)# ip dhcp pool LAN10
+R1(dhcp-config)# network 192.168.10.0 255.255.255.0
+R1(dhcp-config)# default-router 192.168.10.1
+R1(dhcp-config)# dns-server 192.168.10.53
+R1(dhcp-config)# domain-name corp.example
+R1(dhcp-config)# lease 0 12
+! real IOS only; Packet Tracer rejects the lease command
+R1(dhcp-config)# exit
+R1(config)# line console 0
+R1(config-line)# transport preferred none
+R1(config-line)# exit
+R1(config)# ip name-server 192.168.10.53
+R1(config)# end
+R1# ping web.corp.example
+! PC side:
+C:\&gt; ipconfig /release
+C:\&gt; ipconfig /renew
+C:\&gt; nslookup intranet.corp.example</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>DHCP hands out address, mask, gateway, DNS, domain and options (150 = TFTP for IP phones, 43 = WLC list for APs) over UDP 67/68.</li>
+<li>DORA: Discover (broadcast), Offer, Request (broadcast), Ack. Renew at T1 (50%) by unicast, rebind at T2 (87.5%) by broadcast.</li>
+<li>IOS server: global <code>ip dhcp excluded-address</code>, then <code>ip dhcp pool</code> with <code>network</code>, <code>default-router</code>, <code>dns-server</code>, <code>domain-name</code>, <code>lease</code> (default 1 day).</li>
+<li>Verify with <code>show ip dhcp binding</code>, <code>show ip dhcp pool</code>, <code>show ip dhcp conflict</code>.</li>
+<li>DNS: hierarchy root, TLD, domain; client sends recursive query, resolver iterates. UDP 53, TCP 53 for zone transfers and big answers.</li>
+<li>IOS: <code>ip domain-lookup</code> (default on), <code>ip name-server</code>, <code>ip host</code>; stop typo lookups with <code>no ip domain-lookup</code> or <code>transport preferred none</code>.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-4-4" data-topics="4.4">
+<h2>4.4 Function of SNMP in network operations</h2>
+
+<p>Simple Network Management Protocol lets a central system read device status (interface counters, CPU, memory, errors), receive alerts when something happens, and, if allowed, change settings. It is the backbone of traditional network monitoring tools (SolarWinds, PRTG, LibreNMS, Zabbix and many others).</p>
+
+<h3>Components</h3>
+<dl>
+<dt>SNMP manager (NMS)</dt><dd>The monitoring application. It polls agents and receives notifications.</dd>
+<dt>SNMP agent</dt><dd>Software on the managed device (router, switch, server, printer). It answers the manager's requests and sends notifications.</dd>
+<dt>MIB (Management Information Base)</dt><dd>The structured set of variables an agent exposes. Standard MIBs (for example IF-MIB for interfaces) plus vendor MIBs (Cisco's under its enterprise number).</dd>
+<dt>OID (Object Identifier)</dt><dd>The numeric address of each variable in a global tree. Example: 1.3.6.1.2.1.1.5.0 is sysName (iso.org.dod.internet.mgmt.mib-2.system.sysName). 1.3.6.1.2.1 is mib-2; 1.3.6.1.4.1 is "private enterprises"; Cisco is 1.3.6.1.4.1.9.</dd>
+</dl>
+
+<h3>Messages</h3>
+<table>
+<thead><tr><th>Message</th><th>Direction</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>Get</td><td>Manager to agent</td><td>Read one or more specific OIDs</td></tr>
+<tr><td>GetNext</td><td>Manager to agent</td><td>Read the next OID in the tree; repeated, it walks a table ("snmpwalk")</td></tr>
+<tr><td>GetBulk</td><td>Manager to agent</td><td>Read many OIDs in one request (added in v2c); efficient for big tables</td></tr>
+<tr><td>Set</td><td>Manager to agent</td><td>Change a value (requires write access)</td></tr>
+<tr><td>Trap</td><td>Agent to manager</td><td>Unsolicited notification of an event; <strong>not acknowledged</strong>, sent once</td></tr>
+<tr><td>Inform</td><td>Agent to manager</td><td>Notification that the manager <strong>acknowledges</strong>; resent if no reply (added in v2c)</td></tr>
+<tr><td>Response</td><td>Agent to manager (or manager to agent for Inform)</td><td>Reply to a request</td></tr>
+</tbody>
+</table>
+
+<h3>Ports</h3>
+<ul>
+<li><strong>UDP 161</strong>: the agent listens here. Get, GetNext, GetBulk and Set go to the device on 161.</li>
+<li><strong>UDP 162</strong>: the manager listens here. Traps and Informs go to the NMS on 162.</li>
+</ul>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 220" role="img" aria-label="SNMP: manager polls agent on UDP 161 with Get, GetNext, GetBulk, Set; agent sends Trap or Inform to manager on UDP 162">
+<rect x="30" y="70" width="170" height="80" rx="8" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="115" y="105" text-anchor="middle" class="d-text">SNMP manager</text>
+<text x="115" y="125" text-anchor="middle" class="d-text">(NMS) listens 162</text>
+<rect x="520" y="70" width="170" height="80" rx="8" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="605" y="100" text-anchor="middle" class="d-text">Agent on router</text>
+<text x="605" y="120" text-anchor="middle" class="d-text">listens 161</text>
+<text x="605" y="140" text-anchor="middle" class="d-text">MIB / OIDs</text>
+<line x1="200" y1="90" x2="520" y2="90" stroke="currentColor" class="d-line"/>
+<polyline points="510,84 520,90 510,96" fill="none" stroke="currentColor" class="d-line"/>
+<text x="360" y="80" text-anchor="middle" class="d-text">Get / GetNext / GetBulk / Set to UDP 161</text>
+<line x1="200" y1="130" x2="520" y2="130" stroke="currentColor" class="d-line"/>
+<polyline points="210,124 200,130 210,136" fill="none" stroke="currentColor" class="d-line"/>
+<text x="360" y="150" text-anchor="middle" class="d-text">Trap (no ack) / Inform (ack) to UDP 162</text>
+<text x="360" y="200" text-anchor="middle" class="d-muted">Polling flows from the manager; notifications flow from the agent</text>
+</svg>
+<figcaption>SNMP message directions and ports.</figcaption>
+</figure>
+
+<h3>Versions and security</h3>
+<table>
+<thead><tr><th>Version</th><th>Authentication</th><th>Encryption</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>SNMPv1</td><td>Community string, sent in cleartext</td><td>None</td><td>Original; Get, GetNext, Set, Trap</td></tr>
+<tr><td>SNMPv2c</td><td>Community string, cleartext</td><td>None</td><td>Adds GetBulk and Inform, 64-bit counters; the "c" means community-based</td></tr>
+<tr><td>SNMPv3</td><td>Username with HMAC (MD5, SHA, SHA-2)</td><td>Optional DES, 3DES, AES</td><td>Users and groups; message integrity, authentication, privacy</td></tr>
+</tbody>
+</table>
+<p>A community string is effectively a shared password: read-only (RO) or read-write (RW). Anyone who captures a v1/v2c packet sees it in plain text.</p>
+<p>SNMPv3 security levels:</p>
+<ul>
+<li><strong>noAuthNoPriv</strong>: username only, no authentication, no encryption.</li>
+<li><strong>authNoPriv</strong>: messages authenticated (HMAC), not encrypted.</li>
+<li><strong>authPriv</strong>: authenticated and encrypted. The level to use in production.</li>
+</ul>
+
+<h3>Basic IOS configuration</h3>
+<pre class="cli">! SNMPv2c: read-only community restricted to the NMS by a standard ACL
+R1(config)# access-list 10 permit host 10.1.1.50
+R1(config)# snmp-server community N0c-R3ad RO 10
+R1(config)# snmp-server location Cambridge-MDF-Rack2
+R1(config)# snmp-server contact netops@corp.example
+R1(config)# snmp-server host 10.1.1.50 version 2c N0c-R3ad
+! send traps to the NMS; add "informs" after the address for acknowledged notifications
+R1(config)# snmp-server enable traps
+! enables all trap types this IOS supports; you can list specific ones instead
+
+! SNMPv3 with authPriv
+R1(config)# snmp-server group NETOPS v3 priv
+R1(config)# snmp-server user nms1 NETOPS v3 auth sha AuthPa55word priv aes 128 PrivPa55word
+R1(config)# snmp-server host 10.1.1.50 version 3 priv nms1</pre>
+<ul>
+<li>The <code>snmp-server group</code> security level (<code>noauth</code>, <code>auth</code>, <code>priv</code>) is the minimum the users of that group must use.</li>
+<li>SNMPv3 users are not shown in <code>show running-config</code>; check them with <code>show snmp user</code>. Groups appear with <code>show snmp group</code>.</li>
+<li>Only standard ACLs can be attached to SNMP communities.</li>
+<li>No <code>snmp-server host</code> means no notifications are sent, even with traps enabled.</li>
+</ul>
+<pre class="cli">R1# show snmp
+Chassis: FTX1840ABCD
+Contact: netops@corp.example
+Location: Cambridge-MDF-Rack2
+1204 SNMP packets input
+    0 Bad SNMP version errors
+    3 Unknown community name
+    0 Illegal operation for community name supplied
+    0 Encoding errors
+    1201 Number of requested variables
+...
+SNMP logging: enabled
+    Logging to 10.1.1.50.162, 0/10, 14 sent, 0 dropped.</pre>
+<p>"Unknown community name" climbing means something is polling with the wrong string (or someone is guessing).</p>
+
+<h3>Security best practices</h3>
+<ul>
+<li>Use SNMPv3 with authPriv wherever the NMS supports it.</li>
+<li>If v2c is unavoidable: read-only only, a long random community (never "public" or "private"), restricted by ACL to the NMS addresses.</li>
+<li>Avoid RW access; use configuration tools (SSH, NETCONF, Ansible) for changes.</li>
+<li>Filter UDP 161/162 at the edge and allow them only from management subnets.</li>
+<li>Prefer Informs for important alerts if the NMS supports them, since Traps can be lost silently.</li>
+</ul>
+
+<div class="callout key"><p><strong>Remember:</strong> Agent listens on UDP 161; manager receives traps/informs on UDP 162. Trap = no acknowledgment; Inform = acknowledged. v1/v2c = community strings in cleartext; v3 = users, auth and encryption (authPriv).</p></div>
+<div class="callout trap"><p><strong>Exam trap:</strong> GetBulk and Inform do not exist in SNMPv1. And "v2c" adds features, not security: it is still cleartext communities.</p></div>
+
+<div class="lab" id="lab-4-4-1">
+<h4>Lab: Poll a router with the Packet Tracer MIB Browser</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~20 min</p>
+<p>Topology: NMS-PC (10.1.1.50/24, gateway 10.1.1.1) connects to R1 G0/0 (10.1.1.1/24). Add a second PC, ROGUE (10.1.1.99), on the same switch.</p>
+<ol>
+<li>On R1 create a read-only community <code>N0c-R3ad</code> limited by ACL 10 to 10.1.1.50, and set location and contact.</li>
+<li>On NMS-PC open Desktop &gt; MIB Browser. Under Advanced, set the address 10.1.1.1, read community N0c-R3ad, SNMP version v2 (or v1, depending on your PT build).</li>
+<li>Do a Get on sysName (system &gt; sysName) and sysLocation, then a GetNext/walk of the interfaces table.</li>
+<li>Repeat from ROGUE with the same community. Then repeat from NMS-PC with the wrong community.</li>
+<li>Check <code>show snmp</code> counters on R1.</li>
+</ol>
+<p>Verify:</p>
+<ul>
+<li>NMS-PC Get returns R1's hostname and the location string.</li>
+<li>ROGUE and the wrong-community attempts time out (no response is sent).</li>
+<li><code>show snmp</code>: "Unknown community name" increments for the wrong community.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">R1(config)# access-list 10 permit host 10.1.1.50
+R1(config)# snmp-server community N0c-R3ad RO 10
+R1(config)# snmp-server location Lab-Rack1
+R1(config)# snmp-server contact netops@corp.example
+R1(config)# end
+R1# show snmp community
+R1# show snmp</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Manager (NMS), agent (device), MIB (variables), OID (numeric tree address, 1.3.6.1.2.1 = mib-2).</li>
+<li>Get, GetNext, GetBulk (v2c+), Set from the manager; Trap (unacknowledged) and Inform (acknowledged, v2c+) from the agent.</li>
+<li>UDP 161 to the agent, UDP 162 to the manager.</li>
+<li>v1/v2c: cleartext community strings, RO or RW. v3: users and groups, noAuthNoPriv, authNoPriv, authPriv.</li>
+<li>IOS: <code>snmp-server community</code>, <code>snmp-server host</code>, <code>snmp-server enable traps</code>, <code>snmp-server group ... v3 priv</code>, <code>snmp-server user ... v3 auth sha ... priv aes 128 ...</code>.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-4-5" data-topics="4.5">
+<h2>4.5 Syslog features including facilities and levels</h2>
+
+<p>Cisco devices generate system messages for interface changes, configuration changes, routing adjacencies, errors and debugging. Syslog is both the message format and the protocol for sending those messages to a central server. A central syslog server (or SIEM) keeps history after a reboot, lets you search across devices, and is required by most audit regimes.</p>
+
+<h3>Message format</h3>
+<pre class="cli">000045: *Nov 16 14:22:10.415: %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down
+000046: *Nov 16 14:22:11.415: %LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet0/1, changed state to down
+000047: Nov 16 14:25:02.118: %SYS-5-CONFIG_I: Configured from console by admin on vty0 (10.1.1.50)</pre>
+<table>
+<thead><tr><th>Part</th><th>Example</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Sequence number</td><td>000045</td><td>Only with <code>service sequence-numbers</code>; reveals missing messages</td></tr>
+<tr><td>Timestamp</td><td>Nov 16 14:22:10.415</td><td>With <code>service timestamps log datetime msec</code>. A leading <code>*</code> means the clock is not authoritative (no NTP); compare message 47, logged after NTP synchronized.</td></tr>
+<tr><td>%FACILITY</td><td>LINK</td><td>The IOS component that produced the message (LINK, LINEPROTO, SYS, OSPF, DHCPD...)</td></tr>
+<tr><td>SEVERITY</td><td>3</td><td>0 to 7, lower is more severe</td></tr>
+<tr><td>MNEMONIC</td><td>UPDOWN</td><td>Short code for the event type</td></tr>
+<tr><td>Description</td><td>Interface ... changed state to down</td><td>Human-readable details</td></tr>
+</tbody>
+</table>
+
+<h3>Severity levels</h3>
+<table>
+<thead><tr><th>Level</th><th>IOS keyword</th><th>Meaning</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>emergencies</td><td>System unusable</td><td>Device crashing</td></tr>
+<tr><td>1</td><td>alerts</td><td>Immediate action needed</td><td>Temperature limit exceeded</td></tr>
+<tr><td>2</td><td>critical</td><td>Critical condition</td><td>Memory allocation failure</td></tr>
+<tr><td>3</td><td>errors</td><td>Error condition</td><td>%LINK-3-UPDOWN (interface down)</td></tr>
+<tr><td>4</td><td>warnings</td><td>Warning condition</td><td>Duplicate address, config warnings</td></tr>
+<tr><td>5</td><td>notifications</td><td>Normal but significant</td><td>%LINEPROTO-5-UPDOWN, %SYS-5-CONFIG_I, %OSPF-5-ADJCHG</td></tr>
+<tr><td>6</td><td>informational</td><td>Informational</td><td>ACL log hits (%SEC-6-IPACCESSLOGP)</td></tr>
+<tr><td>7</td><td>debugging</td><td>Debug output</td><td>Output of <code>debug</code> commands</td></tr>
+</tbody>
+</table>
+<p>Mnemonic, from 0 to 7: <strong>"Every Awesome Cisco Engineer Will Need Ice cream Daily"</strong> (Emergency, Alert, Critical, Error, Warning, Notification, Informational, Debugging).</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 330" role="img" aria-label="Syslog severity ladder from 0 emergencies at the top to 7 debugging at the bottom; setting a level such as warnings 4 sends levels 0 to 4">
+<text x="150" y="22" text-anchor="middle" class="d-text">More severe</text>
+<rect x="60" y="30" width="180" height="32" rx="4" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="150" y="51" text-anchor="middle" class="d-text">0 Emergencies</text>
+<rect x="60" y="64" width="180" height="32" rx="4" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="150" y="85" text-anchor="middle" class="d-text">1 Alerts</text>
+<rect x="60" y="98" width="180" height="32" rx="4" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="150" y="119" text-anchor="middle" class="d-text">2 Critical</text>
+<rect x="60" y="132" width="180" height="32" rx="4" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="150" y="153" text-anchor="middle" class="d-text">3 Errors</text>
+<rect x="60" y="166" width="180" height="32" rx="4" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="150" y="187" text-anchor="middle" class="d-text">4 Warnings</text>
+<rect x="60" y="200" width="180" height="32" rx="4" fill="none" stroke="currentColor" class="d-line"/>
+<text x="150" y="221" text-anchor="middle" class="d-text">5 Notifications</text>
+<rect x="60" y="234" width="180" height="32" rx="4" fill="none" stroke="currentColor" class="d-line"/>
+<text x="150" y="255" text-anchor="middle" class="d-text">6 Informational</text>
+<rect x="60" y="268" width="180" height="32" rx="4" fill="none" stroke="currentColor" class="d-line"/>
+<text x="150" y="289" text-anchor="middle" class="d-text">7 Debugging</text>
+<text x="150" y="320" text-anchor="middle" class="d-text">Less severe, more volume</text>
+<line x1="270" y1="34" x2="270" y2="194" stroke="currentColor" class="d-accent"/>
+<polyline points="262,44 270,34 278,44" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="290" y="100" class="d-text">logging trap warnings (4)</text>
+<text x="290" y="120" class="d-text">sends levels 0 to 4 only</text>
+<line x1="270" y1="204" x2="270" y2="296" stroke="currentColor" class="d-muted"/>
+<text x="290" y="245" class="d-muted">5 to 7 are not sent</text>
+<text x="520" y="190" class="d-text">Defaults:</text>
+<text x="520" y="212" class="d-text">console 7</text>
+<text x="520" y="232" class="d-text">monitor 7</text>
+<text x="520" y="252" class="d-text">buffer 7</text>
+<text x="520" y="272" class="d-text">trap (server) 6</text>
+</svg>
+<figcaption>A configured level includes that level and every more severe (lower-numbered) level.</figcaption>
+</figure>
+
+<div class="callout key"><p><strong>Remember:</strong> Setting a level means "this level and everything more severe". <code>logging trap warnings</code> (or <code>logging trap 4</code>) sends levels 0, 1, 2, 3 and 4. To include notifications such as interface line-protocol changes and config changes, you need level 5 or higher.</p></div>
+
+<h3>Facilities</h3>
+<p>The word "facility" is used in two ways, and the exam can use either:</p>
+<ul>
+<li>Inside the IOS message, <code>%LINK</code>, <code>%SYS</code> and so on name the IOS process or component that produced it.</li>
+<li>In the syslog protocol, the facility is a code that tells the server what kind of source sent the message, so the server can sort it. Unix uses kern, mail, auth and others; network devices use <strong>local0 to local7</strong> (facility codes 16 to 23). <strong>Cisco IOS defaults to local7.</strong> Change it with <code>logging facility local5</code>, for example to send firewalls and routers to different files.</li>
+</ul>
+<p>On the wire, facility and severity are combined into one priority value: PRI = facility code x 8 + severity. A Cisco level 3 message with facility local7 is sent as &lt;187&gt; (23 x 8 + 3).</p>
+
+<h3>Logging destinations</h3>
+<table>
+<thead><tr><th>Destination</th><th>Command</th><th>Default</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Console</td><td><code>logging console <em>level</em></code></td><td>On, debugging (7)</td><td>Only seen by someone on the console port; high volume can slow a busy router</td></tr>
+<tr><td>Monitor (VTY: SSH/Telnet sessions)</td><td><code>logging monitor <em>level</em></code></td><td>On, debugging (7)</td><td>You must also type <code>terminal monitor</code> in each SSH session to see them</td></tr>
+<tr><td>Buffer (RAM)</td><td><code>logging buffered [<em>size</em>] [<em>level</em>]</code></td><td>Platform dependent (on by default on most current IOS); size varies</td><td>View with <code>show logging</code>; lost on reload; oldest messages overwritten</td></tr>
+<tr><td>Syslog server</td><td><code>logging host <em>ip</em></code> + <code>logging trap <em>level</em></code></td><td>No server; trap level informational (6)</td><td>Sent over <strong>UDP 514</strong>; survives reboots; central search</td></tr>
+</tbody>
+</table>
+
+<h3>Configuration</h3>
+<pre class="cli">R1(config)# service timestamps log datetime msec
+! add date/time with milliseconds; "localtime show-timezone" can be appended
+R1(config)# service sequence-numbers
+R1(config)# logging buffered 16384 informational
+R1(config)# logging console warnings
+! keep the console quiet: only levels 0 to 4
+R1(config)# logging monitor debugging
+R1(config)# logging host 10.1.1.60
+R1(config)# logging trap notifications
+! the server gets levels 0 to 5
+R1(config)# logging source-interface Loopback0
+R1(config)# logging facility local7
+! the default, shown for completeness
+R1(config)# line console 0
+R1(config-line)# logging synchronous
+! messages no longer split the command you are typing; IOS reprints your line
+R1(config-line)# line vty 0 4
+R1(config-line)# logging synchronous
+R1(config-line)# end
+R1# terminal monitor
+! needed in each SSH/Telnet session to receive monitor logging</pre>
+
+<h3>Reading show logging</h3>
+<pre class="cli">R1# show logging
+Syslog logging: enabled (0 messages dropped, 2 messages rate-limited, 0 flushes, 0 overruns, xml disabled, filtering disabled)
+
+No Active Message Discriminator.
+
+No Inactive Message Discriminator.
+
+    Console logging: level warnings, 12 messages logged, xml disabled,
+                     filtering disabled
+    Monitor logging: level debugging, 0 messages logged, xml disabled,
+                     filtering disabled
+    Buffer logging:  level informational, 47 messages logged, xml disabled,
+                    filtering disabled
+    Exception Logging: size (4096 bytes)
+    Count and timestamp logging messages: disabled
+    Persistent logging: disabled
+
+No active filter modules.
+
+    Trap logging: level notifications, 39 message lines logged
+        Logging to 10.1.1.60  (udp port 514, audit disabled,
+              link up),
+              39 message lines logged,
+              0 message lines rate-limited,
+              0 message lines dropped-by-MD,
+              xml disabled, sequence number disabled
+              filtering disabled
+        Logging Source-Interface:       VRF Name:
+        Loopback0
+
+Log Buffer (16384 bytes):
+
+000045: *Nov 16 14:22:10.415: %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down
+000046: *Nov 16 14:22:11.415: %LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet0/1, changed state to down
+000047: Nov 16 14:25:02.118: %SYS-5-CONFIG_I: Configured from console by admin on vty0 (10.1.1.50)</pre>
+<ul>
+<li>Each destination line shows its level and how many messages it has logged. Console at warnings logged fewer messages than the buffer at informational.</li>
+<li>"Monitor logging ... 0 messages logged" usually means nobody ran <code>terminal monitor</code>, or no VTY session is open.</li>
+<li>"Trap logging: level notifications" is the level sent to the server, followed by each server address, the port (UDP 514) and its counters.</li>
+<li>The log buffer contents follow at the end, oldest first.</li>
+</ul>
+
+<div class="callout trap"><p><strong>Exam trap:</strong> <code>logging trap</code> has nothing to do with SNMP traps. It sets the severity level sent to syslog servers. And you SSH in, run <code>debug</code>, and see nothing: you forgot <code>terminal monitor</code>.</p></div>
+<div class="callout tip"><p><strong>Tip:</strong> Timestamps are only as good as the clock. Pair <code>service timestamps log datetime msec</code> with NTP (topic 4.2), or every device's logs will tell a different story.</p></div>
+
+<div class="lab" id="lab-4-5-1">
+<h4>Lab: Syslog to a server and severity filtering</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~25 min</p>
+<p>Topology: SYSLOG-SRV (a Server, 10.1.1.60/24, gateway 10.1.1.1) and PC1 (10.1.1.50) on SW1, connected to R1 G0/0 (10.1.1.1/24). R1 G0/1 connects to R2 G0/1 on 10.1.12.0/30.</p>
+<ol>
+<li>On SYSLOG-SRV, open Services &gt; SYSLOG and make sure it is On.</li>
+<li>On R1, enable millisecond timestamps and sequence numbers, buffer logging at informational, and send logs to 10.1.1.60 at level warnings.</li>
+<li>Shut and re-enable G0/1 on R1. Check the server's log list.</li>
+<li>Change the trap level to notifications, shut and re-enable G0/1 again, and compare what reached the server.</li>
+<li>Enter configuration mode and exit (to generate %SYS-5-CONFIG_I). Check the server again.</li>
+<li>Add <code>logging synchronous</code> on the console line and confirm messages no longer interrupt typing.</li>
+</ol>
+<p>Verify:</p>
+<ul>
+<li>At level warnings, the server receives only %LINK-3-UPDOWN (severity 3, logged when the link comes back up). %LINK-5-CHANGED (administratively down), %LINEPROTO-5-UPDOWN and %SYS-5-CONFIG_I (all severity 5) do not arrive.</li>
+<li>At level notifications, all of these message types arrive.</li>
+<li><code>show logging</code>: "Trap logging: level notifications" and "Logging to 10.1.1.60".</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">R1(config)# service timestamps log datetime msec
+R1(config)# service sequence-numbers
+R1(config)# logging buffered informational
+R1(config)# logging host 10.1.1.60
+! some Packet Tracer builds use the older form: logging 10.1.1.60
+R1(config)# logging trap warnings
+R1(config)# interface GigabitEthernet0/1
+R1(config-if)# shutdown
+R1(config-if)# no shutdown
+R1(config-if)# exit
+R1(config)# logging trap notifications
+R1(config)# line console 0
+R1(config-line)# logging synchronous
+R1(config-line)# end
+R1# show logging</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-4-5-2">
+<h4>Lab: rsyslog, chrony and net-snmp on Linux, observed in Wireshark</h4>
+<p class="lab-meta">Tool: Proxmox homelab | Time: ~60 min</p>
+<p>Topology: two small Debian or Ubuntu VMs on Proxmox. Because the Proxmox host uses Wi-Fi, keep this lab on an isolated Linux bridge: create <code>vmbr1</code> (Datacenter &gt; node &gt; System &gt; Network &gt; Create &gt; Linux Bridge, no bridge ports). Give each VM a second NIC on vmbr1 with static addresses: COLLECTOR 10.10.50.10/24 and TARGET 10.10.50.20/24. Keep their first NIC on your normal bridge for package installs.</p>
+<ol>
+<li>On COLLECTOR: <code>sudo apt install rsyslog chrony snmp tshark</code>. On TARGET: <code>sudo apt install rsyslog chrony snmpd</code>.</li>
+<li>Syslog receiver on COLLECTOR: create <code>/etc/rsyslog.d/10-remote.conf</code> that loads imudp on port 514 and writes remote hosts to <code>/var/log/remote/</code> per host. Restart rsyslog.</li>
+<li>Syslog sender on TARGET: create <code>/etc/rsyslog.d/50-forward.conf</code> with <code>*.* @10.10.50.10:514</code> (one @ = UDP). Restart rsyslog.</li>
+<li>NTP: on COLLECTOR add <code>allow 10.10.50.0/24</code> and <code>local stratum 8</code> to the chrony configuration (so it serves time even if it has no upstream). On TARGET, comment out the <code>pool</code> lines and add <code>server 10.10.50.10 iburst</code>. Restart chrony on both.</li>
+<li>SNMP agent on TARGET: in <code>/etc/snmp/snmpd.conf</code> set <code>agentaddress udp:10.10.50.20:161</code> and add <code>rocommunity labRO 10.10.50.10</code>. Restart snmpd.</li>
+<li>Start a capture on COLLECTOR: <code>sudo tshark -i ens19 -f "udp port 514 or udp port 123 or udp port 161"</code> (use the vmbr1 NIC's name; or capture to a file with <code>-w lab.pcap</code> and open it in Wireshark on your laptop).</li>
+<li>Generate traffic. On TARGET: <code>logger -p local7.err "LAB test severity 3"</code> and <code>logger -p local7.warning "LAB test severity 4"</code>. On COLLECTOR: <code>snmpwalk -v2c -c labRO 10.10.50.20 1.3.6.1.2.1.1</code> and <code>snmpget -v2c -c labRO 10.10.50.20 1.3.6.1.2.1.1.5.0</code>. On TARGET: <code>chronyc sources -v</code> and <code>chronyc tracking</code>.</li>
+<li>Repeat the snmpwalk with community <code>wrong</code> and note the result.</li>
+</ol>
+<p>Verify:</p>
+<ul>
+<li>Wireshark/tshark shows Syslog packets to UDP 514 with PRI &lt;187&gt; (local7.err: 23 x 8 + 3) and &lt;188&gt; (local7.warning). The files appear under <code>/var/log/remote/</code> on COLLECTOR.</li>
+<li>NTP packets on UDP 123: TARGET in client mode, COLLECTOR replying in server mode. <code>chronyc sources</code> on TARGET marks 10.10.50.10 with <code>^*</code>; <code>chronyc tracking</code> shows a stratum one higher than COLLECTOR.</li>
+<li>SNMP get-request/get-next-request to UDP 161 and get-response back. The community string <code>labRO</code> is readable in clear text in the packet details, which is the point of the exercise. The wrong community gets no response (timeout).</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli"># COLLECTOR: /etc/rsyslog.d/10-remote.conf
+module(load="imudp")
+input(type="imudp" port="514")
+template(name="PerHost" type="string" string="/var/log/remote/%HOSTNAME%.log")
+if $fromhost-ip startswith "10.10.50." then {
+  action(type="omfile" dynaFile="PerHost")
+  stop
+}
+# then: sudo mkdir -p /var/log/remote &amp;&amp; sudo systemctl restart rsyslog
+
+# TARGET: /etc/rsyslog.d/50-forward.conf
+*.* @10.10.50.10:514
+# then: sudo systemctl restart rsyslog
+
+# COLLECTOR: add to /etc/chrony/chrony.conf
+allow 10.10.50.0/24
+local stratum 8
+
+# TARGET: /etc/chrony/chrony.conf (comment out "pool ..." lines)
+server 10.10.50.10 iburst
+
+# TARGET: /etc/snmp/snmpd.conf (replace the default agentaddress line)
+agentaddress udp:10.10.50.20:161
+rocommunity labRO 10.10.50.10
+# then: sudo systemctl restart snmpd chrony
+
+# Optional SNMPv3 extension (stop snmpd first, then run on TARGET):
+# sudo net-snmp-create-v3-user -ro -a SHA -A AuthPa55word -x AES -X PrivPa55word labv3
+# (the helper script ships with the libsnmp-dev package on Debian/Ubuntu;
+#  if the user is still refused, add "rouser labv3 priv" to /etc/snmp/snmpd.conf)
+# From COLLECTOR:
+# snmpwalk -v3 -l authPriv -u labv3 -a SHA -A AuthPa55word -x AES -X PrivPa55word 10.10.50.20 1.3.6.1.2.1.1
+# In Wireshark the v3 payload is now encrypted.
+
+# Useful Wireshark display filters: syslog   ntp   snmp   udp.port == 514</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>Format: seq: timestamp: %FACILITY-SEVERITY-MNEMONIC: description.</li>
+<li>Levels 0 Emergencies, 1 Alerts, 2 Critical, 3 Errors, 4 Warnings, 5 Notifications, 6 Informational, 7 Debugging; a level includes everything more severe.</li>
+<li>Destinations: console, monitor (needs <code>terminal monitor</code>), buffer (<code>logging buffered size level</code>), server (<code>logging host</code> + <code>logging trap level</code>, UDP 514, default level 6).</li>
+<li>Syslog facility for network devices: local0 to local7; IOS default local7.</li>
+<li><code>service timestamps log datetime msec</code>, <code>service sequence-numbers</code>, <code>logging synchronous</code> (line mode); check everything with <code>show logging</code>.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-4-6" data-topics="4.6">
+<h2>4.6 Configure and verify DHCP client and relay</h2>
+
+<p>Two more DHCP roles a Cisco device can play: <strong>DHCP client</strong> (a router interface gets its own address by DHCP, typical on an ISP-facing link) and <strong>DHCP relay agent</strong> (a router forwards clients' DHCP broadcasts to a server on another subnet). Most enterprises run one central DHCP server pair, so the relay on every gateway is what makes that possible.</p>
+
+<h3>Router as a DHCP client</h3>
+<pre class="cli">R1(config)# interface GigabitEthernet0/1
+R1(config-if)# ip address dhcp
+R1(config-if)# no shutdown
+*Nov 16 15:02:44.118: %DHCP-6-ADDRESS_ASSIGN: Interface GigabitEthernet0/1 assigned DHCP address 203.0.113.18, mask 255.255.255.240, hostname R1</pre>
+<p>When the server's Ack includes a default gateway (option 3), IOS installs a <strong>static default route with administrative distance 254</strong> pointing to that gateway. AD 254 means any default route you configure yourself (AD 1) or learn from a routing protocol wins over it.</p>
+<pre class="cli">R1# show ip route static | include 0.0.0.0
+S*    0.0.0.0/0 [254/0] via 203.0.113.17
+
+R1# show dhcp lease
+Temp IP addr: 203.0.113.18  for peer on Interface: GigabitEthernet0/1
+Temp  sub net mask: 255.255.255.240
+   DHCP Lease server: 203.0.113.17, state: 5 Bound
+   DHCP transaction id: 1A2B
+   Lease: 86400 secs,  Renewal: 43200 secs,  Rebind: 75600 secs
+Temp default-gateway addr: 203.0.113.17
+   Next timer fires after: 11:59:41
+   Retry count: 0   Client-ID: cisco-0050.7966.6801-Gi0/1
+   Client-ID hex dump: 636973636F2D303035302E373936362E
+                       363830312D4769302F31
+   Hostname: R1</pre>
+<ul>
+<li><strong>state: 5 Bound</strong>: the lease is active.</li>
+<li><strong>Lease / Renewal / Rebind</strong>: 86,400 s lease, T1 at 43,200 s (50%), T2 at 75,600 s (87.5%).</li>
+<li><strong>Temp default-gateway addr</strong>: the source of the AD 254 default route.</li>
+</ul>
+<p>Release or renew from the router with <code>release dhcp GigabitEthernet0/1</code> and <code>renew dhcp GigabitEthernet0/1</code> (privileged EXEC). <code>show ip interface brief</code> shows the method as "DHCP" in the Method column.</p>
+<p>A switch SVI can be a DHCP client too (<code>interface vlan 1</code>, <code>ip address dhcp</code>), handy for management addressing.</p>
+
+<h3>Why a relay is needed</h3>
+<p>A DHCP Discover is a broadcast to 255.255.255.255. Routers do not forward broadcasts. If the DHCP server sits in a data center subnet, clients in a branch VLAN would never reach it. The relay agent on the client's default gateway catches the broadcast and sends it on as a <strong>unicast</strong> to the server.</p>
+
+<h3>ip helper-address</h3>
+<pre class="cli">R2(config)# interface GigabitEthernet0/0
+R2(config-if)# description Client LAN 192.168.20.0/24
+R2(config-if)# ip address 192.168.20.1 255.255.255.0
+R2(config-if)# ip helper-address 10.1.12.1
+! 10.1.12.1 is the DHCP server (here R1); a second helper adds a redundant server</pre>
+<p>Configure it on the interface that <strong>receives the client broadcasts</strong> (the client-facing interface or SVI, which is the clients' default gateway), not on the interface toward the server.</p>
+
+<h4>What the relay does</h4>
+<ol>
+<li>The client broadcasts a Discover from 0.0.0.0 to 255.255.255.255 (UDP 68 to 67).</li>
+<li>R2 receives it on G0/0, where the helper is configured. It sets the <strong>giaddr</strong> (gateway IP address) field to its own G0/0 address, 192.168.20.1, and sends the message as a unicast from 192.168.20.1 to 10.1.12.1, UDP 67.</li>
+<li>The server reads giaddr and picks the pool whose network contains 192.168.20.1, so it offers an address from 192.168.20.0/24. It sends the Offer as a unicast back to the giaddr, 192.168.20.1.</li>
+<li>R2 receives the Offer and delivers it to the client on G0/0. Request and Ack follow the same path.</li>
+</ol>
+<p>The giaddr therefore does two jobs: it tells the server which subnet the client is on, and it is the address the server replies to. That is why the server needs a <strong>route back to the giaddr subnet</strong>.</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 320" role="img" aria-label="DHCP with relay: client broadcasts Discover to R2, R2 sets giaddr 192.168.20.1 and unicasts to DHCP server 10.1.12.1, replies return unicast to giaddr and R2 delivers them to the client">
+<text x="90" y="25" text-anchor="middle" class="d-text">Client</text>
+<text x="360" y="25" text-anchor="middle" class="d-text">R2 relay (G0/0 192.168.20.1)</text>
+<text x="630" y="25" text-anchor="middle" class="d-text">DHCP server 10.1.12.1</text>
+<line x1="90" y1="35" x2="90" y2="305" stroke="currentColor" class="d-muted"/>
+<line x1="360" y1="35" x2="360" y2="305" stroke="currentColor" class="d-muted"/>
+<line x1="630" y1="35" x2="630" y2="305" stroke="currentColor" class="d-muted"/>
+<line x1="90" y1="70" x2="360" y2="70" stroke="currentColor" class="d-accent"/>
+<polyline points="350,64 360,70 350,76" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="225" y="62" text-anchor="middle" class="d-text">Discover (broadcast)</text>
+<line x1="360" y1="100" x2="630" y2="100" stroke="currentColor" class="d-line"/>
+<polyline points="620,94 630,100 620,106" fill="none" stroke="currentColor" class="d-line"/>
+<text x="495" y="92" text-anchor="middle" class="d-text">unicast, giaddr 192.168.20.1</text>
+<line x1="360" y1="140" x2="630" y2="140" stroke="currentColor" class="d-line"/>
+<polyline points="370,134 360,140 370,146" fill="none" stroke="currentColor" class="d-line"/>
+<text x="495" y="132" text-anchor="middle" class="d-text">Offer to giaddr</text>
+<line x1="90" y1="170" x2="360" y2="170" stroke="currentColor" class="d-accent"/>
+<polyline points="100,164 90,170 100,176" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="225" y="162" text-anchor="middle" class="d-text">Offer</text>
+<line x1="90" y1="210" x2="360" y2="210" stroke="currentColor" class="d-accent"/>
+<polyline points="350,204 360,210 350,216" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="225" y="202" text-anchor="middle" class="d-text">Request (broadcast)</text>
+<line x1="360" y1="240" x2="630" y2="240" stroke="currentColor" class="d-line"/>
+<polyline points="620,234 630,240 620,246" fill="none" stroke="currentColor" class="d-line"/>
+<text x="495" y="232" text-anchor="middle" class="d-text">unicast, giaddr set</text>
+<line x1="360" y1="270" x2="630" y2="270" stroke="currentColor" class="d-line"/>
+<polyline points="370,264 360,270 370,276" fill="none" stroke="currentColor" class="d-line"/>
+<text x="495" y="290" text-anchor="middle" class="d-text">Ack to giaddr</text>
+<line x1="90" y1="295" x2="360" y2="295" stroke="currentColor" class="d-accent"/>
+<polyline points="100,289 90,295 100,301" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="225" y="287" text-anchor="middle" class="d-text">Ack</text>
+</svg>
+<figcaption>DORA through a relay. The client side is broadcast; the relay-to-server side is unicast, and the server answers the giaddr.</figcaption>
+</figure>
+
+<h4>Other UDP broadcasts the helper forwards</h4>
+<p>By default <code>ip helper-address</code> forwards not only DHCP/BOOTP but broadcasts for eight services (nine UDP port numbers):</p>
+<table>
+<thead><tr><th>Port</th><th>Service</th></tr></thead>
+<tbody>
+<tr><td>37</td><td>Time</td></tr>
+<tr><td>42</td><td>IEN-116 name service</td></tr>
+<tr><td>49</td><td>TACACS</td></tr>
+<tr><td>53</td><td>DNS</td></tr>
+<tr><td>67, 68</td><td>BOOTP/DHCP server and client</td></tr>
+<tr><td>69</td><td>TFTP</td></tr>
+<tr><td>137</td><td>NetBIOS name service</td></tr>
+<tr><td>138</td><td>NetBIOS datagram service</td></tr>
+</tbody>
+</table>
+<p>Use <code>no ip forward-protocol udp <em>port</em></code> to stop forwarding a service you do not want relayed, or <code>ip forward-protocol udp <em>port</em></code> to add one.</p>
+
+<h3>Verification</h3>
+<pre class="cli">R2# show ip interface GigabitEthernet0/0
+GigabitEthernet0/0 is up, line protocol is up
+  Internet address is 192.168.20.1/24
+  Broadcast address is 255.255.255.255
+  Address determined by setup command
+  MTU is 1500 bytes
+  Helper address is 10.1.12.1
+  Directed broadcast forwarding is disabled
+...
+
+R1# show ip dhcp binding
+Bindings from all pools not associated with VRF:
+IP address          Client-ID/              Lease expiration        Type
+                    Hardware address/
+                    User name
+192.168.10.11       0100.5079.6668.01       Nov 17 2026 03:02 PM    Automatic
+192.168.20.11       0100.d0ba.4411.7a       Nov 17 2026 03:05 PM    Automatic</pre>
+<p>The second binding is a remote client served through R2's relay: the server chose the 192.168.20.0/24 pool because of the giaddr.</p>
+
+<h3>Client-side commands</h3>
+<table>
+<thead><tr><th>OS</th><th>Release</th><th>Renew / show</th></tr></thead>
+<tbody>
+<tr><td>Windows</td><td><code>ipconfig /release</code></td><td><code>ipconfig /renew</code>, <code>ipconfig /all</code> (shows DHCP server, lease obtained/expires)</td></tr>
+<tr><td>macOS</td><td><code>sudo ipconfig set en0 BOOTP</code> then back</td><td><code>sudo ipconfig set en0 DHCP</code>, <code>ipconfig getpacket en0</code></td></tr>
+<tr><td>Linux</td><td><code>sudo dhclient -r eth0</code> (or <code>nmcli con down</code>)</td><td><code>sudo dhclient eth0</code> (or <code>nmcli con up</code>), <code>ip addr</code></td></tr>
+</tbody>
+</table>
+
+<h3>Troubleshooting the relay</h3>
+<table>
+<thead><tr><th>Fault</th><th>Symptom</th></tr></thead>
+<tbody>
+<tr><td>Helper configured on the server-facing interface instead of the client-facing one</td><td>Client never gets an address; server sees nothing</td></tr>
+<tr><td>Wrong helper address (typo, old server)</td><td>Server sees nothing; relay sends unicast into the void</td></tr>
+<tr><td>Server has no route back to the giaddr subnet</td><td>Server receives Discovers (its counters rise) but Offers never reach the relay</td></tr>
+<tr><td>No pool on the server for the giaddr subnet</td><td>Server receives Discovers but never offers</td></tr>
+<tr><td>Pool exhausted, or all addresses excluded</td><td>No offer; pool shows 100% leased</td></tr>
+<tr><td>ACL on the path blocks UDP 67/68</td><td>No reply, same as no route</td></tr>
+<tr><td>Client is in a different VLAN than expected</td><td>Gets an address from the wrong subnet, or none</td></tr>
+</tbody>
+</table>
+<p>A Windows client stuck with 169.254.x.x (APIPA) is the classic sign that no DHCP server answered at all.</p>
+
+<div class="callout key"><p><strong>Remember:</strong> <code>ip helper-address</code> goes on the interface where clients live. The relay fills giaddr with that interface's IP; the server picks the pool from giaddr and replies to it. <code>ip address dhcp</code> gets an interface address and installs a default route with AD 254.</p></div>
+<div class="callout trap"><p><strong>Exam trap:</strong> A question may show a DHCP server receiving Discovers from a remote subnet but clients still failing. Look for a missing route back to the relay's giaddr, or a missing pool for that subnet, not at the relay itself.</p></div>
+
+<div class="lab" id="lab-4-6-1">
+<h4>Lab: Central DHCP server on R1, relay on R2 across a routed hop</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~35 min</p>
+<p>Topology: LAN10 (192.168.10.0/24) with PC1 on R1 G0/0 (.1). R1 G0/1 10.1.12.1/30 to R2 G0/1 10.1.12.2/30. LAN20 (192.168.20.0/24) with PC2 and PC3 on R2 G0/0 (.1). All PCs set to DHCP.</p>
+<ol>
+<li>Route between the LANs (static routes, or OSPF if you prefer). Leave the route to 192.168.20.0/24 off R1 for now.</li>
+<li>On R1 create pools LAN10 and LAN20 with the right gateways and DNS 192.168.10.53; exclude .1 to .9 in each.</li>
+<li>Renew PC1: it should get a LAN10 address.</li>
+<li>On R2 G0/0 add <code>ip helper-address 10.1.12.1</code>. Renew PC2. Does it work?</li>
+<li>Add the missing route on R1 to 192.168.20.0/24 and renew PC2 again.</li>
+<li>Move the helper to R2 G0/1 by mistake and renew PC3. Observe, then put it back.</li>
+</ol>
+<p>Verify:</p>
+<ul>
+<li>Before step 5: PC2 fails (APIPA or "DHCP request failed") because R1 cannot reach the giaddr 192.168.20.1.</li>
+<li>After step 5: PC2 receives 192.168.20.10 or higher, gateway 192.168.20.1.</li>
+<li><code>show ip interface g0/0</code> on R2: "Helper address is 10.1.12.1".</li>
+<li><code>show ip dhcp binding</code> on R1 lists clients from both subnets.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! R1
+ip dhcp excluded-address 192.168.10.1 192.168.10.9
+ip dhcp excluded-address 192.168.20.1 192.168.20.9
+ip dhcp pool LAN10
+ network 192.168.10.0 255.255.255.0
+ default-router 192.168.10.1
+ dns-server 192.168.10.53
+ip dhcp pool LAN20
+ network 192.168.20.0 255.255.255.0
+ default-router 192.168.20.1
+ dns-server 192.168.10.53
+ip route 192.168.20.0 255.255.255.0 10.1.12.2
+!
+! R2
+ip route 192.168.10.0 255.255.255.0 10.1.12.1
+interface GigabitEthernet0/0
+ ip address 192.168.20.1 255.255.255.0
+ ip helper-address 10.1.12.1
+!
+! Verification
+R2# show ip interface GigabitEthernet0/0 | include Helper
+R1# show ip dhcp binding
+R1# show ip dhcp pool LAN20</pre>
+</details>
+</div>
+
+<div class="lab" id="lab-4-6-2">
+<h4>Lab: Router WAN interface as a DHCP client</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~15 min</p>
+<p>Topology: ISP router G0/0 203.0.113.17/28 connected to R1 G0/1. ISP has a loopback 8.8.8.8/32 to stand in for the Internet.</p>
+<ol>
+<li>On ISP, create a DHCP pool for 203.0.113.16/28 with default-router 203.0.113.17, excluding .17.</li>
+<li>On R1 G0/1 configure <code>ip address dhcp</code>.</li>
+<li>Check R1's interface address, lease and routing table.</li>
+<li>Add <code>ip route 0.0.0.0 0.0.0.0 203.0.113.17</code> by hand and compare the routing table.</li>
+</ol>
+<p>Verify:</p>
+<ul>
+<li><code>show ip interface brief</code>: G0/1 has a 203.0.113.x address with Method DHCP.</li>
+<li><code>show ip route</code>: <code>S* 0.0.0.0/0 [254/0] via 203.0.113.17</code> before step 4; after step 4 the route shows [1/0].</li>
+<li><code>show dhcp lease</code> (if your PT build supports it): state Bound, renewal at half the lease.</li>
+<li>R1 can ping 8.8.8.8.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! ISP
+ip dhcp excluded-address 203.0.113.17
+ip dhcp pool WAN
+ network 203.0.113.16 255.255.255.240
+ default-router 203.0.113.17
+interface Loopback0
+ ip address 8.8.8.8 255.255.255.255
+!
+! R1
+interface GigabitEthernet0/1
+ ip address dhcp
+ no shutdown
+R1# show ip interface brief
+R1# show ip route
+R1# show dhcp lease</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li><code>ip address dhcp</code> makes an interface a DHCP client; the learned gateway becomes a default route with AD 254. Check with <code>show dhcp lease</code>.</li>
+<li>Routers block broadcasts, so a relay is needed when the server is on another subnet: <code>ip helper-address</code> on the client-facing interface.</li>
+<li>The relay sets giaddr to its receiving interface IP and unicasts to the server; the server picks the pool by giaddr and replies to it.</li>
+<li>Helper forwards eight UDP services by default (ports 37, 42, 49, 53, 67, 68, 69, 137, 138), adjustable with <code>ip forward-protocol</code>.</li>
+<li>Usual faults: helper on the wrong interface, wrong helper IP, no route back to giaddr, no pool for the subnet.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-4-7" data-topics="4.7">
+<h2>4.7 QoS per-hop behavior: classification, marking, queuing, congestion, policing, shaping</h2>
+
+<p>Quality of Service is a set of tools that decide <em>which</em> packets get delay, which get dropped and which get through first when a link is busy. QoS does not create bandwidth. It only matters at points where traffic arrives faster than an interface can send it: a 1 Gbps LAN feeding a 100 Mbps WAN, many access ports feeding one uplink. The CCNA tests concepts, not configuration: know the vocabulary, the numbers (DSCP values, voice targets), and what each tool does to a packet.</p>
+
+<p><strong>Per-hop behavior (PHB)</strong> means each device makes its own QoS decision for each packet, based on markings and local policy. There is no end-to-end reservation in the DiffServ model the CCNA covers; consistent markings plus consistent policy on every hop give an end-to-end result.</p>
+
+<h3>The four characteristics QoS manages</h3>
+<dl>
+<dt>Bandwidth</dt><dd>The capacity of a link, in bits per second. QoS reserves shares of it for classes of traffic.</dd>
+<dt>Delay (latency)</dt><dd>Time for a packet to go from source to destination, usually measured one way. Made of serialization delay (putting bits on the wire), propagation delay (distance), processing delay and <strong>queuing delay</strong> (waiting in an output queue). QoS mostly controls queuing delay.</dd>
+<dt>Jitter</dt><dd>Variation in delay between consecutive packets of the same flow. Voice and video endpoints use jitter buffers; too much jitter means late packets are discarded, which sounds like loss.</dd>
+<dt>Loss</dt><dd>Packets dropped, usually because a queue was full. TCP retransmits; real-time UDP media cannot.</dd>
+</dl>
+
+<h3>Application needs</h3>
+<table>
+<thead><tr><th>Traffic</th><th>One-way delay</th><th>Jitter</th><th>Loss</th><th>Character</th></tr></thead>
+<tbody>
+<tr><td>Voice</td><td>&lt;= 150 ms</td><td>&lt;= 30 ms</td><td>&lt;= 1%</td><td>Small, steady UDP (RTP) packets; roughly 17 to 106 kbps per call depending on codec</td></tr>
+<tr><td>Interactive video (video calls)</td><td>&lt;= 150 ms (Cisco design guidance)</td><td>&lt;= 30 ms</td><td>&lt;= 1%</td><td>Bursty, larger packets, high bandwidth, delay and drop sensitive</td></tr>
+<tr><td>Streaming video (on demand)</td><td>Seconds are tolerable (buffered)</td><td>Tolerant</td><td>Low loss preferred</td><td>Buffered playback hides delay and jitter</td></tr>
+<tr><td>Data (TCP applications)</td><td>Tolerant</td><td>Tolerant</td><td>Recovered by retransmission</td><td>Bursty; some business apps are interactive and need decent response time</td></tr>
+</tbody>
+</table>
+<p>The voice numbers (150 ms, 30 ms, 1%) are the ones to memorize. Some study guides quote looser ranges for video, roughly 200 to 400 ms delay, 30 to 50 ms jitter and 0.1 to 1% loss. If a question asks about video, the key point is that interactive video is as sensitive as voice in jitter and loss but uses far more bandwidth.</p>
+
+<h3>Classification</h3>
+<p>Classification sorts packets into classes by looking at header fields. It is the first step, because every other tool acts on a class.</p>
+<ul>
+<li><strong>ACLs</strong>: match source/destination address, protocol and port (for example UDP 16384 to 32767 for RTP voice, TCP 5060 for SIP).</li>
+<li><strong>NBAR (Network Based Application Recognition)</strong>: deep packet inspection that identifies applications even when they use dynamic or shared ports (for example distinguishing Webex or Teams media from web browsing on 443). Used with <code>match protocol</code> in a class-map.</li>
+<li><strong>Existing markings</strong>: CoS, IP Precedence or DSCP set by a trusted device upstream. Matching a marking is cheap, which is why we mark once near the source and then everyone else just reads the mark.</li>
+<li>Other: input interface, packet length, VLAN.</li>
+</ul>
+
+<h3>Marking</h3>
+<p>Marking writes a value into a header field so later devices can classify cheaply. Two layers carry markings:</p>
+
+<h4>Layer 2: 802.1Q CoS (PCP)</h4>
+<p>The 802.1Q tag's 16-bit Tag Control Information contains a 3-bit <strong>Priority Code Point (PCP)</strong>, called <strong>Class of Service (CoS)</strong> by Cisco: values 0 to 7. It also contains the 1-bit DEI and the 12-bit VLAN ID. The catch: CoS only exists in tagged frames. It is lost on access links (untagged), on the native VLAN, and whenever a router rebuilds the Layer 2 header. So CoS is useful within a switched LAN (and on the voice VLAN, where the phone tags its frames), but end-to-end marking must be at Layer 3.</p>
+
+<h4>Layer 3: IP Precedence and DSCP</h4>
+<p>The IPv4 Type of Service byte (the IPv6 Traffic Class byte has the same layout) carries:</p>
+<ul>
+<li><strong>IP Precedence</strong> (old): the first 3 bits, values 0 to 7.</li>
+<li><strong>DSCP (Differentiated Services Code Point)</strong>: the first 6 bits, values 0 to 63 (RFC 2474). The last 2 bits are ECN (Explicit Congestion Notification).</li>
+</ul>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 230" role="img" aria-label="The IPv4 ToS byte: eight bits, the first three are IP Precedence, the first six are DSCP, the last two are ECN; the 802.1Q tag holds a 3-bit PCP or CoS field">
+<text x="360" y="22" text-anchor="middle" class="d-text">IPv4 ToS byte / IPv6 Traffic Class (8 bits)</text>
+<rect x="120" y="35" width="60" height="40" fill="none" stroke="currentColor" class="d-line"/>
+<rect x="180" y="35" width="60" height="40" fill="none" stroke="currentColor" class="d-line"/>
+<rect x="240" y="35" width="60" height="40" fill="none" stroke="currentColor" class="d-line"/>
+<rect x="300" y="35" width="60" height="40" fill="none" stroke="currentColor" class="d-line"/>
+<rect x="360" y="35" width="60" height="40" fill="none" stroke="currentColor" class="d-line"/>
+<rect x="420" y="35" width="60" height="40" fill="none" stroke="currentColor" class="d-line"/>
+<rect x="480" y="35" width="60" height="40" fill="none" stroke="currentColor" class="d-muted"/>
+<rect x="540" y="35" width="60" height="40" fill="none" stroke="currentColor" class="d-muted"/>
+<text x="150" y="60" text-anchor="middle" class="d-text">b0</text>
+<text x="210" y="60" text-anchor="middle" class="d-text">b1</text>
+<text x="270" y="60" text-anchor="middle" class="d-text">b2</text>
+<text x="330" y="60" text-anchor="middle" class="d-text">b3</text>
+<text x="390" y="60" text-anchor="middle" class="d-text">b4</text>
+<text x="450" y="60" text-anchor="middle" class="d-text">b5</text>
+<text x="510" y="60" text-anchor="middle" class="d-text">b6</text>
+<text x="570" y="60" text-anchor="middle" class="d-text">b7</text>
+<line x1="120" y1="90" x2="300" y2="90" stroke="currentColor" class="d-accent"/>
+<text x="210" y="108" text-anchor="middle" class="d-text">IP Precedence (3 bits)</text>
+<line x1="120" y1="125" x2="480" y2="125" stroke="currentColor" class="d-accent"/>
+<text x="300" y="143" text-anchor="middle" class="d-text">DSCP (6 bits, 0 to 63)</text>
+<line x1="480" y1="90" x2="600" y2="90" stroke="currentColor" class="d-muted"/>
+<text x="540" y="108" text-anchor="middle" class="d-text">ECN (2)</text>
+<text x="360" y="185" text-anchor="middle" class="d-text">802.1Q tag TCI: PCP/CoS (3 bits) | DEI (1) | VLAN ID (12)</text>
+<text x="360" y="210" text-anchor="middle" class="d-muted">CoS lives only in tagged frames; DSCP travels with the packet end to end</text>
+</svg>
+<figcaption>Where markings live. DSCP's first three bits line up with IP Precedence, which is why Class Selector values map neatly to precedence.</figcaption>
+</figure>
+
+<h4>DSCP values to know</h4>
+<table>
+<thead><tr><th>Name</th><th>Decimal</th><th>Binary</th><th>Typical use</th></tr></thead>
+<tbody>
+<tr><td>Default (DF, CS0, best effort)</td><td>0</td><td>000000</td><td>Everything unclassified</td></tr>
+<tr><td>EF (Expedited Forwarding)</td><td>46</td><td>101110</td><td>Voice media (RFC 3246)</td></tr>
+<tr><td>AF41</td><td>34</td><td>100010</td><td>Interactive video</td></tr>
+<tr><td>AF31</td><td>26</td><td>011010</td><td>Mission-critical data or multimedia streaming (depends on the design model)</td></tr>
+<tr><td>AF21</td><td>18</td><td>010010</td><td>Transactional data</td></tr>
+<tr><td>AF11</td><td>10</td><td>001010</td><td>Bulk data</td></tr>
+<tr><td>CS3</td><td>24</td><td>011000</td><td>Call signaling</td></tr>
+<tr><td>CS6</td><td>48</td><td>110000</td><td>Network control (routing protocols)</td></tr>
+<tr><td>CS1</td><td>8</td><td>001000</td><td>Scavenger (less than best effort)</td></tr>
+</tbody>
+</table>
+
+<h4>Assured Forwarding: the 8x + 2y formula</h4>
+<p>AF classes (RFC 2597) are written AFxy: <strong>x = class</strong> (1 to 4, higher class usually gets a bigger queue) and <strong>y = drop precedence</strong> (1 to 3). Decimal DSCP = <strong>8x + 2y</strong>.</p>
+<table>
+<thead><tr><th>Drop precedence</th><th>Class 1</th><th>Class 2</th><th>Class 3</th><th>Class 4</th></tr></thead>
+<tbody>
+<tr><td>Low (y=1)</td><td>AF11 = 10</td><td>AF21 = 18</td><td>AF31 = 26</td><td>AF41 = 34</td></tr>
+<tr><td>Medium (y=2)</td><td>AF12 = 12</td><td>AF22 = 20</td><td>AF32 = 28</td><td>AF42 = 36</td></tr>
+<tr><td>High (y=3)</td><td>AF13 = 14</td><td>AF23 = 22</td><td>AF33 = 30</td><td>AF43 = 38</td></tr>
+</tbody>
+</table>
+<p>Worked example: AF32 = 8 x 3 + 2 x 2 = 28. Reverse: DSCP 36: 36 / 8 = 4 remainder 4, so x = 4 and 2y = 4, y = 2: AF42.</p>
+<div class="callout trap"><p><strong>Exam trap:</strong> Within an AF class, the <em>higher</em> drop precedence number is dropped <em>first</em>. AF13 is more likely to be dropped than AF11. The class number (x) is not a priority between classes by itself; it just names a separate queue.</p></div>
+
+<h4>Class Selector values</h4>
+<p>CS0 to CS7 have the form xxx000, so CSn = 8n: CS1 8, CS2 16, CS3 24, CS4 32, CS5 40, CS6 48, CS7 56. They exist for backward compatibility: a device that only understands IP Precedence reads CS5 (40) as precedence 5. EF (46) also starts with 101, so it reads as precedence 5 too.</p>
+
+<h3>Trust boundary</h3>
+<p>A device can either trust incoming markings or re-mark them. The <strong>trust boundary</strong> is the point in the network where markings start to be trusted. Anything outside it (user PCs) could mark all its traffic EF and jump the queue, so markings from there are reset.</p>
+<ul>
+<li>With Cisco IP phones, the boundary is extended to the <strong>phone</strong>: the access switch trusts the phone (detected via CDP or LLDP); the phone marks its own voice (CoS 5, DSCP EF) and re-marks frames from the PC plugged into its data port to CoS 0.</li>
+<li>Without phones, the boundary is the <strong>access switch port</strong>: the switch classifies and marks traffic itself.</li>
+<li>Never place the boundary on an end-user PC. Mark as close to the source as possible so every later hop can simply read the DSCP.</li>
+</ul>
+
+<h3>Queuing (congestion management)</h3>
+<p>When an interface's hardware transmit queue is full, packets wait in software output queues. Queuing decides how many queues there are and which one is served next (the scheduler).</p>
+<dl>
+<dt>FIFO</dt><dd>One queue, first in first out. No differentiation: a voice packet waits behind a large file transfer burst.</dd>
+<dt>Round robin (and weighted round robin)</dt><dd>Several queues served in turn; with weights, some queues get more turns. Fair, but a voice packet may still wait while other queues are served.</dd>
+<dt>CBWFQ (Class-Based Weighted Fair Queuing)</dt><dd>One queue per class, each <strong>guaranteed a minimum bandwidth</strong> during congestion (<code>bandwidth</code> or <code>bandwidth percent</code>). Unused bandwidth is shared. Still round robin among classes, so it gives bandwidth guarantees but not low delay.</dd>
+<dt>LLQ (Low Latency Queuing)</dt><dd>CBWFQ plus one <strong>strict priority queue</strong>. The scheduler always serves the priority queue first, so voice and interactive video get minimal delay and jitter. To stop the priority queue from starving everything else, its traffic is <strong>policed</strong> to its configured rate when the link is congested: excess priority traffic is dropped. Cisco design guidance keeps priority traffic to roughly a third of the link.</dd>
+</dl>
+
+<h3>Congestion avoidance</h3>
+<p>Congestion management decides the order of service. Congestion avoidance decides <em>what to drop</em> before a queue overflows.</p>
+<ul>
+<li><strong>Tail drop</strong>: when a queue is full, every new arriving packet is dropped. It hits all flows at once.</li>
+<li><strong>TCP global synchronization</strong>: after a tail-drop event, many TCP flows lose packets together, all shrink their windows together, the link goes underused, then they all ramp up together and overflow again. The result is a sawtooth of wasted capacity.</li>
+<li><strong>RED (Random Early Detection)</strong>: as the average queue depth passes a minimum threshold, drop a small random share of packets; the share rises toward a maximum threshold, beyond which everything is dropped. Only a few TCP flows slow down at a time, so throughput stays high.</li>
+<li><strong>WRED (Weighted RED)</strong>: RED with different thresholds per marking. With DSCP-based WRED, AFx3 packets start being dropped earlier than AFx1. Do not apply WRED to the voice queue; UDP voice does not back off.</li>
+<li><strong>ECN</strong> (optional): instead of dropping, mark the packet's ECN bits so ECN-capable TCP endpoints slow down without loss.</li>
+</ul>
+
+<h3>Policing and shaping</h3>
+<p>Both measure traffic against a configured rate (the CIR, committed information rate) using a token bucket. They differ in what they do with traffic above the rate.</p>
+<table>
+<thead><tr><th></th><th>Policing</th><th>Shaping</th></tr></thead>
+<tbody>
+<tr><td>Excess traffic</td><td>Dropped, or re-marked to a lower class (markdown), immediately</td><td>Buffered (queued) and sent later</td></tr>
+<tr><td>Delay</td><td>Adds none</td><td>Adds delay (and possibly jitter) for excess traffic</td></tr>
+<tr><td>Direction</td><td>Inbound or outbound</td><td>Outbound only</td></tr>
+<tr><td>Bursts</td><td>Allows bursts up to the configured burst size, drops beyond</td><td>Smooths bursts into a steady rate</td></tr>
+<tr><td>Typical place</td><td>Service provider edge, inbound, enforcing the customer's contract; also the LLQ priority queue limit</td><td>Enterprise WAN edge, outbound, toward a provider that sells less than the physical port speed</td></tr>
+</tbody>
+</table>
+<p>Example: a branch has a 1 Gbps Ethernet handoff but buys 200 Mbps. The provider polices inbound at 200 Mbps and drops the rest. The branch router shapes outbound to 200 Mbps so that excess traffic waits in its own queues (where LLQ can still protect voice) instead of being dropped randomly by the provider.</p>
+<p>How a shaper works: it can only send at the physical line rate, so it sends in bursts during each time interval (Tc) and pauses for the rest. The burst size is Bc = CIR x Tc. A shorter Tc means shorter pauses; Cisco recommends a Tc of about 10 ms where voice crosses a shaper.</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 720 300" role="img" aria-label="Policing versus shaping: bursty traffic above the rate limit; the policer cuts off traffic above the line by dropping it; the shaper delays the excess so the output is smooth and lasts longer">
+<text x="120" y="22" text-anchor="middle" class="d-text">Offered traffic</text>
+<text x="360" y="22" text-anchor="middle" class="d-text">After policing</text>
+<text x="600" y="22" text-anchor="middle" class="d-text">After shaping</text>
+<line x1="30" y1="230" x2="210" y2="230" stroke="currentColor" class="d-line"/>
+<line x1="30" y1="230" x2="30" y2="40" stroke="currentColor" class="d-line"/>
+<line x1="270" y1="230" x2="450" y2="230" stroke="currentColor" class="d-line"/>
+<line x1="270" y1="230" x2="270" y2="40" stroke="currentColor" class="d-line"/>
+<line x1="510" y1="230" x2="690" y2="230" stroke="currentColor" class="d-line"/>
+<line x1="510" y1="230" x2="510" y2="40" stroke="currentColor" class="d-line"/>
+<line x1="30" y1="130" x2="210" y2="130" stroke="currentColor" stroke-dasharray="6 4" class="d-muted"/>
+<line x1="270" y1="130" x2="450" y2="130" stroke="currentColor" stroke-dasharray="6 4" class="d-muted"/>
+<line x1="510" y1="130" x2="690" y2="130" stroke="currentColor" stroke-dasharray="6 4" class="d-muted"/>
+<polyline points="30,230 50,160 70,70 90,90 110,180 130,60 150,200 170,150 190,230" fill="none" stroke="currentColor" class="d-accent"/>
+<polyline points="270,230 290,160 305,130 335,130 350,180 362,130 378,130 390,200 410,150 430,230" fill="none" stroke="currentColor" class="d-accent"/>
+<polyline points="510,230 530,160 545,130 680,130 690,230" fill="none" stroke="currentColor" class="d-accent"/>
+<text x="210" y="125" text-anchor="end" class="d-muted">rate</text>
+<text x="360" y="110" text-anchor="middle" class="d-text">peaks dropped</text>
+<text x="600" y="110" text-anchor="middle" class="d-text">excess queued, sent later</text>
+<text x="120" y="255" text-anchor="middle" class="d-text">time</text>
+<text x="360" y="255" text-anchor="middle" class="d-text">same duration, less data</text>
+<text x="600" y="255" text-anchor="middle" class="d-text">all data, takes longer</text>
+<text x="360" y="285" text-anchor="middle" class="d-muted">Policer: drop or re-mark, no delay. Shaper: buffer, adds delay, outbound only.</text>
+</svg>
+<figcaption>The dashed line is the configured rate. Policing clips everything above it; shaping flattens it by delaying the excess.</figcaption>
+</figure>
+
+<div class="callout key"><p><strong>Remember:</strong> Policing drops (or re-marks) and can be inbound or outbound; typical at the provider's inbound edge. Shaping queues and delays and is outbound only; typical at the customer's WAN edge to match a contracted rate.</p></div>
+
+<h3>Putting it together: an MQC example (context only)</h3>
+<p>Cisco configures QoS with the Modular QoS CLI: <strong>class-map</strong> (classify), <strong>policy-map</strong> (actions per class), <strong>service-policy</strong> (apply to an interface, input or output). Configuration is not required for this objective, but seeing it once makes the concepts concrete.</p>
+<pre class="cli">R1(config)# class-map match-any VOICE
+R1(config-cmap)# match dscp ef
+R1(config-cmap)# class-map match-any VIDEO
+R1(config-cmap)# match dscp af41
+R1(config-cmap)# exit
+R1(config)# policy-map WAN-QUEUING
+R1(config-pmap)# class VOICE
+R1(config-pmap-c)# priority percent 10
+! LLQ: strict priority, policed to 10% during congestion
+R1(config-pmap-c)# class VIDEO
+R1(config-pmap-c)# bandwidth percent 30
+! CBWFQ guarantee
+R1(config-pmap-c)# class class-default
+R1(config-pmap-c)# bandwidth percent 25
+R1(config-pmap-c)# random-detect dscp-based
+! WRED for the data traffic
+R1(config-pmap-c)# exit
+R1(config-pmap)# exit
+R1(config)# policy-map WAN-SHAPE-200M
+R1(config-pmap)# class class-default
+R1(config-pmap-c)# shape average 200000000
+R1(config-pmap-c)# service-policy WAN-QUEUING
+! queuing happens inside the 200 Mbps shaped rate
+R1(config-pmap-c)# exit
+R1(config-pmap)# exit
+R1(config)# interface GigabitEthernet0/1
+R1(config-if)# service-policy output WAN-SHAPE-200M</pre>
+<p>A policer would use <code>police cir 200000000 conform-action transmit exceed-action drop</code> in a class instead of <code>shape</code>. Verify any policy with <code>show policy-map interface GigabitEthernet0/1</code>.</p>
+
+<h3>Where each tool is used</h3>
+<ul>
+<li><strong>Access edge (switch port or phone)</strong>: classify and mark; set the trust boundary; optionally police inbound to cap a class.</li>
+<li><strong>Uplinks and WAN edge</strong>: queue (LLQ/CBWFQ), congestion avoidance (WRED), shape outbound to the contracted rate.</li>
+<li><strong>Provider edge</strong>: police inbound to the contracted rate, sometimes re-mark.</li>
+</ul>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>QoS manages bandwidth, delay, jitter and loss; voice needs one-way delay &lt;= 150 ms, jitter &lt;= 30 ms, loss &lt;= 1%.</li>
+<li>Classify with ACLs, NBAR or existing marks; mark with CoS (3 bits, 802.1Q PCP, tagged frames only), IP Precedence (3 bits) or DSCP (6 bits).</li>
+<li>DSCP: EF 46 (voice), AFxy = 8x + 2y with higher y dropped first, CSn = 8n, default 0. Trust boundary at the IP phone or access switch.</li>
+<li>Queuing: FIFO, round robin, CBWFQ (bandwidth guarantee), LLQ (strict priority queue, policed to prevent starvation).</li>
+<li>Congestion avoidance: tail drop causes TCP global synchronization; RED/WRED drop early and selectively.</li>
+<li>Policing drops or re-marks with no delay (in or out, provider edge); shaping buffers and delays (outbound only, customer edge).</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-4-8" data-topics="4.8">
+<h2>4.8 Configure network devices for remote access using SSH</h2>
+
+<p>Secure Shell (SSH, <strong>TCP port 22</strong>) gives an encrypted, authenticated command-line session to a router or switch. It replaces Telnet (<strong>TCP 23</strong>), which sends everything, including the username and password, in clear text. Any packet capture on the path reveals a Telnet login. The CCNA expects you to build SSH from scratch, lock the VTY lines to SSH only, and verify it.</p>
+
+<h3>Prerequisites, in order</h3>
+<ol>
+<li><strong>A hostname other than the default</strong> ("Router" or "Switch"). The RSA key pair is named hostname.domain.</li>
+<li><strong>A domain name</strong>: <code>ip domain-name</code> (newer IOS XE also accepts <code>ip domain name</code>).</li>
+<li><strong>An RSA key pair</strong>: <code>crypto key generate rsa</code>. Generating the key is what turns the SSH server on. <strong>SSHv2 needs a modulus of at least 768 bits</strong>; use 2048 or more in practice (Cisco recommends 2048 or stronger).</li>
+<li><strong>SSH version 2</strong>: <code>ip ssh version 2</code>. Without it, IOS runs in compatibility mode ("version 1.99", accepting v1 and v2). SSHv1 has known weaknesses.</li>
+<li><strong>Local user accounts</strong> (or AAA): <code>username <em>name</em> secret <em>password</em></code>. SSH needs a username; a line password alone is not enough.</li>
+<li><strong>VTY lines</strong>: <code>login local</code> (use the local user database) and <code>transport input ssh</code> (refuse Telnet).</li>
+</ol>
+
+<h3>Full configuration</h3>
+<pre class="cli">R1(config)# hostname R1
+R1(config)# ip domain-name corp.example
+R1(config)# crypto key generate rsa modulus 2048
+The name for the keys will be: R1.corp.example
+% The key modulus size is 2048 bits
+% Generating 2048 bit RSA keys, keys will be non-exportable...
+[OK] (elapsed time was 2 seconds)
+*Nov 16 15:30:01.204: %SSH-5-ENABLED: SSH 1.99 has been enabled
+R1(config)# ip ssh version 2
+R1(config)# ip ssh time-out 60
+R1(config)# ip ssh authentication-retries 3
+R1(config)# username admin privilege 15 secret Str0ng-Adm1n!
+R1(config)# enable secret An0ther-S3cret
+R1(config)# access-list 10 permit 10.1.1.0 0.0.0.255
+R1(config)# line vty 0 4
+R1(config-line)# login local
+R1(config-line)# transport input ssh
+R1(config-line)# access-class 10 in
+! only the management subnet may open VTY sessions
+R1(config-line)# exec-timeout 10 0
+! idle sessions close after 10 minutes 0 seconds
+R1(config-line)# line vty 5 15
+R1(config-line)# login local
+R1(config-line)# transport input ssh
+R1(config-line)# access-class 10 in
+R1(config-line)# exec-timeout 10 0</pre>
+<ul>
+<li>Older IOS (and Packet Tracer) prompt for the size instead: enter <code>crypto key generate rsa</code>, then answer <code>2048</code> at "How many bits in the modulus [512]:". Some platforms write the command as <code>crypto key generate rsa general-keys modulus 2048</code>.</li>
+<li>Without a hostname or domain name, key generation fails with "% Please define a hostname other than Router." or "% Please define a domain-name first."</li>
+<li>Switches have 16 VTY lines (0 to 15). Many routers show 0 to 4, and newer ones also have 5 to 15. Secure every line that exists, or one unprotected line can still accept Telnet.</li>
+<li><code>access-class</code> applies a standard ACL to the VTY lines (inbound = who may connect). It is not <code>ip access-group</code>, which applies to interfaces.</li>
+<li><code>privilege 15</code> drops the user straight into privileged EXEC; without it, the user lands in user EXEC and needs the enable secret.</li>
+<li>Remove keys with <code>crypto key zeroize rsa</code>, which also disables the SSH server.</li>
+</ul>
+
+<h3>Verification</h3>
+<pre class="cli">R1# show ip ssh
+SSH Enabled - version 2.0
+Authentication methods:publickey,keyboard-interactive,password
+Authentication timeout: 60 secs; Authentication retries: 3
+Minimum expected Diffie Hellman key size : 2048 bits
+IOS Keys in SECSH format(ssh-rsa, base64 encoded): R1.corp.example
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDH4m1k3...
+
+R1# show ssh
+Connection Version Mode Encryption  Hmac           State                 Username
+0          2.0     IN   aes256-ctr  hmac-sha2-256  Session started       admin
+0          2.0     OUT  aes256-ctr  hmac-sha2-256  Session started       admin
+%No SSHv1 server connections running.
+
+R1# show users
+    Line       User       Host(s)              Idle       Location
+*  0 con 0                idle                 00:00:00
+ 866 vty 0     admin      idle                 00:00:12 10.1.1.50</pre>
+<ul>
+<li><strong>show ip ssh</strong>: whether SSH is enabled and which version ("version 2.0" after <code>ip ssh version 2</code>, "1.99" in compatibility mode), timeouts and retries. Defaults are a 120-second timeout and 3 retries.</li>
+<li><strong>show ssh</strong>: current SSH sessions (one IN and one OUT line per session), their cipher and user.</li>
+<li><strong>show users</strong>: who is on which line and from where.</li>
+</ul>
+
+<h3>Testing from a client</h3>
+<pre class="cli">! Packet Tracer PC command prompt, or Linux/macOS/Windows 10+ terminal
+C:\&gt; ssh -l admin 10.1.1.1
+Password:
+R1#
+
+! Equivalent form on desktop systems
+$ ssh admin@10.1.1.1
+
+! From another Cisco device
+R2# ssh -l admin 10.1.1.1</pre>
+<p>A Telnet attempt to a line set to <code>transport input ssh</code> is refused ("Connection refused by remote host" or similar). A host outside ACL 10 gets no session either: the access-class rejects it before any login prompt.</p>
+
+<h3>Why Telnet is avoided</h3>
+<ul>
+<li>Clear text: credentials and every command and output can be read by anyone who can capture the traffic.</li>
+<li>No server authentication: the client cannot verify it is talking to the real device (SSH uses the host key).</li>
+<li>No integrity protection: traffic can be altered in transit.</li>
+<li>Telnet is still useful as a quick TCP port test from a client (<code>telnet 10.1.1.1 22</code> shows whether port 22 answers), but not for management.</li>
+</ul>
+
+<h3>Common problems</h3>
+<table>
+<thead><tr><th>Symptom</th><th>Likely cause</th></tr></thead>
+<tbody>
+<tr><td>Connection refused on port 22</td><td>No RSA key generated (SSH disabled), or <code>transport input</code> excludes ssh</td></tr>
+<tr><td>Password prompt rejects every attempt</td><td><code>login local</code> configured but no <code>username</code>; or the line uses <code>login</code> with a line password and the client sends a username that does not exist locally</td></tr>
+<tr><td>Connection refused or times out, no login prompt</td><td><code>access-class</code> denies the client, or an interface ACL or firewall in the path drops TCP 22</td></tr>
+<tr><td>"% Password: timeout expired!"</td><td>Nobody answered the login prompt in time (<code>ip ssh time-out</code> for SSH authentication)</td></tr>
+<tr><td>Telnet still connects although vty 0 4 are SSH only</td><td>Only vty 0 4 secured; lines 5 to 15 still allow Telnet, and IOS hands the session to a line that accepts it</td></tr>
+<tr><td>Client complains about old algorithms</td><td>Key too small or v1.99 mode; regenerate 2048-bit keys and set version 2</td></tr>
+</tbody>
+</table>
+
+<div class="callout key"><p><strong>Remember:</strong> hostname, ip domain-name, crypto key generate rsa (at least 768 bits for v2; use 2048), ip ssh version 2, username ... secret, line vty: login local + transport input ssh. Verify with show ip ssh and show ssh. SSH = TCP 22, Telnet = TCP 23.</p></div>
+<div class="callout trap"><p><strong>Exam trap:</strong> <code>login</code> (line password) and <code>login local</code> (username database) are different. SSH needs a username, so the CCNA answer is <code>login local</code> with a configured <code>username</code>.</p></div>
+
+<div class="lab" id="lab-4-8-1">
+<h4>Lab: SSH hardening on a router and a switch</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~30 min</p>
+<p>Topology: ADMIN-PC (10.1.1.50/24) and GUEST-PC (10.1.1.99/24) on SW1 VLAN 1. SW1 management SVI VLAN 1 is 10.1.1.2/24 with default gateway 10.1.1.1. R1 G0/0 is 10.1.1.1/24.</p>
+<ol>
+<li>On R1 and SW1: set hostnames, domain <code>lab.local</code>, generate 2048-bit RSA keys, set SSH version 2.</li>
+<li>Create local user <code>admin</code> with privilege 15 and a secret; set an enable secret.</li>
+<li>Secure every VTY line on both devices: local login, SSH only, idle timeout 5 minutes.</li>
+<li>Allow VTY access only from ADMIN-PC (10.1.1.50) with a standard ACL.</li>
+<li>From ADMIN-PC: <code>ssh -l admin 10.1.1.1</code> and <code>ssh -l admin 10.1.1.2</code>. Then try <code>telnet 10.1.1.1</code>.</li>
+<li>From GUEST-PC: try the same SSH command.</li>
+</ol>
+<p>Verify:</p>
+<ul>
+<li><code>show ip ssh</code>: "SSH Enabled - version 2.0".</li>
+<li>ADMIN-PC SSH succeeds and lands at <code>R1#</code>; Telnet is refused.</li>
+<li>GUEST-PC is refused by the access-class.</li>
+<li><code>show ssh</code> and <code>show users</code> list the admin session from 10.1.1.50.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">! R1 (SW1 is the same, with "line vty 0 15" and hostname SW1)
+hostname R1
+ip domain-name lab.local
+crypto key generate rsa
+! answer 2048 at the modulus prompt in Packet Tracer
+ip ssh version 2
+username admin privilege 15 secret Adm1nPass
+enable secret En4blePass
+access-list 10 permit host 10.1.1.50
+line vty 0 4
+ login local
+ transport input ssh
+ access-class 10 in
+ exec-timeout 5 0
+line vty 5 15
+! only if your router has these lines (check show running-config)
+ login local
+ transport input ssh
+ access-class 10 in
+ exec-timeout 5 0
+!
+! SW1 extra lines
+interface Vlan1
+ ip address 10.1.1.2 255.255.255.0
+ no shutdown
+ip default-gateway 10.1.1.1
+line vty 0 15
+ login local
+ transport input ssh
+ access-class 10 in
+ exec-timeout 5 0</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>SSH (TCP 22) encrypts and authenticates management sessions; Telnet (TCP 23) is clear text.</li>
+<li>Steps: hostname, <code>ip domain-name</code>, <code>crypto key generate rsa modulus 2048</code> (minimum 768 for v2), <code>ip ssh version 2</code>, <code>username X secret Y</code>.</li>
+<li>VTY: <code>login local</code>, <code>transport input ssh</code>, optional <code>access-class N in</code> and <code>exec-timeout</code>; secure all lines (0 4 or 0 15).</li>
+<li>Verify with <code>show ip ssh</code> (version 2.0 vs 1.99), <code>show ssh</code>, <code>show users</code>; test with <code>ssh -l user ip</code>.</li>
+</ul></div>
+</section>
+
+<section class="topic" id="t-4-9" data-topics="4.9">
+<h2>4.9 Capabilities and functions of TFTP/FTP</h2>
+
+<p>Network devices need a way to move files: back up and restore configurations, load new IOS images, and hand configuration files to IP phones. TFTP and FTP are the classic protocols for this; SCP and SFTP are the secure replacements. The exam asks what each protocol can and cannot do, which transport and ports it uses, and how IOS uses them.</p>
+
+<h3>TFTP: Trivial File Transfer Protocol</h3>
+<ul>
+<li><strong>UDP port 69</strong> for the initial request; the rest of the transfer uses ports chosen by each side.</li>
+<li><strong>No authentication</strong>: no username or password. Anyone who can reach the server can read (or, if allowed, write) files.</li>
+<li><strong>No directory listing</strong> and no file management: you can only read (get) or write (put) a file whose name you already know.</li>
+<li><strong>Lock-step</strong> reliability: data goes in fixed 512-byte blocks; each block must be acknowledged before the next is sent. A block shorter than 512 bytes marks the end of the file. Simple, but slow over long-delay links.</li>
+<li>Small, simple implementation: it fits in boot ROMs and IP phones.</li>
+<li>Uses: IOS image and configuration backup/restore on a trusted management network; Cisco IP phones download their configuration and firmware by TFTP (the server address arrives in DHCP option 150); network boot (PXE).</li>
+<li>Large files: Cisco notes that many TFTP applications cannot transfer files larger than 16 MB. Modern servers that support larger block sizes handle big images, but FTP or SCP are the usual choice for large images.</li>
+</ul>
+
+<h3>FTP: File Transfer Protocol</h3>
+<ul>
+<li><strong>TCP</strong>, so reliability, windowing and retransmission come from TCP.</li>
+<li><strong>Two connections</strong>: a control connection to <strong>TCP 21</strong> (commands and replies such as USER, PASS, LIST, RETR, STOR) and a separate data connection for each file transfer or directory listing.</li>
+<li><strong>Active mode</strong>: the client tells the server its address and a port with the PORT command, and the <em>server</em> opens the data connection from its <strong>TCP 20</strong> to the client. Firewalls and NAT in front of the client often block this inbound connection.</li>
+<li><strong>Passive mode</strong>: the client sends PASV; the server opens a port and replies with its address and port; the <em>client</em> opens the data connection. Both connections are outbound from the client, which works through firewalls and NAT. Most clients default to passive.</li>
+<li><strong>Authentication</strong> with username and password, but sent in <strong>clear text</strong>, as is the data.</li>
+<li><strong>Directory and file operations</strong>: list (LIST/NLST), change directory (CWD), create and delete directories, rename and delete files.</li>
+</ul>
+
+<h3>Secure alternatives</h3>
+<ul>
+<li><strong>SCP</strong> (Secure Copy) runs over SSH, TCP 22. IOS can be an SCP server (<code>ip scp server enable</code>, which also needs AAA authorization configured) or a client (<code>copy scp: flash:</code>).</li>
+<li><strong>SFTP</strong> (SSH File Transfer Protocol), also over SSH on TCP 22, with directory operations. Not to be confused with FTPS, which is FTP over TLS.</li>
+<li>Both encrypt credentials and data, so they are preferred over TFTP and FTP on any untrusted path.</li>
+</ul>
+
+<table>
+<thead><tr><th></th><th>TFTP</th><th>FTP</th><th>SCP / SFTP</th></tr></thead>
+<tbody>
+<tr><td>Transport and port</td><td>UDP 69</td><td>TCP 21 control, TCP 20 data (active) or negotiated port (passive)</td><td>TCP 22 (SSH)</td></tr>
+<tr><td>Authentication</td><td>None</td><td>Username/password, clear text</td><td>SSH (password or keys), encrypted</td></tr>
+<tr><td>Encryption</td><td>None</td><td>None</td><td>Yes</td></tr>
+<tr><td>Directory listing</td><td>No</td><td>Yes</td><td>SFTP yes, SCP no</td></tr>
+<tr><td>Reliability</td><td>Lock-step ACK per 512-byte block</td><td>TCP</td><td>TCP</td></tr>
+<tr><td>Typical use</td><td>Phone configs, quick config backup on a lab or management LAN</td><td>Large images, legacy servers</td><td>Anything on a production or untrusted network</td></tr>
+</tbody>
+</table>
+
+<h3>The IOS file system</h3>
+<p>IOS uses prefixes (like drive letters) for each storage location or protocol:</p>
+<dl>
+<dt>flash:</dt><dd>Nonvolatile flash memory. Holds IOS image files (.bin) and any files you copy there. Survives reload.</dd>
+<dt>nvram:</dt><dd>Small nonvolatile memory holding <code>startup-config</code>, the configuration loaded at boot.</dd>
+<dt>system:</dt><dd>RAM; <code>running-config</code> lives here. Lost on reload unless saved.</dd>
+<dt>tftp:, ftp:, scp:, http:</dt><dd>Network file systems used as copy sources or destinations.</dd>
+<dt>usbflash0: (and similar)</dt><dd>USB storage on platforms that have a USB port.</dd>
+</dl>
+<p>Useful commands: <code>show file systems</code>, <code>dir flash:</code>, <code>show flash:</code>, <code>more flash:<em>file</em></code>, <code>delete flash:<em>file</em></code>.</p>
+
+<h3>Copying configurations</h3>
+<pre class="cli">R1# copy running-config startup-config
+! (same as "write memory") save RAM config to NVRAM
+
+R1# copy running-config tftp:
+Address or name of remote host []? 10.1.1.69
+Destination filename [r1-confg]? R1-backup.cfg
+!!
+1184 bytes copied in 0.104 secs (11385 bytes/sec)
+
+R1# copy tftp: running-config
+Address or name of remote host []? 10.1.1.69
+Source filename []? R1-backup.cfg
+Destination filename [running-config]?
+Accessing tftp://10.1.1.69/R1-backup.cfg...
+Loading R1-backup.cfg from 10.1.1.69 (via GigabitEthernet0/0): !
+[OK - 1184 bytes]
+1184 bytes copied in 0.062 secs (19097 bytes/sec)</pre>
+<div class="callout trap"><p><strong>Exam trap:</strong> Copying a file <em>into</em> <code>running-config</code> <strong>merges</strong> it with the current configuration; it does not replace it. Commands in the file overwrite matching lines, but lines that exist only in the running config stay. To restore an exact config, copy it to <code>startup-config</code> and reload (or use <code>configure replace</code>, beyond the CCNA).</p></div>
+
+<h3>FTP from IOS</h3>
+<pre class="cli">R1(config)# ip ftp username backup
+R1(config)# ip ftp password Bkup-Pa55
+R1(config)# ip ftp source-interface Loopback0
+R1(config)# end
+R1# copy running-config ftp://10.1.1.70/configs/R1.cfg
+! the credentials can also go in the URL: ftp://backup:Bkup-Pa55@10.1.1.70/configs/R1.cfg</pre>
+<p>IOS uses a username given in the URL first, then <code>ip ftp username</code>, then anonymous. A similar <code>ip tftp source-interface</code> command fixes the source address of TFTP transfers.</p>
+
+<h3>Upgrading an IOS image</h3>
+<ol>
+<li>Download the image from Cisco and note its published MD5 or SHA-512 hash.</li>
+<li>Check free space: <code>show flash:</code> (or <code>dir flash:</code>). Delete an old image only if you have a working one and a console connection.</li>
+<li>Back up the configuration: <code>copy running-config tftp:</code> (or ftp:/scp:).</li>
+<li>Test reachability to the file server (<code>ping</code>).</li>
+<li>Copy the image: <code>copy tftp: flash:</code> (or <code>copy ftp: flash:</code>, <code>copy scp: flash:</code>).</li>
+<li>Verify integrity: <code>verify /md5 flash:<em>image</em></code> and compare with Cisco's hash.</li>
+<li>Point the boot loader at the new image: <code>boot system flash:<em>image</em></code>; remove old <code>boot system</code> lines so the order is clear; keep the old image as a fallback by adding a second <code>boot system</code> line.</li>
+<li>Save (<code>copy running-config startup-config</code>), <code>reload</code> during a change window, then <code>show version</code> to confirm the running version and "System image file is flash:...".</li>
+</ol>
+<pre class="cli">R1# show flash:
+-#- --length-- -----date/time------ path
+1     97794040 Mar 3 2021 09:12:10 +00:00 c2900-universalk9-mz.SPA.155-3.M10.bin
+2         1184 Nov 16 2026 15:58:01 +00:00 R1-backup.cfg
+
+158208000 bytes available (97807360 bytes used)
+
+R1# copy tftp: flash:
+Address or name of remote host []? 10.1.1.69
+Source filename []? c2900-universalk9-mz.SPA.157-3.M8.bin
+Destination filename [c2900-universalk9-mz.SPA.157-3.M8.bin]?
+Accessing tftp://10.1.1.69/c2900-universalk9-mz.SPA.157-3.M8.bin...
+Loading c2900-universalk9-mz.SPA.157-3.M8.bin from 10.1.1.69 (via GigabitEthernet0/0): !!!!!!!!!!!!!!!!
+[OK - 111304128 bytes]
+
+111304128 bytes copied in 412.180 secs (270038 bytes/sec)
+
+R1# verify /md5 flash:c2900-universalk9-mz.SPA.157-3.M8.bin
+.................................................Done!
+verify /md5 (flash:c2900-universalk9-mz.SPA.157-3.M8.bin) = 6f1c2e9a0b7d4c3e8a5f9b1d2c7e4a60
+
+R1# configure terminal
+R1(config)# no boot system
+R1(config)# boot system flash:c2900-universalk9-mz.SPA.157-3.M8.bin
+R1(config)# boot system flash:c2900-universalk9-mz.SPA.155-3.M10.bin
+! fallback if the first image fails
+R1(config)# end
+R1# copy running-config startup-config
+R1# reload</pre>
+<p>If there is no <code>boot system</code> command, the router boots the first valid image it finds in flash. If no valid image is found, it falls to ROMmon, which is why you never delete the only image before the new one is verified.</p>
+
+<div class="callout key"><p><strong>Remember:</strong> TFTP = UDP 69, no authentication, no directory listing, lock-step 512-byte blocks. FTP = TCP 21 control + TCP 20 data (active) or client-opened data (passive), username/password in clear text, full directory operations. SCP/SFTP = SSH, TCP 22, encrypted.</p></div>
+
+<div class="lab" id="lab-4-9-1">
+<h4>Lab: TFTP backup and restore of a configuration, plus an image copy</h4>
+<p class="lab-meta">Tool: Packet Tracer | Time: ~25 min</p>
+<p>Topology: TFTP-SRV (a Server, 10.1.1.69/24, gateway 10.1.1.1) on SW1, connected to R1 G0/0 (10.1.1.1/24). Use a 2911 router.</p>
+<ol>
+<li>On TFTP-SRV, open Services &gt; TFTP and confirm it is On. Note that it already lists several IOS image files.</li>
+<li>Configure R1 with a hostname, a banner, a loopback and a description, then back up the running config to the server as <code>R1-backup.cfg</code>.</li>
+<li>Confirm the file appears in the server's TFTP file list.</li>
+<li>On R1, change the banner, delete the loopback and add a new interface description that was not in the backup.</li>
+<li>Restore with <code>copy tftp: running-config</code>. Compare the result with the backup: what was restored, and what stayed?</li>
+<li>Restore the exact config: copy the backup to startup-config and reload.</li>
+<li>Copy a c2900 image from TFTP-SRV to flash, verify it, and set it as the boot image.</li>
+</ol>
+<p>Verify:</p>
+<ul>
+<li>After step 5: the banner and loopback come back, but the new description added in step 4 is still there (merge behavior).</li>
+<li>After step 6: <code>show running-config</code> matches the backup exactly.</li>
+<li>After step 7: <code>show flash:</code> lists the new image; <code>show running-config | include boot</code> shows the boot system line.</li>
+</ul>
+<details><summary>Solution</summary>
+<pre class="cli">R1# copy running-config tftp:
+Address or name of remote host []? 10.1.1.69
+Destination filename [r1-confg]? R1-backup.cfg
+! make the changes from step 4, then:
+R1# copy tftp: running-config
+Address or name of remote host []? 10.1.1.69
+Source filename []? R1-backup.cfg
+Destination filename [running-config]?
+! exact restore:
+R1# copy tftp: startup-config
+Address or name of remote host []? 10.1.1.69
+Source filename []? R1-backup.cfg
+Destination filename [startup-config]?
+R1# reload
+! image (use a file name listed on TFTP-SRV):
+R1# copy tftp: flash:
+R1# show flash:
+R1# verify /md5 flash:&lt;image-name&gt;
+! (if your Packet Tracer build lacks verify /md5, compare the file size in show flash: with the server's)
+R1# configure terminal
+R1(config)# boot system flash:&lt;image-name&gt;
+R1(config)# end
+R1# copy running-config startup-config</pre>
+</details>
+</div>
+
+<div class="recap"><h4>Recap</h4><ul>
+<li>TFTP: UDP 69, no authentication, no directory listing, lock-step 512-byte blocks; used for IOS images/configs and IP phone configs (option 150).</li>
+<li>FTP: TCP 21 control; data from server TCP 20 in active mode, client-opened in passive mode; clear-text username/password; directory operations.</li>
+<li>SCP and SFTP run over SSH (TCP 22) and encrypt everything.</li>
+<li>flash: holds images, nvram: holds startup-config, running-config is in RAM. Copy into running-config merges.</li>
+<li>Upgrade: back up, <code>copy tftp: flash:</code>, <code>verify /md5</code>, <code>boot system flash:image</code>, save, reload, <code>show version</code>. <code>ip ftp username/password</code> set FTP credentials.</li>
+</ul></div>
+</section>
+
+<section class="topic-sources" data-for="4">
+<h3>Sources and further reading (free)</h3>
+<ul>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ip-addressing/b-ip-addressing/m_iadnat-addr-consv-xe.html" target="_blank" rel="noopener">Cisco: Configuring NAT for IP Address Conservation (IOS XE 17)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/bsm/configuration/15-2mt/bsm-time-calendar-set.html" target="_blank" rel="noopener">Cisco: Setting Time and Calendar Services (NTP, clock, authentication)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/bsm/command/bsm-cr-book/bsm-cr-n1.html" target="_blank" rel="noopener">Cisco IOS Basic System Management Command Reference (ntp commands)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ip-addressing/b-ip-addressing/m_config-dhcp-server-xe.html" target="_blank" rel="noopener">Cisco: Configuring the Cisco IOS XE DHCP Server</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/ipaddr_dhcp/configuration/xe-16-11/dhcp-xe-16-11-book/dhcp-relay-agent-xe.html" target="_blank" rel="noopener">Cisco: Configuring the Cisco IOS XE DHCP Relay Agent</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ip-addressing/b-ip-addressing/m_iap-bph-0.html" target="_blank" rel="noopener">Cisco: Configuring IPv4 Broadcast Packet Handling (ip helper-address default ports)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/snmp/configuration/xe-17-x/snmp-xe-17-book/nm-snmp-cfg-snmp-support.html" target="_blank" rel="noopener">Cisco: Configuring SNMP Support (IOS XE 17)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-13/configuration_guide/sys_mgmt/b_1713_sys_mgmt_9300_cg/configuring_system_message_logs.html" target="_blank" rel="noopener">Cisco: Configuring System Message Logs (Catalyst 9300, IOS XE 17.13)</a></li>
+<li><a href="https://www.cisco.com/en/US/technologies/tk543/tk759/technologies_white_paper0900aecd80295aa1.pdf" target="_blank" rel="noopener">Cisco: QoS Best Practices at a Glance (PDF)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/qos/b-quality-of-service/m_qos-plcshp-oview-0.html" target="_blank" rel="noopener">Cisco: Policing and Shaping Overview (IOS XE 17)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9200/software/release/17-15/configuration_guide/sec/b_1715_sec_9200_cg/secure_shell_version_2_support.html" target="_blank" rel="noopener">Cisco: Secure Shell Version 2 Support (Catalyst 9200, IOS XE 17.15)</a></li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/security-vpn/secure-shell-ssh/4145-ssh.html" target="_blank" rel="noopener">Cisco: Configure SSH on Routers</a></li>
+<li><a href="https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/syst-mgmt/b-system-management/m_sysimgmgmt-ftp.html" target="_blank" rel="noopener">Cisco: Using FTP to Manage System Images</a></li>
+<li><a href="https://www.cisco.com/c/en/us/support/docs/routers/10000-series-routers/23233-sw-upgrade-highendrouters-23233.html" target="_blank" rel="noopener">Cisco: Upgrade and Install Cisco IOS Software Image</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc2131" target="_blank" rel="noopener">RFC 2131: Dynamic Host Configuration Protocol</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc1035" target="_blank" rel="noopener">RFC 1035: Domain Names, Implementation and Specification</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc5905" target="_blank" rel="noopener">RFC 5905: Network Time Protocol Version 4</a></li>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc3414" target="_blank" rel="noopener">RFC 3414: User-based Security Model for SNMPv3</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc5424" target="_blank" rel="noopener">RFC 5424: The Syslog Protocol (severities and facilities)</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc5426" target="_blank" rel="noopener">RFC 5426: Transmission of Syslog Messages over UDP (port 514)</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc2474" target="_blank" rel="noopener">RFC 2474: Definition of the DS Field (DSCP)</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc2597" target="_blank" rel="noopener">RFC 2597: Assured Forwarding PHB Group</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc3246" target="_blank" rel="noopener">RFC 3246: An Expedited Forwarding PHB</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc1350" target="_blank" rel="noopener">RFC 1350: The TFTP Protocol (Revision 2)</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc959" target="_blank" rel="noopener">RFC 959: File Transfer Protocol</a></li>
+<li><a href="https://www.netacad.com/cisco-packet-tracer" target="_blank" rel="noopener">Cisco Packet Tracer (free download via Networking Academy)</a></li>
+<li><a href="https://docs.rsyslog.com/doc/configuration/modules/imudp.html" target="_blank" rel="noopener">rsyslog imudp module (UDP syslog input)</a></li>
+<li><a href="https://chrony-project.org/doc/latest/chrony.conf.html" target="_blank" rel="noopener">chrony.conf manual (server, allow, local stratum)</a></li>
+<li><a href="https://net-snmp.sourceforge.io/docs/man/snmpwalk.html" target="_blank" rel="noopener">Net-SNMP snmpwalk manual page</a></li>
+<li><a href="https://www.wireshark.org/docs/wsug_html_chunked/" target="_blank" rel="noopener">Wireshark User's Guide</a></li>
+</ul>
+</section>
