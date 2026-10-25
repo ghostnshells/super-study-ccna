@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CCNA Study Hub">
+  <rect width="512" height="512" rx="96" fill="#1b5aa6"/>
+  <g fill="none" stroke="#fff" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="132" r="44" fill="#fff"/>
+    <circle cx="132" cy="342" r="44" fill="#fff"/>
+    <circle cx="380" cy="342" r="44" fill="#fff"/>
+    <path d="M235 171 153 303M277 171l82 132M176 342h160"/>
+  </g>
+</svg>

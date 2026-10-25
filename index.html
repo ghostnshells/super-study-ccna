@@ -1,9 +1,30 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>CCNA Study Hub</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CCNA Study Hub · 200-301 v1.1</title>
+<meta name="description" content="A complete CCNA 200-301 v1.1 study plan with lessons, labs, quizzes, practice exams, subnetting drills, and flashcards.">
+<meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d141b" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta property="og:type" content="website">
+<meta property="og:title" content="CCNA Study Hub · 200-301 v1.1">
+<meta property="og:description" content="Lessons, labs, quizzes, practice exams, subnetting drills, and flashcards for the CCNA 200-301 v1.1 exam.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="/site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <style>
+:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}
+img{max-width:100%}
+[hidden]:not([hidden=until-found i]){display:none!important}
 /* Layout: sticky top nav over one reading column; lessons get a sticky topic rail on wide screens.
    Look: a field manual for network engineers. Cool slate paper, cobalt accent, amber for exam traps,
    blueprint numbers (1.6, 3.4.c) set in condensed type as the recurring signature. */
@@ -233,6 +254,8 @@ table.data td.n{font-variant-numeric:tabular-nums;text-align:right}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:14px;z-index:20}
 @media (prefers-reduced-motion:no-preference){.fc{transition:background .15s}}
 </style>
+</head>
+<body>
 
 <header class="top">
   <div class="top-in">
@@ -250,8 +273,9 @@ table.data td.n{font-variant-numeric:tabular-nums;text-align:right}
     <span class="sync" id="sync">saved on this device</span>
   </div>
 </header>
-<main class="wrap" id="app"><p class="loading">Loading the study hub…</p></main>
-<div class="toast hidden" id="toast" role="status"></div>
+<main class="wrap" id="app"><p class="loading" role="status">Loading the study hub…</p></main>
+<noscript><p class="wrap">This study hub requires JavaScript for lessons, quizzes, practice exams, and progress tracking.</p></noscript>
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 "use strict";
@@ -400,7 +424,7 @@ function renderHome(app){
       <div class="eyebrow">Cisco CCNA 200-301 · blueprint v1.1</div>
       <h1>Pass on Saturday, December 12</h1>
       <div class="count"><span class="big tab">${days}</span><span class="muted">days to go · fallback Dec 19, last resort Dec 22</span></div>
-      <p class="lead" style="margin-top:12px">Every topic on Cisco's v1.1 outline, taught in the order of your eight-week plan, with labs, ${QS.filter(q=>q.pool==="quiz").length} study questions, two timed 100-question practice exams, drills and flashcards. Your progress follows you between devices.</p>
+      <p class="lead" style="margin-top:12px">Every topic on Cisco's v1.1 outline, taught in the order of your eight-week plan, with labs, ${QS.filter(q=>q.pool==="quiz").length} study questions, two timed 100-question practice exams, drills and flashcards. Your progress is saved in this browser.</p>
       <div class="stat" style="margin-top:14px">
         <div><b class="tab">${studiedN}/${allTop.length}</b>topics studied</div>
         <div><b class="tab">${qs.seen}</b>questions answered</div>
