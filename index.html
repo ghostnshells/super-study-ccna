@@ -281,16 +281,15 @@ table.data td.n{font-variant-numeric:tabular-nums;text-align:right}
 <script>
 "use strict";
 /* ============================================================ data + state */
-const EXAM_DATE = new Date(2026, 11, 12, 9, 0, 0); // Sat Dec 12, 2026
 const WEEKS = [
-  {n:1, start:"2026-10-22", end:"2026-10-25", hours:6,  note:"Set up Packet Tracer and the daily 10-minute subnetting drill."},
-  {n:2, start:"2026-10-26", end:"2026-11-01", hours:10, note:"Study Mon to Wed. Ecem is here Oct 30 to Nov 1, so flashcards only that weekend."},
-  {n:3, start:"2026-11-02", end:"2026-11-08", hours:15, note:"Lab every topic."},
-  {n:4, start:"2026-11-09", end:"2026-11-15", hours:15, note:"Heavy labs. Checkpoint 1 on Sun Nov 15."},
-  {n:5, start:"2026-11-16", end:"2026-11-22", hours:18, note:"The big week. ACLs come here so they sit next to NAT."},
-  {n:6, start:"2026-11-23", end:"2026-11-29", hours:5,  note:"Mon and Tue only. Flashcards and recaps on the flights."},
-  {n:7, start:"2026-11-30", end:"2026-12-06", hours:15, note:"Light Monday after the red-eye. Checkpoint 2 on Sat Dec 5."},
-  {n:8, start:"2026-12-07", end:"2026-12-11", hours:9,  note:"Weak areas only, Practice Exam B, mistakes review. Light review Friday, no new material."}
+  {n:1, hours:8,  note:"Set up Packet Tracer, learn the core models, and begin a daily 10-minute subnetting drill."},
+  {n:2, hours:14, note:"Build speed with IPv4 subnetting, then cover IPv6, wireless principles, virtualization, and switching."},
+  {n:3, hours:12, note:"Configure and troubleshoot the main Layer 2 technologies in Packet Tracer."},
+  {n:4, hours:12, note:"Focus on routing decisions, static routes, and OSPF. Finish with Checkpoint 1."},
+  {n:5, hours:18, note:"Complete OSPF and work through FHRP, IP services, ACLs, and management access."},
+  {n:6, hours:12, note:"Study security fundamentals, VPNs, Layer 2 protections, AAA, and wireless security."},
+  {n:7, hours:14, note:"Finish wireless and automation topics, then take Practice Exam A under timed conditions."},
+  {n:8, hours:8,  note:"Review weak areas, take Practice Exam B, and re-take missed questions. Avoid adding new material."}
 ];
 const DOMAIN_SHORT = {1:"Fundamentals",2:"Network Access",3:"IP Connectivity",4:"IP Services",5:"Security",6:"Automation"};
 let OUT = null, QS = [], CARDS = [], RES = [], COV = [];
@@ -358,14 +357,6 @@ const domOf = t => +String(t).split(".")[0];
 const topOf = t => t.split(".").slice(0,2).join(".");
 const dcol = d => `var(--d${d})`;
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.remove("hidden"); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.add("hidden"),2200); }
-function ymd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-function currentWeek(){ const t = ymd(new Date()); for (const w of WEEKS) if (t >= w.start && t <= w.end) return w.n; if (t < WEEKS[0].start) return 1; return t > "2026-12-11" ? 9 : 1; }
-function fmtDate(s){ const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d).toLocaleDateString("en-US",{month:"short",day:"numeric"}); }
-function fmtRange(start, end){
-  const [sy,sm,sd] = start.split("-").map(Number), [ey,em,ed] = end.split("-").map(Number);
-  if (sy===ey && sm===em) return `${new Date(sy,sm-1,sd).toLocaleDateString("en-US",{month:"short"})} ${sd}–${ed}`;
-  return `${fmtDate(start)}–${fmtDate(end)}`;
-}
 function weekTopics(n){ const w = OUT.weeks.find(x=>x.n===n); return w ? w.topics : []; }
 function qStats(filter){
   let n=0,c=0,seen=0; for (const q of QS){ if (!filter(q)) continue; n++; const r=S.q[q.id]; if (r){ seen++; if (r[2]) c++; } }
@@ -406,31 +397,18 @@ window.addEventListener("hashchange", () => { route(); if (!/^#t-|^#lab-/.test(l
 
 /* ============================================================ home */
 function renderHome(app){
-  const now = new Date();
-  const days = Math.max(0, Math.ceil((EXAM_DATE - now) / 86400000));
-  const cw = currentWeek();
   const allTop = OUT.domains.flatMap(d=>d.topics.map(t=>t.id));
   const studiedN = allTop.filter(t=>S.studied[t]).length;
   const qs = qStats(q=>q.pool==="quiz");
   const lastExam = S.exams[S.exams.length-1];
-  const wk = WEEKS.find(w=>w.n===cw);
   const weak = weakTopics(6);
-  const thisWeek = cw <= 8 ? `
-      <div class="eyebrow">This week · ${fmtDate(wk.start)} to ${fmtDate(wk.end)} · about ${wk.hours} h</div>
-      <h3>Week ${cw}: ${cw===8 ? "Final review" : esc(weekTitle(cw))}</h3>
-      <p class="muted" style="margin:0 0 10px">${esc(wk.note)}</p>
-      <div class="row" style="margin-bottom:12px">${weekTopics(cw).map(t=>topicChip(t)).join("")}</div>
-      <div class="row">
-        ${cw<8 ? `<a class="btn primary" href="#${sid(weekTopics(cw)[0])}">Open the lesson</a><a class="btn" href="#quiz-w${cw}">Quiz this week</a>`
-               : `<a class="btn primary" href="#exam">Practice exam B</a><a class="btn" href="#quiz-mistakes">Review mistakes</a>`}
-      </div>` : `<h3>Exam week</h3><p class="muted">Light review only. Flashcards and the mistakes quiz.</p>`;
   app.innerHTML = `
   <div class="hero">
     <div class="panel">
       <div class="eyebrow">Cisco CCNA 200-301 · blueprint v1.1</div>
-      <h1>Pass on Saturday, December 12</h1>
-      <div class="count"><span class="big tab">${days}</span><span class="muted">days to go · fallback Dec 19, last resort Dec 22</span></div>
-      <p class="lead" style="margin-top:12px">Every topic on Cisco's v1.1 outline, taught in the order of your eight-week plan, with labs, ${QS.filter(q=>q.pool==="quiz").length} study questions, two timed 100-question practice exams, drills and flashcards. Your progress is saved in this browser.</p>
+      <h1>A complete eight-week CCNA study program</h1>
+      <div class="count"><span class="big tab">8</span><span class="muted">structured weeks · start whenever you are ready</span></div>
+      <p class="lead" style="margin-top:12px">Every topic on Cisco's v1.1 outline, taught in a focused eight-week sequence with labs, ${QS.filter(q=>q.pool==="quiz").length} study questions, two timed 100-question practice exams, drills and flashcards. Your progress is saved in this browser.</p>
       <div class="stat" style="margin-top:14px">
         <div><b class="tab">${studiedN}/${allTop.length}</b>topics studied</div>
         <div><b class="tab">${qs.seen}</b>questions answered</div>
@@ -438,7 +416,13 @@ function renderHome(app){
         <div><b class="tab">${lastExam?Math.round(lastExam.score*100)+"%":"–"}</b>last practice exam</div>
       </div>
     </div>
-    <div class="panel thisweek">${thisWeek}</div>
+    <div class="panel thisweek">
+      <div class="eyebrow">Flexible schedule</div>
+      <h3>Work through one numbered week at a time</h3>
+      <p class="muted">The hour estimates are targets, not deadlines. Complete the lessons and labs for each week, then use its quiz before moving on.</p>
+      <div class="row" style="margin-bottom:12px">${weekTopics(1).map(t=>topicChip(t)).join("")}</div>
+      <div class="row"><a class="btn primary" href="#${sid(weekTopics(1)[0])}">Start Week 1</a><a class="btn" href="#quiz-w1">Week 1 quiz</a></div>
+    </div>
   </div>
 
   <section class="block">
@@ -458,11 +442,11 @@ function renderHome(app){
     <h2>Week by week</h2>
     <div class="weeks">${WEEKS.map(w=>{
       const tops = weekTopics(w.n);
-      const ck = w.n===4 ? `<div class="note"><strong>Checkpoint 1, Sun Nov 15:</strong> <a href="#quiz-cp1">Checkpoint quiz</a> (50 questions from weeks 1 to 4, exam conditions). Below 60% means adding 3 or 4 hours a week through Dec 6.</div>`
-             : w.n===7 ? `<div class="note"><strong>Checkpoint 2, Sat Dec 5:</strong> <a href="#exam">Practice Exam A</a>, timed. 80% or more keeps Dec 12; 70 to 79% moves you to Dec 19; below 70% to Dec 22.</div>`
-             : w.n===8 ? `<div class="note">Practice Exam B early in the week, then the <a href="#quiz-mistakes">mistakes quiz</a> and weak topics.</div>` : "";
-      return `<div class="wk ${w.n===cw?"now":""}">
-        <div class="when">Week ${w.n}<span>${fmtRange(w.start,w.end)}</span><span>${w.hours} h</span></div>
+      const ck = w.n===4 ? `<div class="note"><strong>Checkpoint 1:</strong> Take the <a href="#quiz-cp1">50-question checkpoint quiz</a> covering weeks 1 to 4. If you score below 60%, review weak areas before moving on.</div>`
+             : w.n===7 ? `<div class="note"><strong>Checkpoint 2:</strong> Take <a href="#exam">Practice Exam A</a> under timed conditions. Aim for at least 80% before the final review week.</div>`
+             : w.n===8 ? `<div class="note">Take Practice Exam B, then use the <a href="#quiz-mistakes">mistakes quiz</a> and weak-topic list for final review.</div>` : "";
+      return `<div class="wk">
+        <div class="when">Week ${w.n}<span>about ${w.hours} h</span></div>
         <div><div class="topics">${tops.length?tops.map(t=>topicChip(t)).join(""):'<span class="muted">Review, practice exams, weak areas</span>'}</div>
           <div class="note">${esc(w.note)}</div>${ck}</div>
         <div>${tops.length?`<a class="btn small" href="#quiz-w${w.n}">Quiz week ${w.n}</a>`:`<a class="btn small" href="#exam">Exams</a>`}</div>
@@ -778,7 +762,7 @@ function renderResults(app){
     if (RUN.kind==="exam"){ S.exams.push({id: "e"+Date.now(), form: RUN.form, at: Date.now(), score: c/n, n, byDomain: byD, secs: Math.round((Date.now()-RUN.started)/1000), timedOut: !!RUN.timedOut}); touch(); }
   }
   const pct = Math.round(c/n*100);
-  const verdict = RUN.kind==="exam" ? (pct>=80 ? "On track for Dec 12." : pct>=70 ? "Close. Your plan says move to Dec 19 and add a week of weak-area work." : "Your plan says move to Dec 22 and tell your supervisor early.") : "";
+  const verdict = RUN.kind==="exam" ? (pct>=80 ? "You are meeting the program's readiness target." : pct>=70 ? "You are close. Review your weakest domains and re-take missed questions before testing again." : "More preparation is recommended. Return to the weakest domains, complete their labs, and test again after focused review.") : "";
   app.innerHTML = `
     <div class="eyebrow">${esc(RUN.title)} · results</div>
     <div class="result-head"><span class="big tab">${pct}%</span><span class="muted">${c} of ${n} correct${RUN.timedOut?" · time ran out":""}${RUN.kind==="exam"?` · ${Math.round((Date.now()-RUN.started)/60000)} min`:""}</span></div>
@@ -815,10 +799,10 @@ function renderExamHome(app){
   app.innerHTML = `
     <div class="eyebrow">Practice exams</div>
     <h1 class="num" style="font-size:32px;margin:6px 0 8px">Two full-length exams, timed like the real one</h1>
-    <p class="lead">Each form has 100 questions weighted to the v1.1 blueprint (20, 20, 25, 10, 15, 10) and a 120-minute clock. As on Cisco's exam, there's no going back to an earlier question. Take Form A at Checkpoint 2 (Sat Dec 5) and Form B early in the final week. Results land in your weak spots.</p>
+    <p class="lead">Each form has 100 questions weighted to the v1.1 blueprint (20, 20, 25, 10, 15, 10) and a 120-minute clock. As on Cisco's exam, there's no going back to an earlier question. Take Form A after Week 7 and Form B during Week 8. Results feed into your weak-topic list.</p>
     <div class="two" style="margin:18px 0">
       ${["A","B"].map(f=>`<div class="panel"><h3 style="margin-top:0">Form ${f}</h3>
-        <p class="muted">${forms[f].length} questions · 120 minutes · ${f==="A"?"Checkpoint 2, Dec 5":"Final week, Dec 7 to 9"}</p>
+        <p class="muted">${forms[f].length} questions · 120 minutes · ${f==="A"?"After Week 7":"During Week 8"}</p>
         <div class="row"><button class="btn primary" data-form="${f}" ${forms[f].length?"":"disabled"}>Start form ${f}</button><button class="btn" data-form="${f}" data-mode="study" ${forms[f].length?"":"disabled"}>Study this form untimed</button></div></div>`).join("")}
     </div>
     <h2 class="num" style="font-size:22px">History</h2>
