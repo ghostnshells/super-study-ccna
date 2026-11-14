@@ -9,6 +9,6 @@
     "validate": "node scripts/validate.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=26"
   }
 }
