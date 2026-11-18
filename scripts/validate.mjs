@@ -9,8 +9,8 @@ const requiredFiles = [
   "site.webmanifest",
   "icon.svg",
   "robots.txt",
-  ...Array.from({ length: 6 }, (_, index) => `lessons/d${index + 1}.html`),
-  ...["outline", "questions", "cards", "resources", "coverage"].map(name => `data/${name}.json`),
+  ...Array.from({ length: 7 }, (_, index) => `lessons/d${index}.html`),
+  ...["outline", "questions", "cards", "resources", "coverage", "path"].map(name => `data/${name}.json`),
 ];
 
 function fail(message) {
@@ -49,12 +49,13 @@ for (const path of requiredFiles) {
   }
 }
 
-const [outline, questions, cards, resources, coverage, manifest, vercel] = await Promise.all([
+const [outline, questions, cards, resources, coverage, path, manifest, vercel] = await Promise.all([
   loadJson("data/outline.json"),
   loadJson("data/questions.json"),
   loadJson("data/cards.json"),
   loadJson("data/resources.json"),
   loadJson("data/coverage.json"),
+  loadJson("data/path.json"),
   loadJson("site.webmanifest"),
   loadJson("vercel.json"),
 ]);
@@ -84,8 +85,33 @@ if (outline && questions && cards && resources && coverage) {
     }
   }
 
-  for (const week of outline.weeks || []) {
-    for (const topic of week.topics || []) assert(topicIds.has(topic), `outline: week ${week.n} references unknown topic ${topic}`);
+  // Learning path: every top-level outline topic (plus the 1.0 foundations and the primers) is taught
+  // exactly once, and every prerequisite is taught before the lesson that needs it.
+  if (path) {
+    const primerIds = new Set((path.primers || []).map(primer => primer.id));
+    const lessonIds = new Set([...topLevelIds, "1.0", ...primerIds]);
+    const seenSteps = new Set();
+    const primerLesson = await readFile("lessons/d0.html", "utf8");
+    for (const id of primerIds) assert(primerLesson.includes(`id="t-${id.replace(".", "-")}"`), `lessons/d0.html: primer ${id} has no section`);
+    let lastUnit = -1;
+    for (const unit of path.units || []) {
+      assert(Number.isInteger(unit.n) && unit.n > lastUnit, `path: units must be numbered in increasing order (unit ${unit.n})`);
+      lastUnit = unit.n;
+      for (const field of ["title", "question", "why", "model", "practice"]) assert(typeof unit[field] === "string" && unit[field].length > 0, `path: unit ${unit.n} has no ${field}`);
+      assert(Array.isArray(unit.goals) && unit.goals.length > 0, `path: unit ${unit.n} has no goals`);
+      assert(typeof unit.hours === "number" && unit.hours > 0, `path: unit ${unit.n} has no hour estimate`);
+      for (const step of unit.steps || []) {
+        assert(lessonIds.has(step.t), `path: unit ${unit.n} references unknown lesson ${step.t}`);
+        assert(!seenSteps.has(step.t), `path: lesson ${step.t} appears more than once`);
+        for (const field of ["why", "analogy", "explain"]) assert(typeof step[field] === "string" && step[field].length > 0, `path: lesson ${step.t} has no ${field}`);
+        for (const field of ["warmup", "focus", "later", "needs"]) assert(Array.isArray(step[field]), `path: lesson ${step.t} has no ${field} list`);
+        assert((step.focus || []).length > 0, `path: lesson ${step.t} has no first-pass focus`);
+        for (const pair of step.warmup || []) assert(Array.isArray(pair) && pair.length === 2 && pair.every(x => typeof x === "string" && x), `path: lesson ${step.t} has a malformed warm-up question`);
+        for (const need of step.needs || []) assert(seenSteps.has(need), `path: lesson ${step.t} needs ${need}, which is not taught earlier`);
+        seenSteps.add(step.t);
+      }
+    }
+    for (const id of lessonIds) assert(seenSteps.has(id), `path: lesson ${id} is not in the learning path`);
   }
 
   const questionIds = uniqueIds(questions, "questions");
@@ -184,4 +210,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`Validation passed: ${questions?.length ?? 0} questions, ${cards?.length ?? 0} cards, ${resources?.length ?? 0} resources, ${coverage?.length ?? 0} coverage rows.`);
+console.log(`Validation passed: ${path?.units?.reduce((n, unit) => n + unit.steps.length, 0) ?? 0} path lessons, ${questions?.length ?? 0} questions, ${cards?.length ?? 0} cards, ${resources?.length ?? 0} resources, ${coverage?.length ?? 0} coverage rows.`);

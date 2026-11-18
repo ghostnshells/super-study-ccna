@@ -1,0 +1,1831 @@
+{
+ "version": 1,
+ "primers": [
+  {
+   "id": "0.0",
+   "title": "How to learn networking (and anything hard)"
+  },
+  {
+   "id": "0.1",
+   "title": "Follow one web request from your laptop to a server"
+  },
+  {
+   "id": "0.2",
+   "title": "Your lab: Packet Tracer and the Cisco command line"
+  },
+  {
+   "id": "0.3",
+   "title": "Binary and hexadecimal for networking"
+  }
+ ],
+ "units": [
+  {
+   "n": 0,
+   "title": "Start here",
+   "hours": 5,
+   "question": "What actually happens when you open a website, and how will you learn all of this?",
+   "why": "No networking background is assumed. Before any exam topic, you learn how to study hard technical material, get the whole story of a network in one picture, and set up the lab you will use for the rest of the course.",
+   "model": "A network is a set of devices that agree on rules (protocols) for moving data. Switches move data inside one network using MAC addresses; routers move it between networks using IP addresses. Everything in the CCNA is a detail of that one sentence.",
+   "goals": [
+    "Describe a study session that uses focused work, breaks and recall instead of re-reading",
+    "Tell the story of a web request: DHCP, DNS, default gateway, ARP, routing and the reply",
+    "Open Packet Tracer, cable a router to a PC, and move between the four IOS modes"
+   ],
+   "practice": "Start the habit now: one 25-minute focused session a day beats one long weekend cram.",
+   "steps": [
+    {
+     "t": "0.0",
+     "why": "You are about to learn a large, detailed subject. Ten minutes on how memory works will save you weeks: it explains why every lesson here is built the way it is.",
+     "analogy": "Learning is like building a muscle, not filling a bucket: short, repeated, effortful workouts with rest in between beat one marathon session.",
+     "warmup": [],
+     "focus": [
+      "Focused versus diffuse thinking, and why breaks help",
+      "Why testing yourself beats re-reading",
+      "How the lesson pages in this hub use these ideas"
+     ],
+     "later": [
+      "The exam-day tips: come back to them before your first practice exam"
+     ],
+     "explain": "Explain to a friend why closing the book and recalling what you read is more useful than reading it a second time.",
+     "needs": []
+    },
+    {
+     "t": "0.1",
+     "why": "Before learning any piece, you need the whole picture so each piece has somewhere to go. This lesson tells one story, a web page loading, and names every part you will study later.",
+     "analogy": "The postal system: your IP address is your street address, a MAC address is the name on your apartment door, routers are sorting offices between towns, and DNS is the phone book.",
+     "warmup": [
+      [
+       "From 0.0: what is better for memory than re-reading a page?",
+       "Recalling it from memory (retrieval practice): look away and say or write the key ideas, then check."
+      ]
+     ],
+     "focus": [
+      "The difference between a MAC address and an IP address",
+      "What a switch does versus what a router does",
+      "The order of events: DHCP, DNS, ARP, then the packet"
+     ],
+     "later": [
+      "NAT and TCP details: they get full lessons in Units 1, 3 and 9"
+     ],
+     "explain": "Without notes, tell the story of what your laptop does from joining Wi-Fi to showing a web page. Use at most six steps.",
+     "needs": [
+      "0.0"
+     ]
+    },
+    {
+     "t": "0.2",
+     "why": "From now on you learn by doing. Every lab in this course runs in Packet Tracer and uses the same handful of IOS commands, so learn them once, now, before they appear inside harder topics.",
+     "analogy": "The IOS modes are rooms in a building: the lobby (user EXEC) lets you look around, the office (privileged EXEC) lets you see everything, the workshop (global config) lets you change the building, and each workbench (interface config) changes one machine.",
+     "warmup": [
+      [
+       "From 0.1: which device connects different networks, and which connects devices inside one network?",
+       "A router connects networks (using IP addresses). A switch connects devices inside one network (using MAC addresses)."
+      ],
+      [
+       "From 0.1: name the four things DHCP gives a laptop.",
+       "An IP address, a subnet mask, a default gateway and a DNS server address."
+      ]
+     ],
+     "focus": [
+      "The four prompts and how to move between them",
+      "running-config versus startup-config, and saving",
+      "show ip interface brief"
+     ],
+     "later": [
+      "Cable types: Packet Tracer can choose them automatically for now; 1.3 teaches the real rules"
+     ],
+     "explain": "Explain why a change you typed disappears after a reload, and the one command that prevents it.",
+     "needs": [
+      "0.1"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 1,
+   "title": "How data moves between devices",
+   "hours": 8,
+   "question": "How does a message get chopped up, labeled and delivered, and who does each job?",
+   "why": "Unit 0 told the story informally. This unit gives you the professional vocabulary for it: layers, PDUs and the roles of each device. Every later unit refers back to these layers.",
+   "model": "Each layer adds its own label (header) to the data and only talks to the same layer on the other side. Layer 4 picks the application (ports), Layer 3 picks the destination network (IP), Layer 2 picks the next device on the wire (MAC), Layer 1 is the signal.",
+   "goals": [
+    "Name the PDU and addressing used at Layers 1 to 4",
+    "Explain how a host decides between sending to a local device or to its default gateway",
+    "Place routers, switches, firewalls, APs and controllers at the right layer and role",
+    "Compare TCP and UDP and say which applications use each"
+   ],
+   "practice": "Daily: 10 flashcards from your learned topics, and write the port table from memory once.",
+   "steps": [
+    {
+     "t": "1.0",
+     "title": "Foundations: OSI and TCP/IP models",
+     "why": "In 0.1 you followed a web request; here you name each wrapping step precisely. This is the frame of reference every other lesson hangs on.",
+     "analogy": "Nested envelopes: the letter (data) goes into an envelope with the department name (port), into a bigger one with the street address (IP), into a courier bag labeled for the next stop only (MAC). The courier bag is replaced at every stop; the inner envelopes are not.",
+     "warmup": [
+      [
+       "From 0.1: when your laptop wants a server on another network, which device does it hand the packet to?",
+       "Its default gateway (the router on its own network)."
+      ],
+      [
+       "From 0.2: which prompt means you are in privileged EXEC mode?",
+       "Router# (the # sign)."
+      ]
+     ],
+     "focus": [
+      "Layers and PDUs: segment, packet, frame, bits",
+      "Encapsulation and why the Layer 2 header is rebuilt at every router",
+      "ARP and the local-or-remote decision"
+     ],
+     "later": [
+      "Ethernet frame byte counts and the I/G and U/L bits: revisit after 1.13 and 1.9",
+      "The lab uses /24 masks: for now read /24 as \"the first three numbers are the network\"; 1.6 explains it",
+      "The port table: learn a few ports each day with flashcards rather than all at once"
+     ],
+     "explain": "Explain why the IP addresses in a packet stay the same across the internet but the MAC addresses change at every router.",
+     "needs": [
+      "0.1",
+      "0.2"
+     ]
+    },
+    {
+     "t": "1.1",
+     "why": "Now that you can name the layers, you can describe each device by the layer it works at. That turns a list of boxes into a system.",
+     "analogy": "A company: routers are the shipping department between offices, switches are the internal mailroom, the firewall is security at the door, access points are the receptionists for wireless guests, and a controller is the manager who configures all the receptionists at once.",
+     "warmup": [
+      [
+       "From 1.0: which layer uses MAC addresses, and which uses IP addresses?",
+       "Layer 2 (data link) uses MAC addresses; Layer 3 (network) uses IP addresses."
+      ],
+      [
+       "From 1.0: what is the PDU called at Layer 3?",
+       "A packet."
+      ]
+     ],
+     "focus": [
+      "Routers, Layer 2 and Layer 3 switches: what each separates and forwards",
+      "Endpoints and servers",
+      "What an access point does"
+     ],
+     "later": [
+      "NGFW and IPS details: they return in Unit 8",
+      "Controllers (WLC, Catalyst Center): they return in Units 10 and 12",
+      "PoE wattage classes: learn them with flashcards"
+     ],
+     "explain": "Explain the difference between a Layer 2 switch and a Layer 3 switch to someone who has only ever seen a home Wi-Fi router.",
+     "needs": [
+      "1.0"
+     ]
+    },
+    {
+     "t": "1.5",
+     "why": "Layer 4 decides how reliably data is delivered. You met ports in 1.0; now see the two ways of carrying data and why applications choose one or the other.",
+     "analogy": "TCP is a phone call: you dial, the other side answers, you confirm you heard each other, then hang up politely. UDP is a postcard: you just send it and hope.",
+     "warmup": [
+      [
+       "From 1.0: which layer uses port numbers, and what is its PDU called?",
+       "Layer 4 (transport). A segment for TCP, a datagram for UDP."
+      ],
+      [
+       "From 1.0: which well-known ports do HTTPS and DNS use?",
+       "HTTPS: TCP 443. DNS: UDP 53 (and TCP 53 for large replies and zone transfers)."
+      ]
+     ],
+     "focus": [
+      "The 3-way handshake (SYN, SYN-ACK, ACK)",
+      "Sequence numbers, acknowledgments and windowing in plain words",
+      "Why voice, video and DNS prefer UDP"
+     ],
+     "later": [
+      "Every TCP header field by name: recognise them, do not memorise offsets"
+     ],
+     "explain": "Explain why a live video call uses UDP even though UDP does not resend lost data.",
+     "needs": [
+      "1.0"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Cables, interfaces and switches",
+   "hours": 9,
+   "question": "How do bits get onto a wire, and how does a switch decide where each frame goes?",
+   "why": "Unit 1 was the theory of layers. Now you work at the bottom two for real: the cables (Layer 1), how to tell when an interface is unhealthy, and how a switch learns and forwards frames (Layer 2).",
+   "model": "A switch is a learning machine: it reads the source MAC of every frame to learn where devices are, forwards frames to the one port it knows, and floods when it does not know. Cables and interface settings decide whether those frames arrive intact.",
+   "goals": [
+    "Choose copper, multimode or single-mode fiber for a given distance",
+    "Read show interfaces and diagnose duplex and speed mismatches",
+    "Predict what a switch does with a frame: learn, forward, filter or flood",
+    "Use CDP and LLDP to map which device is plugged into which port"
+   ],
+   "practice": "Daily: one Packet Tracer lab or rebuild, plus flashcards from Units 1 and 2 mixed together.",
+   "steps": [
+    {
+     "t": "1.3",
+     "why": "Layer 1 is where every connection starts. In 1.0 bits were an abstraction; here they are light in glass or voltage on copper.",
+     "analogy": "Copper is a garden hose: cheap and fine for short runs. Multimode fiber is a wide pipe where light bounces around (shorter runs). Single-mode fiber is a laser down a thin straw: it goes for kilometers.",
+     "warmup": [
+      [
+       "From 1.0: what is the PDU at Layer 1?",
+       "Bits."
+      ],
+      [
+       "From 1.1: which device works mainly at Layer 1 and repeats signals out every port?",
+       "A hub (or repeater)."
+      ]
+     ],
+     "focus": [
+      "Copper versus multimode versus single-mode: distance and cost",
+      "Straight-through versus crossover, and Auto-MDIX",
+      "Shared media (half duplex) versus point-to-point (full duplex)"
+     ],
+     "later": [
+      "Exact distance limits for every 1000BASE and 10GBASE standard: flashcards"
+     ],
+     "explain": "Explain to a new technician which cable to use between two buildings 5 km apart, and why.",
+     "needs": [
+      "1.0",
+      "0.2"
+     ]
+    },
+    {
+     "t": "1.4",
+     "why": "Now that you know what a healthy link is made of, learn to spot an unhealthy one. This is your first real troubleshooting skill, and it uses the show commands from 0.2.",
+     "analogy": "A duplex mismatch is two people on a call where one is using a walkie-talkie: the walkie-talkie side keeps stopping because it thinks the other is interrupting.",
+     "warmup": [
+      [
+       "From 1.3: which duplex mode can have collisions?",
+       "Half duplex. Full duplex sends and receives at the same time, so collisions cannot happen."
+      ],
+      [
+       "From 0.2: what does \"administratively down\" mean in show ip interface brief?",
+       "The interface is shut down in the configuration; it needs no shutdown."
+      ]
+     ],
+     "focus": [
+      "Reading the two status words: interface status and line protocol",
+      "Duplex and speed autonegotiation and what happens when one side is hard-coded",
+      "Which counters point to which problem (CRC, runts, late collisions)"
+     ],
+     "later": [
+      "Every counter in show interfaces: learn the four or five the exam names"
+     ],
+     "explain": "Explain why a duplex mismatch link still passes pings but feels slow.",
+     "needs": [
+      "1.3",
+      "0.2"
+     ]
+    },
+    {
+     "t": "1.13",
+     "why": "With healthy links in place, look inside the switch. You saw MAC addresses in 1.0; here is how a switch uses them. VLANs, STP and port security in later units all build on these four behaviors.",
+     "analogy": "A new receptionist learns where everyone sits by noticing who walks in from which hallway (source MAC). When a parcel arrives for someone they have not seen yet, they announce it in every hallway (flood).",
+     "warmup": [
+      [
+       "From 1.0: which two MAC addresses are in an Ethernet header, and which comes first?",
+       "Destination MAC first, then source MAC."
+      ],
+      [
+       "From 1.0: what is the broadcast MAC address?",
+       "FFFF.FFFF.FFFF."
+      ]
+     ],
+     "focus": [
+      "Learn from the source MAC, forward on the destination MAC",
+      "When a switch floods: broadcast, unknown unicast, multicast",
+      "Collision domains versus broadcast domains"
+     ],
+     "later": [
+      "The lab creates two VLANs using the commands in its solution: type them as given, Unit 4 explains them"
+     ],
+     "explain": "Walk through what a switch with an empty MAC table does when PC1 pings PC2 for the first time.",
+     "needs": [
+      "1.0",
+      "1.3"
+     ]
+    },
+    {
+     "t": "2.3",
+     "why": "A quick, satisfying win: now that you understand switches, use CDP and LLDP to discover what is connected to what. You will use these commands to check your own lab cabling in every later unit.",
+     "analogy": "Neighbours exchanging business cards over the fence: each device tells only its directly connected neighbours who it is and which port it is using.",
+     "warmup": [
+      [
+       "From 1.13: what does a switch learn from, the source or destination MAC?",
+       "The source MAC address."
+      ],
+      [
+       "From 1.1: name two devices that work at Layer 2.",
+       "Switches and access points (also bridges and NICs)."
+      ]
+     ],
+     "focus": [
+      "CDP is Cisco-only and on by default; LLDP is the open standard and usually off",
+      "Reading show cdp neighbors: local interface versus port ID",
+      "Why you turn CDP off on ports facing untrusted networks"
+     ],
+     "later": [
+      "The full TLV list each protocol carries"
+     ],
+     "explain": "Explain how you would find out which switch port a phone is plugged into without walking to the wiring closet.",
+     "needs": [
+      "1.13",
+      "0.2"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "IPv4 addressing and subnetting",
+   "hours": 15,
+   "question": "How does one number tell a device both which network it is on and which host it is?",
+   "why": "Switches only get you around one network. To go between networks you need IP addresses that carry a network part. This unit is the single most important skill on the exam, so it gets the most practice time.",
+   "model": "An IPv4 address is 32 bits. The mask draws a line: bits to the left name the network, bits to the right name the host. Every subnetting question is just finding where that line falls and counting.",
+   "goals": [
+    "Convert between binary and decimal for any octet",
+    "Find the network, broadcast, first and last host for any address and mask",
+    "Design a VLSM plan from a list of host counts",
+    "Recognise private addresses and check IP settings on Windows, macOS and Linux"
+   ],
+   "practice": "Daily: 10 minutes of subnetting drills. Speed comes from repetition, not from more reading.",
+   "steps": [
+    {
+     "t": "0.3",
+     "why": "Subnetting is arithmetic on bits. If binary feels shaky, subnetting will feel like magic tricks. Twenty minutes here makes the next lesson make sense.",
+     "analogy": "An octet is a row of eight light switches labeled 128, 64, 32, 16, 8, 4, 2, 1. The number is the total of the switches that are on.",
+     "warmup": [
+      [
+       "From 0.1: in 192.168.1.23/24, which part identifies the network?",
+       "The first three numbers, 192.168.1 (the first 24 bits)."
+      ],
+      [
+       "From 1.0: how many hexadecimal digits are in a MAC address?",
+       "Twelve (48 bits)."
+      ]
+     ],
+     "focus": [
+      "The eight place values of an octet",
+      "Decimal to binary by subtraction",
+      "One hex digit is exactly four bits"
+     ],
+     "later": [],
+     "explain": "Convert 200 to binary out loud, explaining each step as if teaching it.",
+     "needs": [
+      "0.1"
+     ]
+    },
+    {
+     "t": "1.6",
+     "why": "With binary in hand, the mask becomes a simple line between network bits and host bits. Every routing, ACL and NAT topic later assumes you can do this quickly.",
+     "analogy": "A street address: the network part is the street name, the host part is the house number. Subnetting splits one long street into shorter blocks, each with its own name.",
+     "warmup": [
+      [
+       "From 0.3: convert 11100000 to decimal.",
+       "224 (128 + 64 + 32)."
+      ],
+      [
+       "From 0.3: what is 77 AND 224?",
+       "64. 01001101 AND 11100000 = 01000000."
+      ]
+     ],
+     "focus": [
+      "Prefix length versus dotted-decimal mask",
+      "Network, broadcast and usable hosts in binary first",
+      "The block-size method for speed"
+     ],
+     "later": [
+      "Classful background: read once, it is only lightly tested",
+      "VLSM design: do it on a second pass once single subnets feel easy",
+      "/31 links: return to this after you have done the drills"
+     ],
+     "explain": "Explain why a /26 has 62 usable hosts and not 64.",
+     "needs": [
+      "0.3",
+      "1.0"
+     ]
+    },
+    {
+     "t": "1.7",
+     "why": "You can now carve up any address space; next, which space are you allowed to use inside a company? This also sets up NAT in Unit 9.",
+     "analogy": "Private addresses are internal phone extensions: every company can have extension 100 because they never dial each other directly. NAT is the switchboard that connects them to the outside.",
+     "warmup": [
+      [
+       "From 1.6: how many usable hosts are in a /26?",
+       "62 (64 addresses minus network and broadcast)."
+      ],
+      [
+       "From 1.6: what is the network address of 172.16.5.130/25?",
+       "172.16.5.128."
+      ]
+     ],
+     "focus": [
+      "The three RFC 1918 ranges by prefix",
+      "Why private addresses need NAT to reach the internet"
+     ],
+     "later": [
+      "Other special ranges: know 127.0.0.0/8 and 169.254.0.0/16 now, the rest by recognition"
+     ],
+     "explain": "Explain why two companies can both use 10.1.1.0/24 internally without a conflict.",
+     "needs": [
+      "1.6"
+     ]
+    },
+    {
+     "t": "1.10",
+     "why": "Apply everything from this unit to a machine you own. Reading your own computer's address, mask and gateway turns abstract numbers into something you can check.",
+     "analogy": "Reading your car's dashboard: the same few gauges (address, mask, gateway, DNS) tell you whether the problem is you, your street or the wider road.",
+     "warmup": [
+      [
+       "From 1.7: name the three private IPv4 ranges.",
+       "10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16."
+      ],
+      [
+       "From 1.7: what does a 169.254.x.x address on a PC suggest?",
+       "The PC did not get an address from DHCP and assigned itself a link-local (APIPA) address."
+      ]
+     ],
+     "focus": [
+      "ipconfig /all, ifconfig or ip addr, and where the gateway and DNS appear",
+      "Using the mask to decide if two hosts share a subnet"
+     ],
+     "later": [
+      "IPv6 lines in the output: skip them now; Unit 5 sends you back"
+     ],
+     "explain": "A coworker says the internet is down. Explain which three values you would check on their laptop first and what each would tell you.",
+     "needs": [
+      "1.6",
+      "1.7"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "VLANs and a loop-free LAN",
+   "hours": 13,
+   "question": "How do you split one switched network into many, link switches together, and survive a broken cable without creating a loop?",
+   "why": "In Unit 2 one switch was one broadcast domain. In Unit 3 you learned that each subnet is a separate network. VLANs join the two ideas: one VLAN per subnet, on shared switch hardware. Then you add redundancy safely.",
+   "model": "VLAN = broadcast domain = subnet. Trunks carry many VLANs between switches by tagging frames. Redundant links create loops, so STP blocks some of them; EtherChannel bundles links so nothing needs blocking.",
+   "goals": [
+    "Create VLANs, assign access ports and configure a voice VLAN",
+    "Configure 802.1Q trunks and explain the native VLAN",
+    "Predict the STP root bridge, root ports and blocked ports",
+    "Bundle links with LACP and explain why STP then sees one link",
+    "Route between VLANs with router-on-a-stick or SVIs"
+   ],
+   "practice": "Daily: build the unit's labs from a blank topology without looking at the solution, then compare.",
+   "steps": [
+    {
+     "t": "2.1",
+     "why": "You know a switch floods broadcasts everywhere (1.13) and that each subnet needs its own network (1.6). VLANs let one switch hold several isolated broadcast domains, one per subnet.",
+     "analogy": "One office building, several companies: each company (VLAN) has its own floors and its own PA system. Announcements on one floor never reach another.",
+     "warmup": [
+      [
+       "From 1.13: what does a switch do with a broadcast frame?",
+       "Floods it out every port in the same broadcast domain except the one it arrived on."
+      ],
+      [
+       "From 1.0: what must a host use to reach a device in another subnet?",
+       "Its default gateway (a router or Layer 3 switch)."
+      ]
+     ],
+     "focus": [
+      "VLAN ranges, the default VLAN 1, creating and naming VLANs",
+      "Access ports, including a data plus voice VLAN on one port",
+      "show vlan brief"
+     ],
+     "later": [
+      "2.1.c inter-VLAN routing and the first lab use trunks: read them after 2.2, then come back"
+     ],
+     "explain": "Explain why two PCs on the same switch but in different VLANs cannot ping each other without a router.",
+     "needs": [
+      "1.13",
+      "1.6"
+     ]
+    },
+    {
+     "t": "2.2",
+     "why": "One switch with VLANs is useful; many switches sharing the same VLANs is a real network. Trunks carry every VLAN over one link. After this, go back to 2.1.c and its labs.",
+     "analogy": "A trunk is a shared elevator. Everyone wears a badge with their floor number (the 802.1Q tag). People without a badge are assumed to belong to one default floor (the native VLAN).",
+     "warmup": [
+      [
+       "From 2.1: what does a VLAN create at Layer 2?",
+       "A separate broadcast domain."
+      ],
+      [
+       "From 2.1: which command shows VLANs and their access ports?",
+       "show vlan brief."
+      ]
+     ],
+     "focus": [
+      "The 802.1Q tag and what the 12-bit VLAN ID allows",
+      "Configuring a static trunk and why DTP is disabled",
+      "The native VLAN is untagged and must match at both ends"
+     ],
+     "later": [
+      "DTP mode combination table: learn after you can configure a trunk by hand"
+     ],
+     "explain": "Explain what happens to traffic when the native VLAN is 1 on one end of a trunk and 99 on the other.",
+     "needs": [
+      "2.1"
+     ]
+    },
+    {
+     "t": "2.5",
+     "why": "Multiple switches tempt you to add backup links. Ethernet has no TTL, so a loop would flood forever. STP is the reason redundant switch links are safe, and it explains why EtherChannel (next) exists.",
+     "analogy": "Planning roads from a capital city: pick the capital (root bridge), keep the shortest road from every town to the capital, and put a closed gate on every other road, ready to open if a main road fails.",
+     "warmup": [
+      [
+       "From 2.2: are native VLAN frames tagged on a trunk?",
+       "No, native VLAN frames are sent untagged."
+      ],
+      [
+       "From 1.13: why would a broadcast loop forever in a switch loop?",
+       "Switches flood broadcasts and Ethernet frames have no TTL, so nothing removes them."
+      ]
+     ],
+     "focus": [
+      "Electing the root bridge from the bridge ID",
+      "Root, designated and alternate ports",
+      "PortFast and BPDU guard on access ports"
+     ],
+     "later": [
+      "Every line of show spanning-tree: return after you have done the predict-then-verify lab",
+      "Loop guard and BPDU filter: recognition level"
+     ],
+     "explain": "Given three switches in a triangle, explain step by step which port ends up blocking and why.",
+     "needs": [
+      "1.13",
+      "2.2"
+     ]
+    },
+    {
+     "t": "2.4",
+     "why": "STP made redundancy safe but wasted the backup link. EtherChannel fixes that: bundle the links and STP sees one, so all of them carry traffic.",
+     "analogy": "Several lanes of one highway. Traffic spreads across the lanes; if one lane closes, cars move over without rerouting the whole trip.",
+     "warmup": [
+      [
+       "From 2.5: which switch becomes the root bridge?",
+       "The one with the lowest bridge ID: lowest priority, then lowest MAC address."
+      ],
+      [
+       "From 2.5: what does STP do with two parallel links between the same switches?",
+       "Blocks one of them."
+      ]
+     ],
+     "focus": [
+      "LACP active and passive, and which combinations form a bundle",
+      "Member ports must match (speed, duplex, VLANs)",
+      "show etherchannel summary"
+     ],
+     "later": [
+      "Load-balancing hash options: recognition only",
+      "PAgP modes: know they exist and are Cisco-only"
+     ],
+     "explain": "Explain why two links in an EtherChannel do not cause STP to block one of them.",
+     "needs": [
+      "2.5"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "IPv6 addressing",
+   "hours": 7,
+   "question": "What replaces IPv4 when 4.3 billion addresses are not enough, and how do devices configure themselves?",
+   "why": "You know IPv4 addressing well enough now to compare. Learning IPv6 against IPv4 (same jobs, new notation) is easier than learning it cold, and the routing unit that follows covers both.",
+   "model": "IPv6 does the same job as IPv4 with 128-bit addresses written in hex. Almost every LAN is a /64. Every interface has a link-local address, and ARP is replaced by Neighbor Discovery using multicast.",
+   "goals": [
+    "Shorten and expand IPv6 addresses correctly",
+    "Identify global unicast, unique local, link-local and multicast addresses",
+    "Configure IPv6 on a router interface and explain SLAAC",
+    "Build an EUI-64 interface ID from a MAC address"
+   ],
+   "practice": "Daily: IPv6 shorthand and EUI-64 drills, mixed with a few IPv4 subnetting drills so the older skill stays sharp.",
+   "steps": [
+    {
+     "t": "1.8",
+     "why": "Same job as 1.6 (identify network and host) with a bigger number. Keep comparing to what you already know: prefix length, gateway, and how a host gets an address.",
+     "analogy": "Moving from local phone numbers to full international numbers: longer, but with rules for dropping the zeros nobody needs to dial.",
+     "warmup": [
+      [
+       "From 0.3: how many bits does one hexadecimal digit represent?",
+       "Four."
+      ],
+      [
+       "From 1.6: what does a /64 prefix mean?",
+       "The first 64 bits identify the network; the remaining 64 identify the host."
+      ]
+     ],
+     "focus": [
+      "The two abbreviation rules (leading zeros, one double colon)",
+      "Configuring an address and enabling ipv6 unicast-routing",
+      "SLAAC versus stateful DHCPv6"
+     ],
+     "later": [
+      "NDP message types in detail: learn them after 1.9 multicast"
+     ],
+     "explain": "Explain why 2001:db8::1:0:0:1 is a valid address but 2001:db8::1::1 is not.",
+     "needs": [
+      "0.3",
+      "1.6"
+     ]
+    },
+    {
+     "t": "1.9",
+     "why": "1.8 showed one address per interface; in reality an IPv6 interface has several, each with a different scope. Knowing the types explains how routers find neighbors without ARP.",
+     "analogy": "Link-local is the intercom in one room, global unicast is your public mailing address, multicast is a mailing list, and anycast is \"send it to the nearest branch\".",
+     "warmup": [
+      [
+       "From 1.8: shorten 2001:0db8:0000:0000:0000:0000:0000:0001.",
+       "2001:db8::1"
+      ],
+      [
+       "From 1.0: which IPv4 protocol maps an IP address to a MAC address?",
+       "ARP. IPv6 replaces it with Neighbor Discovery (NDP)."
+      ]
+     ],
+     "focus": [
+      "Prefixes: 2000::/3, fc00::/7, fe80::/10, ff00::/8",
+      "Modified EUI-64 step by step",
+      "Solicited-node multicast in one sentence"
+     ],
+     "later": [
+      "Multicast scope values: recognise ff02 as link-local scope"
+     ],
+     "explain": "Explain why a router's IPv6 routing protocol neighbors are listed by fe80 addresses.",
+     "needs": [
+      "1.8"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Routing between networks",
+   "hours": 17,
+   "question": "How does a router decide where to send a packet, and how does it learn the routes?",
+   "why": "You can now address every network (IPv4 and IPv6) and build the LANs inside them. Routing is how those networks reach each other. This is the largest exam domain (25%).",
+   "model": "A router matches each packet's destination against its routing table and picks the most specific (longest) prefix. Routes come from connected interfaces, static configuration or a routing protocol such as OSPF; administrative distance decides which source to believe.",
+   "goals": [
+    "Read every field of show ip route and show ipv6 route",
+    "Choose the route a router will use with longest prefix match, AD and metric",
+    "Configure default, network, host and floating static routes",
+    "Build single-area OSPF and fix a neighbor that will not form",
+    "Explain how HSRP gives hosts a gateway that survives a router failure"
+   ],
+   "practice": "Daily: one routing lab rebuilt from memory, plus mixed flashcards from Units 3 to 6. Take Checkpoint 1 at the end of this unit.",
+   "milestone": "cp1",
+   "steps": [
+    {
+     "t": "3.1",
+     "why": "Every routing question starts from this one output. Learn to read the table before learning the ways routes get into it.",
+     "analogy": "A signpost table at a crossroads: each line says \"for these towns, take this road\", with a note on how trustworthy the sign is and how far it is.",
+     "warmup": [
+      [
+       "From 1.6: what is the network address of 10.1.1.77/27?",
+       "10.1.1.64."
+      ],
+      [
+       "From 1.9: which prefix do IPv6 link-local addresses use?",
+       "fe80::/10."
+      ]
+     ],
+     "focus": [
+      "Codes C, L, S, O and the gateway of last resort",
+      "Reading [AD/metric] and \"via\" next hop",
+      "Why every connected network has a /32 local route"
+     ],
+     "later": [
+      "AD and metric make full sense after 3.2 and 3.4: read them once now"
+     ],
+     "explain": "Read one line of show ip route aloud and explain every part of it in plain words.",
+     "needs": [
+      "1.6",
+      "1.8"
+     ]
+    },
+    {
+     "t": "3.2",
+     "why": "You can read the table; now learn the three rules a router applies to it, in order. These rules answer a large share of routing questions.",
+     "analogy": "Directions by specificity: \"123 Main Street\" beats \"Main Street\" beats \"this city\". Only if two directions are equally specific do you ask which source you trust more.",
+     "warmup": [
+      [
+       "From 3.1: what does code L mean?",
+       "A local route: the router's own interface address, as a /32 (or /128 in IPv6)."
+      ],
+      [
+       "From 3.1: in [110/2], which number is the AD?",
+       "110 is the administrative distance; 2 is the metric."
+      ]
+     ],
+     "focus": [
+      "Longest prefix match first",
+      "AD only compares the same prefix from different sources",
+      "Metric only compares routes from the same protocol"
+     ],
+     "later": [
+      "CEF, FIB and adjacency table: background reading"
+     ],
+     "explain": "A router has 10.0.0.0/8 via OSPF and 10.1.0.0/16 via static. Explain which is used for 10.1.2.3 and for 10.2.0.1.",
+     "needs": [
+      "3.1"
+     ]
+    },
+    {
+     "t": "3.3",
+     "why": "Now put routes in the table yourself. Static routes are the simplest way to see the 3.2 rules in action in your own lab.",
+     "analogy": "Hand-written directions taped to the wall. A floating static route is a detour sign that only appears when the main road closes.",
+     "warmup": [
+      [
+       "From 3.2: 10.1.1.0/24 and 10.1.0.0/16 both match 10.1.1.5. Which wins?",
+       "10.1.1.0/24: the longest prefix match."
+      ],
+      [
+       "From 3.2: when does AD matter?",
+       "Only when two sources offer exactly the same prefix."
+      ]
+     ],
+     "focus": [
+      "Next-hop versus exit-interface syntax",
+      "Default route 0.0.0.0/0 and ::/0",
+      "Floating static with a higher AD"
+     ],
+     "later": [
+      "IPv6 static routes with link-local next hops: do after the IPv4 labs"
+     ],
+     "explain": "Explain how a floating static route stays out of the routing table until it is needed.",
+     "needs": [
+      "3.2"
+     ]
+    },
+    {
+     "t": "3.4",
+     "why": "Static routes do not scale or react to failures. OSPF learns routes automatically, and every rule from 3.2 still applies to what it learns.",
+     "analogy": "Instead of asking neighbors for directions, every router gets the same complete map and runs its own GPS (shortest path first) on it.",
+     "warmup": [
+      [
+       "From 3.3: what is the AD of a static route?",
+       "1."
+      ],
+      [
+       "From 3.3: what is a floating static route?",
+       "A static route with an AD higher than the dynamic route, so it is used only if the dynamic route disappears."
+      ]
+     ],
+     "focus": [
+      "Neighbor adjacency requirements: area, timers, subnet, authentication, MTU",
+      "Router ID selection order",
+      "DR and BDR election on broadcast segments"
+     ],
+     "later": [
+      "LSA types and neighbor states beyond Full and 2-Way: recognition level",
+      "Read the annotated outputs once, then again after doing lab 3.4.1"
+     ],
+     "explain": "Explain why two OSPF routers on the same link stay stuck and never become neighbors when their hello timers differ.",
+     "needs": [
+      "3.3",
+      "1.6"
+     ]
+    },
+    {
+     "t": "3.5",
+     "why": "Routing is now redundant between routers, but each host still has one default gateway (1.0). FHRP closes that last single point of failure.",
+     "analogy": "A shared phone number for the front desk that rings whichever receptionist is on duty. Callers never need to know who answers.",
+     "warmup": [
+      [
+       "From 3.4: what is OSPF's administrative distance?",
+       "110."
+      ],
+      [
+       "From 1.0: what happens to a host whose default gateway goes down?",
+       "It can still reach its own subnet but nothing outside it."
+      ]
+     ],
+     "focus": [
+      "Virtual IP and virtual MAC",
+      "HSRP active and standby, priority and preemption",
+      "HSRP versus VRRP versus GLBP in one table"
+     ],
+     "later": [
+      "HSRP version differences and virtual MAC formats: flashcards"
+     ],
+     "explain": "Explain why hosts keep working when the active HSRP router fails, even though their gateway setting never changes.",
+     "needs": [
+      "3.3",
+      "1.0"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Network services",
+   "hours": 10,
+   "question": "What background services keep a network usable, and how do you configure them?",
+   "why": "The network now forwards traffic. This unit adds the services that make it usable and manageable: handing out addresses, resolving names, keeping time, logging and monitoring. You met several of these by name in 0.1.",
+   "model": "Most services are a client and a server talking over UDP on a known port. The exam asks what each does, which port it uses and one or two configuration commands.",
+   "goals": [
+    "Explain DHCP DORA and DNS resolution, and configure a router as DHCP server, client and relay",
+    "Configure NTP client and server and explain stratum",
+    "Read syslog severity levels and configure logging destinations",
+    "Explain SNMP polling versus traps and why SNMPv3 is preferred",
+    "Back up and restore a configuration with TFTP or FTP"
+   ],
+   "practice": "Daily: mixed quiz of 10 questions across Units 1 to 7 (the warm-up button) and service ports from flashcards.",
+   "steps": [
+    {
+     "t": "4.3",
+     "why": "DHCP and DNS were the first two steps of the web request in 0.1. Now see exactly how they work.",
+     "analogy": "DHCP is a hotel front desk issuing a room key for a set stay (the lease). DNS is the phone book that turns names into numbers.",
+     "warmup": [
+      [
+       "From 0.1: list the four things DHCP gives a laptop.",
+       "IP address, subnet mask, default gateway, DNS server."
+      ],
+      [
+       "From 1.5: which transport and port does DNS mostly use?",
+       "UDP 53 (TCP 53 for large responses and zone transfers)."
+      ]
+     ],
+     "focus": [
+      "DORA: Discover, Offer, Request, Acknowledge",
+      "Configuring an IOS DHCP pool and excluded addresses",
+      "DNS record types A, AAAA and CNAME"
+     ],
+     "later": [
+      "T1 and T2 timers: flashcards"
+     ],
+     "explain": "Explain why the DHCP Discover message has to be a broadcast.",
+     "needs": [
+      "1.5",
+      "1.6"
+     ]
+    },
+    {
+     "t": "4.6",
+     "why": "4.3 left a problem: DHCP Discover is a broadcast, and routers do not forward broadcasts (Unit 6). The relay solves it.",
+     "analogy": "A branch office that cannot issue ID cards forwards your application to head office by courier and hands you the reply.",
+     "warmup": [
+      [
+       "From 4.3: what are the four DORA messages?",
+       "Discover, Offer, Request, Acknowledge."
+      ],
+      [
+       "From 1.13: does a router forward broadcasts between subnets?",
+       "No. Routers separate broadcast domains."
+      ]
+     ],
+     "focus": [
+      "ip helper-address goes on the interface facing the clients",
+      "A router interface as a DHCP client"
+     ],
+     "later": [
+      "Client-side commands on every OS: you practised most of them in 1.10"
+     ],
+     "explain": "Explain which interface gets ip helper-address and why the other one would not work.",
+     "needs": [
+      "4.3",
+      "3.3"
+     ]
+    },
+    {
+     "t": "4.2",
+     "why": "Before logs (next) are useful, every device needs the same time. NTP comes first for that reason.",
+     "analogy": "Everyone sets their watch from someone who set theirs from an atomic clock. Stratum is how many hops you are from the atomic clock.",
+     "warmup": [
+      [
+       "From 1.0: which transport and port does NTP use?",
+       "UDP 123."
+      ],
+      [
+       "From 4.6: which command makes a router forward DHCP broadcasts to a server?",
+       "ip helper-address on the client-facing interface."
+      ]
+     ],
+     "focus": [
+      "Stratum and why lower is better",
+      "ntp server versus ntp master",
+      "show ntp status and associations"
+     ],
+     "later": [
+      "NTP authentication: recognition level"
+     ],
+     "explain": "Explain why mismatched clocks make it hard to troubleshoot an outage across ten routers.",
+     "needs": [
+      "0.2"
+     ]
+    },
+    {
+     "t": "4.5",
+     "why": "With synchronized clocks, log messages from many devices line up. Syslog is how devices tell you what happened.",
+     "analogy": "A flight recorder with a severity label on each entry, from \"the plane is on fire\" (0) to \"routine chatter\" (7).",
+     "warmup": [
+      [
+       "From 4.2: what does a lower NTP stratum mean?",
+       "The device is closer to the authoritative time source."
+      ],
+      [
+       "From 1.0: which port does syslog use?",
+       "UDP 514."
+      ]
+     ],
+     "focus": [
+      "The eight severity levels in order",
+      "Logging destinations: console, buffer, terminal, server",
+      "Reading a log message's parts"
+     ],
+     "later": [
+      "Facility codes: recognition level"
+     ],
+     "explain": "Explain what logging trap 4 sends to the server and what it leaves out.",
+     "needs": [
+      "4.2"
+     ]
+    },
+    {
+     "t": "4.4",
+     "why": "Syslog is the device pushing messages to you. SNMP adds the other direction: a manager asking devices how they are doing.",
+     "analogy": "A nurse taking a patient's vitals on a schedule (polling) and a call button the patient presses when something is wrong (trap).",
+     "warmup": [
+      [
+       "From 4.5: what are syslog severities 0 and 7?",
+       "0 is emergency, 7 is debugging."
+      ],
+      [
+       "From 1.0: which ports does SNMP use?",
+       "UDP 161 for the agent, UDP 162 for traps and informs."
+      ]
+     ],
+     "focus": [
+      "Manager, agent and MIB",
+      "Get, set, trap and inform",
+      "Why SNMPv3 replaces community strings"
+     ],
+     "later": [
+      "OID structure: recognition only"
+     ],
+     "explain": "Explain the difference between a trap and an inform.",
+     "needs": [
+      "1.5"
+     ]
+    },
+    {
+     "t": "4.9",
+     "why": "The last service: moving files. This is how you back up the configurations you have been building since 0.2.",
+     "analogy": "TFTP is a drop box with no lock; FTP is a drop box with a key.",
+     "warmup": [
+      [
+       "From 4.4: which SNMP version adds authentication and encryption?",
+       "SNMPv3."
+      ],
+      [
+       "From 0.2: where is the startup configuration stored?",
+       "In NVRAM."
+      ]
+     ],
+     "focus": [
+      "TFTP is UDP 69 with no authentication; FTP is TCP 20/21 with a login",
+      "copy running-config tftp: and back",
+      "The IOS file system names (flash:, nvram:)"
+     ],
+     "later": [
+      "The full IOS image upgrade procedure: read once"
+     ],
+     "explain": "Explain why TFTP is still common for device images even though it has no security.",
+     "needs": [
+      "1.5",
+      "0.2"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Securing access to devices",
+   "hours": 10,
+   "question": "Who should be allowed to manage a network device, how do they prove it, and what could go wrong?",
+   "why": "You have been logging in to devices with no protection since 0.2. Before adding traffic controls in Unit 9, learn the security vocabulary and lock down the devices themselves.",
+   "model": "Security is layers of protection against threats that exploit vulnerabilities. For devices that means passwords stored as hashes, encrypted management (SSH, not Telnet), central accounts (AAA) and people who follow the rules.",
+   "goals": [
+    "Use the terms threat, vulnerability, exploit and mitigation correctly",
+    "Secure console, VTY and privileged access with local users and enable secret",
+    "Configure SSH and restrict VTY lines to it",
+    "Compare TACACS+ and RADIUS and explain authentication, authorization and accounting"
+   ],
+   "practice": "Daily: start each Packet Tracer session by hardening the devices from memory: it becomes automatic.",
+   "steps": [
+    {
+     "t": "5.1",
+     "why": "Every security feature in the rest of the course is a mitigation for something. Learn the vocabulary first so each feature has a reason.",
+     "analogy": "A burglar (threat), an unlocked window (vulnerability), the way they climb in (exploit) and a lock on the window (mitigation).",
+     "warmup": [
+      [
+       "From 2.3: why disable CDP on a port facing the internet?",
+       "It advertises device model, software version and addresses to anyone listening."
+      ],
+      [
+       "From 4.9: which file transfer protocol has no authentication?",
+       "TFTP."
+      ]
+     ],
+     "focus": [
+      "The four terms as Cisco uses them",
+      "The CIA triad",
+      "Matching common attacks to the CCNA feature that mitigates them"
+     ],
+     "later": [
+      "The mapping table points forward to features you will learn in this unit and Unit 9: return to it at the end of Unit 9"
+     ],
+     "explain": "Explain the difference between a vulnerability and an exploit with an example from your own life.",
+     "needs": []
+    },
+    {
+     "t": "5.2",
+     "why": "The best technical controls fail if people hold the door open. This short lesson covers the human and physical side.",
+     "analogy": "A bank vault is useless if staff share the combination on a sticky note.",
+     "warmup": [
+      [
+       "From 5.1: what are the three parts of the CIA triad?",
+       "Confidentiality, integrity, availability."
+      ]
+     ],
+     "focus": [
+      "Awareness versus training",
+      "Physical access control examples"
+     ],
+     "later": [],
+     "explain": "Explain why a phishing simulation counts as awareness, not training.",
+     "needs": [
+      "5.1"
+     ]
+    },
+    {
+     "t": "5.3",
+     "why": "Now apply the vocabulary to the devices you have been configuring. Every lab so far has left the console and VTY lines open.",
+     "analogy": "Each way into the building gets its own lock: the front door (console), the remote entrance (VTY), and the inner office (privileged mode).",
+     "warmup": [
+      [
+       "From 0.2: how do you get from Router> to Router(config)#?",
+       "enable, then configure terminal."
+      ],
+      [
+       "From 5.2: which program element stops someone plugging into a switch in an unlocked closet?",
+       "Physical access control."
+      ]
+     ],
+     "focus": [
+      "password plus login versus login local",
+      "enable secret over enable password",
+      "Password storage types 0, 5, 7, 8 and 9"
+     ],
+     "later": [
+      "Every hardening command in the list: learn exec-timeout and login block-for first"
+     ],
+     "explain": "Explain why service password-encryption is not real security.",
+     "needs": [
+      "0.2",
+      "5.1"
+     ]
+    },
+    {
+     "t": "5.4",
+     "why": "5.3 configured passwords; this asks what makes a password policy good, and what can replace passwords.",
+     "analogy": "A bank card plus a PIN: something you have plus something you know.",
+     "warmup": [
+      [
+       "From 5.3: if both enable password and enable secret are set, which is used?",
+       "enable secret."
+      ],
+      [
+       "From 5.3: what does login local do?",
+       "Makes the line use the local username database."
+      ]
+     ],
+     "focus": [
+      "Length beats complexity",
+      "MFA factors: know, have, are",
+      "Certificates and biometrics as alternatives"
+     ],
+     "later": [],
+     "explain": "Explain why a password plus a security question is not multi-factor authentication.",
+     "needs": [
+      "5.3"
+     ]
+    },
+    {
+     "t": "2.8",
+     "why": "You have secured local logins. This lesson surveys every way an administrator reaches a device and which ones are safe.",
+     "analogy": "Ways into the building: walking in the front door (console), a phone call anyone can overhear (Telnet), an encrypted call (SSH), and a central security desk that checks everyone's badge (TACACS+ or RADIUS).",
+     "warmup": [
+      [
+       "From 5.4: name the three MFA factor categories.",
+       "Something you know, something you have, something you are."
+      ],
+      [
+       "From 5.3: which line configuration protects remote logins?",
+       "line vty 0 15 (or 0 4) with login local and a password policy."
+      ]
+     ],
+     "focus": [
+      "Console, Telnet, SSH, HTTP and HTTPS compared",
+      "In-band versus out-of-band management",
+      "Where TACACS+ and RADIUS fit"
+     ],
+     "later": [
+      "The TACACS+ lab: do it after 5.8, where AAA is explained in full"
+     ],
+     "explain": "Explain why out-of-band management still works when the production network is down.",
+     "needs": [
+      "5.3"
+     ]
+    },
+    {
+     "t": "4.8",
+     "why": "2.8 named SSH as the safe choice. Now configure it end to end, in the order IOS requires.",
+     "analogy": "Telnet is a postcard anyone can read on the way. SSH is a sealed, signed envelope.",
+     "warmup": [
+      [
+       "From 2.8: which port and transport does SSH use?",
+       "TCP 22."
+      ],
+      [
+       "From 2.8: what does transport input ssh on the VTY lines do?",
+       "It allows only SSH, so Telnet is refused."
+      ]
+     ],
+     "focus": [
+      "The prerequisites in order: hostname, domain name, RSA key, user, login local",
+      "ip ssh version 2",
+      "Verifying with show ip ssh and show ssh"
+     ],
+     "later": [],
+     "explain": "Explain why crypto key generate rsa fails on a router that still has the default hostname.",
+     "needs": [
+      "2.8"
+     ]
+    },
+    {
+     "t": "5.8",
+     "why": "So far every account lives on each device. AAA moves accounts to a central server and records who did what.",
+     "analogy": "An airport: passport control (authentication), a boarding pass that says which lounge you may enter (authorization), and a log of every gate you passed (accounting).",
+     "warmup": [
+      [
+       "From 4.8: name the SSH prerequisites.",
+       "Hostname, domain name, RSA keys, a local user (or AAA), login local and transport input ssh on the VTY lines."
+      ],
+      [
+       "From 1.0: which transports and ports do TACACS+ and RADIUS use?",
+       "TACACS+: TCP 49. RADIUS: UDP 1812 and 1813."
+      ]
+     ],
+     "focus": [
+      "Authentication, authorization and accounting",
+      "TACACS+ versus RADIUS",
+      "802.1X roles: supplicant, authenticator, authentication server"
+     ],
+     "later": [
+      "IOS AAA method-list syntax: recognition level"
+     ],
+     "explain": "Explain why TACACS+ is preferred for device administration and RADIUS for network access.",
+     "needs": [
+      "2.8",
+      "5.3"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Filtering, protecting and translating traffic",
+   "hours": 14,
+   "question": "How do you decide which traffic may pass, stop attacks on the LAN, share one public address and prioritise voice?",
+   "why": "Unit 8 protected the devices. This unit protects and shapes the traffic going through them. ACLs come first because NAT and QoS both reuse them to match traffic.",
+   "model": "An ACL is an ordered list checked top to bottom; first match wins; anything unmatched is denied. NAT and QoS reuse ACLs to choose which packets to translate or prioritise. Layer 2 security features stop attacks that ACLs cannot see.",
+   "goals": [
+    "Write standard and extended ACLs, calculate wildcard masks and choose placement",
+    "Configure port security, DHCP snooping and DAI",
+    "Configure static NAT, dynamic NAT and PAT and read the translation table",
+    "Explain classification, marking, queuing, policing and shaping"
+   ],
+   "practice": "Daily: one find-the-bug ACL and one NAT translation table from memory, plus mixed warm-ups from all earlier units.",
+   "steps": [
+    {
+     "t": "5.6",
+     "why": "ACLs are the general-purpose tool for matching traffic. You need subnetting (Unit 3) for wildcards and ports (1.5) for extended ACLs, and NAT and QoS reuse them next.",
+     "analogy": "A bouncer's list read from the top: the first line that matches you decides whether you get in, and anyone not on the list is turned away.",
+     "warmup": [
+      [
+       "From 1.6: what is the network address of 192.168.1.77/27?",
+       "192.168.1.64."
+      ],
+      [
+       "From 1.5: which TCP ports do HTTP and HTTPS use?",
+       "80 and 443."
+      ]
+     ],
+     "focus": [
+      "Top-down processing and the implicit deny",
+      "Wildcard masks as the inverse of the subnet mask",
+      "Standard near the destination, extended near the source"
+     ],
+     "later": [
+      "IPv6 ACLs: recognition only",
+      "Sequence-number editing: after you can write ACLs from a requirement"
+     ],
+     "explain": "Explain why an ACL with only deny statements blocks all traffic.",
+     "needs": [
+      "1.6",
+      "1.5",
+      "3.3"
+     ]
+    },
+    {
+     "t": "5.7",
+     "why": "ACLs filter at Layer 3 and 4, but some attacks happen inside a VLAN: fake DHCP servers, spoofed ARP, rogue devices. These features close that gap, using what you know from 4.3 and 1.0.",
+     "analogy": "Port security is a desk only the registered employee may use; DHCP snooping lets only the official front desk hand out room keys; DAI checks that anyone shouting \"I am the manager\" really is.",
+     "warmup": [
+      [
+       "From 5.6: what is at the end of every ACL?",
+       "An implicit deny any."
+      ],
+      [
+       "From 4.3: which DORA messages come from the server?",
+       "Offer and Acknowledge."
+      ]
+     ],
+     "focus": [
+      "Port security violation modes: protect, restrict, shutdown",
+      "Trusted versus untrusted ports in DHCP snooping",
+      "DAI uses the snooping binding table"
+     ],
+     "later": [
+      "Rate limits and err-disable recovery details: second pass"
+     ],
+     "explain": "Explain why DAI cannot work until DHCP snooping is on.",
+     "needs": [
+      "4.3",
+      "1.0",
+      "2.1"
+     ]
+    },
+    {
+     "t": "4.1",
+     "why": "Private addresses (1.7) cannot cross the internet. NAT rewrites them at the edge, and it uses an ACL (5.6) to choose which inside addresses to translate.",
+     "analogy": "A company switchboard: hundreds of extensions share one public number, and the switchboard remembers which call belongs to which extension.",
+     "warmup": [
+      [
+       "From 1.7: name the three private IPv4 ranges.",
+       "10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16."
+      ],
+      [
+       "From 5.6: what does a standard ACL match on?",
+       "Source IP address only."
+      ]
+     ],
+     "focus": [
+      "Inside local, inside global, outside local, outside global",
+      "ip nat inside and ip nat outside",
+      "PAT (overload) as the common case"
+     ],
+     "later": [
+      "Debug and clear commands: second pass"
+     ],
+     "explain": "Explain how PAT lets 50 users share one public address at the same time.",
+     "needs": [
+      "1.7",
+      "5.6"
+     ]
+    },
+    {
+     "t": "4.7",
+     "why": "Your network now carries everything. When a link is congested, QoS decides what suffers. Classification often uses ACLs from 5.6.",
+     "analogy": "Airport security lanes: classify passengers, give some a priority stamp (marking), queue them by lane, turn away excess (policing) or make them wait (shaping).",
+     "warmup": [
+      [
+       "From 1.5: why does voice use UDP?",
+       "Retransmitted audio would arrive too late to be useful, and UDP has less overhead."
+      ],
+      [
+       "From 5.6: what can an extended ACL match that a standard ACL cannot?",
+       "Protocol, destination address and ports."
+      ]
+     ],
+     "focus": [
+      "Delay, jitter, loss and bandwidth",
+      "DSCP EF for voice and the trust boundary",
+      "Policing drops; shaping delays"
+     ],
+     "later": [
+      "The MQC example: context only, not configured on the exam"
+     ],
+     "explain": "Explain the difference between policing and shaping with a traffic example.",
+     "needs": [
+      "1.5",
+      "5.6"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Wireless networks",
+   "hours": 10,
+   "question": "How does Wi-Fi carry Ethernet over radio, how are hundreds of APs managed, and how is it secured?",
+   "why": "All the wireless topics are taught together here, because each one depends on the last and on earlier units: VLANs and trunks (Unit 4), DHCP (Unit 7) and RADIUS and 802.1X (Unit 8).",
+   "model": "An AP bridges radio clients onto a VLAN. Lightweight APs hand their management to a WLC over a CAPWAP tunnel. A WLAN ties together an SSID, a security method and a VLAN.",
+   "goals": [
+    "Choose nonoverlapping channels and explain basic RF behavior",
+    "Compare autonomous, lightweight and cloud-managed APs and the AP modes",
+    "Connect APs and WLCs to switches with the right port types",
+    "Compare WPA, WPA2 and WPA3, Personal and Enterprise",
+    "Read and build a WPA2-PSK WLAN in a WLC GUI"
+   ],
+   "practice": "Daily: wireless flashcards mixed with VLAN and AAA cards, so the dependencies stay connected.",
+   "steps": [
+    {
+     "t": "1.11",
+     "why": "In 1.1 an AP was a box that connects wireless clients. Here is how the radio side works, before you learn how APs are managed.",
+     "analogy": "A crowded room: everyone on the same channel is in one conversation and must take turns; nonoverlapping channels are separate rooms.",
+     "warmup": [
+      [
+       "From 1.1: what does an access point do?",
+       "Connects wireless clients to the wired network (it bridges 802.11 to Ethernet)."
+      ],
+      [
+       "From 1.3: does Wi-Fi behave like shared media or point-to-point?",
+       "Shared media: clients take turns (half duplex)."
+      ]
+     ],
+     "focus": [
+      "Channels 1, 6 and 11 in 2.4 GHz",
+      "SSID, BSS, BSSID and ESS",
+      "Basic RF terms: absorption, reflection, interference"
+     ],
+     "later": [
+      "Every 802.11 amendment's speed: flashcards"
+     ],
+     "explain": "Explain why three neighbors on channels 1, 6 and 11 work better than three on 1, 3 and 5.",
+     "needs": [
+      "1.1",
+      "1.3"
+     ]
+    },
+    {
+     "t": "2.6",
+     "why": "One AP is easy; a campus has hundreds. This lesson shows the architectures that let you manage them centrally.",
+     "analogy": "An autonomous AP is a shop with its own manager. Lightweight APs are branches run by head office (the WLC).",
+     "warmup": [
+      [
+       "From 1.11: which 2.4 GHz channels do not overlap?",
+       "1, 6 and 11."
+      ],
+      [
+       "From 1.11: what is an SSID?",
+       "The name of a wireless network (service set)."
+      ]
+     ],
+     "focus": [
+      "Split-MAC: what the AP does versus the WLC",
+      "CAPWAP control and data tunnels",
+      "AP modes: local, FlexConnect, monitor, sniffer"
+     ],
+     "later": [
+      "Every controller deployment model: recognise the names"
+     ],
+     "explain": "Explain what happens to client traffic in local mode versus FlexConnect.",
+     "needs": [
+      "1.11",
+      "1.1"
+     ]
+    },
+    {
+     "t": "2.7",
+     "why": "Now wire it up. You know access ports, trunks (Unit 4) and EtherChannel (2.4); this applies them to APs and WLCs.",
+     "analogy": "An AP in local mode plugs in like a desk phone (one access VLAN); the WLC plugs in like the building's central switchboard (a trunk carrying many VLANs, often over a bundle).",
+     "warmup": [
+      [
+       "From 2.6: what protocol tunnels traffic between a lightweight AP and its WLC?",
+       "CAPWAP."
+      ],
+      [
+       "From 2.4: what does LACP do?",
+       "Negotiates bundling several physical links into one logical EtherChannel."
+      ]
+     ],
+     "focus": [
+      "Access port for local mode, trunk for FlexConnect",
+      "WLC ports and LAG",
+      "WLC logical interfaces map WLANs to VLANs"
+     ],
+     "later": [
+      "Every AireOS interface type: recognise management and dynamic interfaces first"
+     ],
+     "explain": "Explain why the switch port to a WLC is a trunk but the port to a local-mode AP is not.",
+     "needs": [
+      "2.6",
+      "2.2",
+      "2.4"
+     ]
+    },
+    {
+     "t": "5.9",
+     "why": "The radio reaches beyond your walls, so encryption and authentication are essential. Enterprise mode uses the 802.1X and RADIUS you learned in 5.8.",
+     "analogy": "Personal mode is one house key shared by everyone; Enterprise mode gives each person their own badge, checked by a central security desk.",
+     "warmup": [
+      [
+       "From 5.8: name the three 802.1X roles.",
+       "Supplicant, authenticator, authentication server."
+      ],
+      [
+       "From 1.11: which encryption does WPA2 use?",
+       "AES with CCMP."
+      ]
+     ],
+     "focus": [
+      "WPA, WPA2, WPA3 at a glance",
+      "Personal (PSK or SAE) versus Enterprise (802.1X)",
+      "What WPA3 improves"
+     ],
+     "later": [
+      "EAP methods: recognise the names"
+     ],
+     "explain": "Explain why one leaked WPA2-PSK passphrase affects every user but one leaked Enterprise password does not.",
+     "needs": [
+      "5.8",
+      "1.11"
+     ]
+    },
+    {
+     "t": "2.9",
+     "why": "You know the pieces: SSID, VLAN, security and QoS. This lesson shows where each one lives in the controller GUI.",
+     "analogy": "Filling in a form: name the network, pick a lock, choose which floor its traffic goes to, and choose its priority lane.",
+     "warmup": [
+      [
+       "From 5.9: what does WPA3-Personal use instead of a PSK handshake?",
+       "SAE (Simultaneous Authentication of Equals)."
+      ],
+      [
+       "From 2.7: which WLC interface type maps a WLAN to a VLAN?",
+       "A dynamic interface (AireOS)."
+      ]
+     ],
+     "focus": [
+      "The four things every WLAN needs",
+      "Where security and QoS profiles live",
+      "The AireOS to 9800 map"
+     ],
+     "later": [
+      "Advanced settings: recognise the names"
+     ],
+     "explain": "Explain which GUI setting decides which VLAN a wireless client lands in.",
+     "needs": [
+      "2.7",
+      "5.9"
+     ]
+    },
+    {
+     "t": "5.10",
+     "why": "Put it all together: build a WPA2-PSK WLAN yourself and join a client. This is the hands-on test of the whole unit.",
+     "analogy": "You have read the recipe and know every ingredient; now cook it.",
+     "warmup": [
+      [
+       "From 2.9: what are the four things every WLAN needs?",
+       "An identity (SSID/profile), a wired destination (VLAN), a security method, and QoS/policy settings."
+      ],
+      [
+       "From 5.9: Personal versus Enterprise in one line?",
+       "Personal uses a shared key; Enterprise authenticates each user with 802.1X and RADIUS."
+      ]
+     ],
+     "focus": [
+      "The AireOS steps in order",
+      "Verifying a client joined"
+     ],
+     "later": [
+      "The 9800 workflow: read once after building on AireOS"
+     ],
+     "explain": "Explain each step of creating the WLAN without looking, then do it.",
+     "needs": [
+      "2.9"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Network design, WAN and cloud",
+   "hours": 7,
+   "question": "How are real networks laid out, joined across distances, and virtualised?",
+   "why": "You can now build every piece of a network. Design makes sense only after the pieces: two-tier, three-tier and spine-leaf are arrangements of the switching and routing you already know, and VPNs and virtualisation extend them.",
+   "model": "Design is about where the Layer 2 and Layer 3 boundaries sit and how much redundancy each layer gets. WANs and VPNs join sites; virtualisation runs many logical machines, switches and routing tables on shared hardware.",
+   "goals": [
+    "Compare two-tier, three-tier and spine-leaf designs and where each is used",
+    "Describe WAN, SOHO and cloud options",
+    "Compare site-to-site and remote-access IPsec VPNs",
+    "Explain hypervisors, containers and VRFs"
+   ],
+   "practice": "Daily: mixed quiz from every earlier unit. This is the point in the course where interleaving matters most.",
+   "steps": [
+    {
+     "t": "1.2",
+     "why": "Earlier in the course these designs would have been just names. With STP, EtherChannel and OSPF behind you, each tier and design choice now has a reason.",
+     "analogy": "City planning: a small town has one main street (two-tier); a big city adds a highway ring (three-tier core); a grid city connects every street to every avenue (spine-leaf).",
+     "warmup": [
+      [
+       "From 2.5: what does STP do to redundant links?",
+       "Blocks some of them to prevent loops."
+      ],
+      [
+       "From 1.1: what is a Layer 3 switch?",
+       "A switch that can also route between VLANs and subnets."
+      ]
+     ],
+     "focus": [
+      "Access, distribution and core roles",
+      "Spine-leaf: every leaf to every spine, equal hops",
+      "SOHO all-in-one devices and on-premises versus cloud"
+     ],
+     "later": [
+      "Cloud service models: know IaaS, PaaS and SaaS by example"
+     ],
+     "explain": "Explain why a data center with lots of server-to-server traffic prefers spine-leaf over three-tier.",
+     "needs": [
+      "2.5",
+      "3.4"
+     ]
+    },
+    {
+     "t": "5.5",
+     "why": "1.2 described WAN links between sites. VPNs build private, encrypted links across the public internet instead.",
+     "analogy": "An armoured, private tunnel through a public highway: the traffic shares the road but nobody can see inside.",
+     "warmup": [
+      [
+       "From 1.2: what does a WAN do?",
+       "Connects sites across a large geographic area, usually over provider networks."
+      ],
+      [
+       "From 4.1: what is an inside global address?",
+       "The public address that represents an inside host to the outside."
+      ]
+     ],
+     "focus": [
+      "Site-to-site versus remote-access VPN",
+      "What IPsec provides: confidentiality, integrity, authentication, anti-replay",
+      "Tunnel mode versus transport mode"
+     ],
+     "later": [
+      "GRE over IPsec and DMVPN: recognition level"
+     ],
+     "explain": "Explain why a site-to-site VPN needs no software on the users' laptops.",
+     "needs": [
+      "1.2",
+      "5.1"
+     ]
+    },
+    {
+     "t": "1.12",
+     "why": "The last design idea: running many logical networks and servers on shared hardware. VRFs reuse your routing knowledge, and this sets up the cloud and automation unit.",
+     "analogy": "Apartments in one building: VMs each have their own kitchen (full OS); containers share a kitchen (one kernel) but have private rooms; VRFs give each tenant its own address book (routing table).",
+     "warmup": [
+      [
+       "From 3.1: what is in each line of a routing table?",
+       "A prefix and mask, how the route was learned, AD and metric, and the next hop or exit interface."
+      ],
+      [
+       "From 1.2: what is cloud computing's on-demand self-service idea?",
+       "Users provision resources themselves, when needed, without a human at the provider."
+      ]
+     ],
+     "focus": [
+      "Type 1 versus type 2 hypervisors",
+      "VMs versus containers",
+      "VRF-lite lets overlapping subnets coexist"
+     ],
+     "later": [
+      "Virtual switch internals: recognition level"
+     ],
+     "explain": "Explain how two customers both using 10.0.0.0/24 can share one router with VRFs.",
+     "needs": [
+      "3.1",
+      "1.2"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Automation and programmability",
+   "hours": 10,
+   "question": "How do you manage hundreds of devices without typing the same commands hundreds of times?",
+   "why": "You have configured every device by hand since 0.2, so you know exactly what automation saves. The order here goes from why, to controllers, to the data format, to APIs, to tools.",
+   "model": "Controllers separate the decision-making (control plane) from forwarding (data plane) and expose APIs. Programs talk to those APIs with HTTP verbs and JSON. Tools like Ansible and Terraform describe the desired state as files and apply it everywhere.",
+   "goals": [
+    "Explain what automation changes for network operations",
+    "Compare traditional and controller-based networking",
+    "Describe underlay, overlay and fabric, and northbound versus southbound APIs",
+    "Read JSON and a REST request and response",
+    "Compare Ansible and Terraform"
+   ],
+   "practice": "Daily: one JSON validity question and a mixed quiz from all units. Take Practice Exam A at the end of this unit.",
+   "milestone": "examA",
+   "steps": [
+    {
+     "t": "6.1",
+     "why": "Start with the problem. After six units of manual configuration you have felt it: repetition, typos and drift.",
+     "analogy": "A cook making the same dish 200 times by hand versus a recipe a machine follows exactly every time.",
+     "warmup": [
+      [
+       "From 1.12: what is a hypervisor?",
+       "Software that creates and runs virtual machines on physical hardware."
+      ],
+      [
+       "From 4.9: how do you save a router's configuration to a server?",
+       "copy running-config tftp: (or ftp:)."
+      ]
+     ],
+     "focus": [
+      "Benefits Cisco expects you to name",
+      "Configuration drift",
+      "Infrastructure as code"
+     ],
+     "later": [],
+     "explain": "Explain configuration drift and one way automation prevents it.",
+     "needs": []
+    },
+    {
+     "t": "6.2",
+     "why": "Automation needs something to talk to. Controllers give one central point instead of every device's CLI.",
+     "analogy": "Air traffic control: instead of every pilot planning alone, one tower sees everything and gives instructions.",
+     "warmup": [
+      [
+       "From 6.1: what is infrastructure as code?",
+       "Defining device configuration in versioned files that tools apply automatically."
+      ],
+      [
+       "From 1.1: which controller manages lightweight APs?",
+       "A WLC (wireless LAN controller)."
+      ]
+     ],
+     "focus": [
+      "Traditional per-device management versus a controller",
+      "Intent-based networking",
+      "Catalyst Center and Meraki"
+     ],
+     "later": [],
+     "explain": "Explain intent-based networking in one sentence to a manager.",
+     "needs": [
+      "6.1"
+     ]
+    },
+    {
+     "t": "6.3",
+     "why": "Now look inside a controller-based network. The control plane and data plane you have used implicitly since Unit 6 get names, and spine-leaf (1.2) becomes the underlay.",
+     "analogy": "The underlay is the road network; the overlay is the bus routes painted on top of it. The control plane plans the routes; the data plane drives the buses.",
+     "warmup": [
+      [
+       "From 6.2: what does a controller give an administrator?",
+       "One central point to configure, monitor and apply policy to many devices."
+      ],
+      [
+       "From 1.2: describe spine-leaf in one sentence.",
+       "Every leaf switch connects to every spine switch, so any two leaves are the same distance apart."
+      ]
+     ],
+     "focus": [
+      "Data, control and management planes",
+      "Northbound versus southbound APIs",
+      "Underlay, overlay and fabric"
+     ],
+     "later": [],
+     "explain": "Explain whether OSPF belongs to the control plane or the data plane, and why.",
+     "needs": [
+      "6.2",
+      "1.2"
+     ]
+    },
+    {
+     "t": "6.4",
+     "why": "Controllers collect huge amounts of telemetry. AI and machine learning are how that data becomes predictions and assistance.",
+     "analogy": "Predictive AI is a weather forecast from past data; generative AI is an assistant drafting a report for you to check.",
+     "warmup": [
+      [
+       "From 6.3: which API direction connects applications to the controller?",
+       "Northbound."
+      ],
+      [
+       "From 4.4: which protocol has traditionally collected device statistics?",
+       "SNMP."
+      ]
+     ],
+     "focus": [
+      "Predictive versus generative AI",
+      "Supervised versus unsupervised learning",
+      "AIOps examples"
+     ],
+     "later": [],
+     "explain": "Give one example each of predictive and generative AI in network operations.",
+     "needs": [
+      "6.2"
+     ]
+    },
+    {
+     "t": "6.7",
+     "why": "Before reading API calls, learn the format they speak. JSON is small and strict, and every REST example in 6.5 uses it.",
+     "analogy": "Labeled boxes inside labeled boxes: curly braces are a box of labeled items, square brackets are a numbered list.",
+     "warmup": [
+      [
+       "From 6.3: which API direction runs between a controller and the devices?",
+       "Southbound."
+      ]
+     ],
+     "focus": [
+      "Objects, arrays, strings, numbers, booleans and null",
+      "Syntax rules: double quotes, no trailing commas",
+      "Counting objects and arrays in nested JSON"
+     ],
+     "later": [
+      "XML and YAML comparisons: recognition level"
+     ],
+     "explain": "Explain why {'name': 'R1'} is not valid JSON.",
+     "needs": [
+      "6.3"
+     ]
+    },
+    {
+     "t": "6.5",
+     "why": "With JSON readable, REST is the conversation that carries it: HTTP verbs as actions, status codes as replies.",
+     "analogy": "A restaurant: the menu is the API documentation, you place an order (request with a verb), and the waiter tells you how it went (status code).",
+     "warmup": [
+      [
+       "From 6.7: which characters mark a JSON object and a JSON array?",
+       "Curly braces { } for an object, square brackets [ ] for an array."
+      ],
+      [
+       "From 1.5: does HTTP run over TCP or UDP?",
+       "TCP (80 for HTTP, 443 for HTTPS)."
+      ]
+     ],
+     "focus": [
+      "CRUD mapped to POST, GET, PUT/PATCH and DELETE",
+      "Status code classes 2xx, 4xx and 5xx",
+      "Authentication types: basic, token, API key"
+     ],
+     "later": [
+      "Every header: know Content-Type, Accept and Authorization"
+     ],
+     "explain": "Explain what a 401 and a 404 tell you about a failed API call.",
+     "needs": [
+      "6.7",
+      "1.5"
+     ]
+    },
+    {
+     "t": "6.6",
+     "why": "Last step: tools that use these APIs and SSH to apply configuration everywhere, which closes the loop from 6.1.",
+     "analogy": "Ansible is a recipe card (playbook) a chef carries to each kitchen over SSH. Terraform is an architect's blueprint plus a ledger (state) of what has been built.",
+     "warmup": [
+      [
+       "From 6.5: which HTTP verb maps to Read?",
+       "GET."
+      ],
+      [
+       "From 6.1: what is configuration drift?",
+       "Devices gradually differing from their intended configuration."
+      ]
+     ],
+     "focus": [
+      "Agentless push (Ansible) versus agents",
+      "Declarative versus procedural; idempotency",
+      "Terraform plan, apply and state"
+     ],
+     "later": [
+      "Puppet and Chef: context only"
+     ],
+     "explain": "Explain idempotency and why it matters when you run a playbook twice.",
+     "needs": [
+      "6.1",
+      "6.7"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "title": "Final review",
+   "hours": 10,
+   "question": "Are you ready, and what is still weak?",
+   "why": "No new material. Mix everything, test under exam conditions, and spend your time on the topics your results say are weakest.",
+   "model": "Interleaved, timed practice is the closest rehearsal of the real exam. Use each mistake as a pointer back to a lesson, not as a score to worry about.",
+   "goals": [
+    "Score at least 80% on Practice Exam B under timed conditions",
+    "Clear your spaced reviews and your missed-question list",
+    "Subnet any problem in under 30 seconds"
+   ],
+   "practice": "Daily: spaced reviews, mistakes quiz, and drills. Sleep well before the exam: memory consolidates during sleep.",
+   "milestone": "examB",
+   "steps": []
+  }
+ ]
+}
