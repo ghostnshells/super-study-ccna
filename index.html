@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>CCNA Study Hub · 200-301 v1.1</title>
-<meta name="description" content="A complete CCNA 200-301 v1.1 study plan with lessons, labs, quizzes, practice exams, subnetting drills, and flashcards.">
+<meta name="description" content="A guided CCNA 200-301 v1.1 course for complete beginners: lessons built on retrieval practice and spaced review, labs, quizzes, practice exams, subnetting drills, and flashcards.">
 <meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0d141b" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
@@ -34,7 +34,7 @@ img{max-width:100%}
   --trap:#8f5400; --trap-soft:#fbefd9; --key:#4b3a92; --key-soft:#ece8f8;
   --good:#1c7347; --good-soft:#dff1e7; --bad:#ad2a22; --bad-soft:#f9e3e1;
   --cli-bg:#101b25; --cli-ink:#d6e2ec; --cli-dim:#7f95a8;
-  --d1:#1b5aa6; --d2:#0f7c80; --d3:#7a4bb8; --d4:#a35f0c; --d5:#b23a48; --d6:#4d7a1f;
+  --d0:#566676; --d1:#1b5aa6; --d2:#0f7c80; --d3:#7a4bb8; --d4:#a35f0c; --d5:#b23a48; --d6:#4d7a1f;
   --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-display:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
   --f-read:"Source Serif 4",Georgia,"Times New Roman",serif;
@@ -47,7 +47,7 @@ img{max-width:100%}
   --trap:#f0b35c; --trap-soft:#2c2213; --key:#b3a2f0; --key-soft:#221d36;
   --good:#5cc78e; --good-soft:#132a1f; --bad:#f08178; --bad-soft:#2f1716;
   --cli-bg:#070c11; --cli-ink:#d6e2ec; --cli-dim:#7f95a8;
-  --d1:#6aa5e8; --d2:#4fc1c4; --d3:#b493ea; --d4:#e3a24f; --d5:#ef8592; --d6:#93c45d;
+  --d0:#93a4b3; --d1:#6aa5e8; --d2:#4fc1c4; --d3:#b493ea; --d4:#e3a24f; --d5:#ef8592; --d6:#93c45d;
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0d141b; --surface:#141e28; --sunk:#1b2733; --ink:#e2e9ef; --muted:#93a4b3; --line:#283643;
@@ -55,7 +55,7 @@ img{max-width:100%}
   --trap:#f0b35c; --trap-soft:#2c2213; --key:#b3a2f0; --key-soft:#221d36;
   --good:#5cc78e; --good-soft:#132a1f; --bad:#f08178; --bad-soft:#2f1716;
   --cli-bg:#070c11; --cli-ink:#d6e2ec; --cli-dim:#7f95a8;
-  --d1:#6aa5e8; --d2:#4fc1c4; --d3:#b493ea; --d4:#e3a24f; --d5:#ef8592; --d6:#93c45d;
+  --d0:#93a4b3; --d1:#6aa5e8; --d2:#4fc1c4; --d3:#b493ea; --d4:#e3a24f; --d5:#ef8592; --d6:#93c45d;
   color-scheme:dark}
 *{box-sizing:border-box}
 body{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-ui);-webkit-text-size-adjust:100%}
@@ -112,7 +112,6 @@ select,input[type=text],input[type=number]{border:1px solid var(--line);backgrou
 .hero h1{font-family:var(--f-display);font-size:clamp(28px,4.4vw,44px);margin:6px 0 10px;font-weight:700}
 .count{display:flex;align-items:baseline;gap:10px}
 .count .big{font-family:var(--f-display);font-size:56px;font-weight:700;line-height:1;color:var(--accent)}
-.thisweek h3{margin:4px 0 8px;font-size:18px}
 @media (max-width:820px){.hero{grid-template-columns:1fr}}
 .bp{display:grid;gap:10px}
 .bp-row{display:grid;grid-template-columns:minmax(0,15em) 1fr auto;gap:12px;align-items:center}
@@ -121,15 +120,37 @@ select,input[type=text],input[type=number]{border:1px solid var(--line);backgrou
 .bar i{position:absolute;inset:0 auto 0 0;border-radius:5px}
 .bp-meta{font:12px var(--f-mono);color:var(--muted);white-space:nowrap}
 @media (max-width:560px){.bp-row{grid-template-columns:1fr auto}.bp-row .bar{grid-column:1/-1;order:3}}
-.weeks{display:grid;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
-.wk{display:grid;grid-template-columns:7.5em minmax(0,1fr) auto;gap:14px;padding:14px 16px;border-top:1px solid var(--line);align-items:start}
-.wk:first-child{border-top:0}
-.wk.now{background:var(--accent-soft)}
-.wk .when{font:600 13px var(--f-mono)}
-.wk .when span{display:block;font-weight:400;color:var(--muted);white-space:nowrap}
-.wk .topics{display:flex;flex-wrap:wrap;gap:6px}
-.wk .note{font-size:13px;color:var(--muted);margin-top:6px}
-@media (max-width:640px){.wk{grid-template-columns:1fr}.wk>div:last-child{justify-self:start}}
+.today .plan{margin:8px 0 0;padding-left:20px;display:grid;gap:10px}
+.today .plan li{font-size:14.5px}
+.units{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.unit{display:flex;flex-direction:column;gap:6px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);text-decoration:none;color:var(--ink)}
+.unit:hover{border-color:var(--accent)}
+.unit.now{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.unit.done{background:var(--good-soft)}
+.unit h3{margin:0;font-size:16.5px}
+.unit p{margin:0;font-size:13.5px;color:var(--muted);flex:1}
+.unit-head{display:flex;justify-content:space-between;gap:8px;font:12px var(--f-mono);color:var(--muted)}
+.unit-head .num{color:var(--accent);font-size:13px}
+.unit-ms{font:12px var(--f-mono);color:var(--trap)}
+.principles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.principles h3{margin:0 0 6px;font-size:16px}
+.principles p{margin:0;font-size:14px;color:var(--muted)}
+.unit-page{max-width:860px}
+.unit-title{font-size:34px;margin:6px 0 4px}
+.driving{font-family:var(--f-read);font-size:21px;line-height:1.4;margin:0 0 18px;color:var(--ink)}
+.goals{margin:0;padding-left:20px}
+.goals li{margin:4px 0}
+.steps{list-style:none;padding:0;margin:0;display:grid;gap:8px;counter-reset:st}
+.steps li{counter-increment:st;position:relative;padding:12px 14px 12px 46px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.steps li::before{content:counter(st);position:absolute;left:14px;top:12px;font:600 14px var(--f-mono);color:var(--muted)}
+.steps li.done::before{content:"✓";color:var(--good)}
+.steps li a{font-weight:600;text-decoration:none;display:flex;gap:6px;align-items:center}
+.steps li p{margin:4px 0 0;font-size:14px;color:var(--muted)}
+.small-note{font-size:12.5px}
+.goal-checks{display:grid;gap:8px}
+.goal-checks label{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.goal-checks input{margin-top:4px;flex:none}
+.pager{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:28px 0 8px}
 .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
 @media (max-width:820px){.two{grid-template-columns:1fr}}
 .stat{display:flex;gap:18px;flex-wrap:wrap}
@@ -145,8 +166,9 @@ section.block>h2{font-family:var(--f-display);font-size:22px;margin:0 0 12px}
 .rail a:hover{background:var(--sunk);color:var(--ink)}
 .rail a.done::after{content:"✓";margin-left:auto;color:var(--good)}
 .rail .num{min-width:2.6em;color:var(--ink)}
-.dom-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
-@media (max-width:900px){.lesson{grid-template-columns:1fr}.rail{position:static;max-height:none;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:8px}}
+.dom-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 18px}
+.dom-tabs .chip[aria-current]{border-color:var(--accent);color:var(--accent)}
+@media (max-width:900px){.pomo-p{display:none}.pomo{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px}.pomo-t{font-size:22px;margin:0}.lesson{grid-template-columns:1fr}.rail{position:static;max-height:none;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:8px}}
 .doc{font-family:var(--f-read);font-size:17px;line-height:1.65;min-width:0}
 .doc section.topic{padding-bottom:28px;margin-bottom:28px;border-bottom:1px solid var(--line);scroll-margin-top:80px}
 .doc h2{font-family:var(--f-display);font-size:28px;margin:0 0 14px}
@@ -186,6 +208,49 @@ figure.diagram figcaption{font:13px var(--f-ui);color:var(--muted);margin-top:6p
 .d-muted{stroke:var(--muted);fill:none}
 svg text,.d-text{fill:var(--ink);font-size:13px}
 svg text.d-muted{fill:var(--muted);stroke:none}
+.topic-title{font-family:var(--f-display);font-size:30px;margin:4px 0 16px}
+.eyebrow a{color:inherit}
+.stage{font-family:var(--f-ui);font-size:15.5px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:4px 18px 14px;margin:0 0 16px}
+.stage-h{font-family:var(--f-display)!important;font-size:18px!important;margin:12px 0 6px!important}
+.stage textarea,.recall textarea{width:100%;font:14.5px/1.5 var(--f-ui);border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--bg);color:var(--ink);resize:vertical;margin:6px 0}
+.wq{border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0;background:var(--bg)}
+.wq summary{cursor:pointer;font-weight:500}
+.wq p{margin:8px 0 2px;color:var(--good)}
+.needs .chip{margin:2px 0}
+.fl{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:4px 20px}
+.fl h4{margin:10px 0 4px!important;font-size:14.5px!important}
+.fl ul{margin:0;padding-left:18px}
+.map{margin:6px 0 10px;padding-left:22px}
+.map li{margin:2px 0}
+.map a{text-decoration:none}
+.brk,.brk-note{color:var(--trap)}
+.brk{font:12px var(--f-mono)}
+.brk-note{background:var(--trap-soft);border-radius:6px;padding:8px 12px;margin:8px 0}
+.mode{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13.5px}
+.mode .btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.due{border-left-color:var(--good)!important}
+.chunk{scroll-margin-top:80px;padding-top:4px}
+.chunk-label{font:12px var(--f-mono);color:var(--muted);margin:18px 0 -6px;text-transform:uppercase;letter-spacing:.05em}
+.chunk>h3:first-of-type{margin-top:14px}
+.recall{font-family:var(--f-ui);font-size:15px;border:1px dashed var(--accent);background:var(--accent-soft);border-radius:var(--r);padding:10px 16px 12px;margin:22px 0 8px}
+.recall-h{font:600 12px var(--f-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.recall p{margin:4px 0}
+.chunks.full .recall{background:none;border-style:dotted}
+.chunks.full .recall button[data-next],.chunks.full .recall textarea{display:none}
+#after{margin-top:24px}
+#recap-box .recap{margin-top:6px}
+.learned{display:flex;gap:8px;align-items:center;font-weight:600;margin-top:14px}
+.srcs{font-family:var(--f-ui);font-size:15px;margin-top:16px}
+.srcs summary{cursor:pointer;font-weight:600;color:var(--accent)}
+.rail-unit{display:block!important;color:var(--ink)!important;font-weight:600;padding:6px 8px 8px!important}
+.rail-unit .eyebrow{display:block}
+.rail a[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+.rail-links{padding:8px;font-size:13px;color:var(--muted)}
+.rail-links a{display:inline!important;padding:0!important}
+.pomo{margin:14px 8px 4px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.pomo-h{font:600 12px var(--f-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.pomo-t{font-size:28px;margin:2px 0 6px}
+.pomo-p{font-size:12.5px;color:var(--muted);margin:6px 0 0}
 .topic-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:18px;font-family:var(--f-ui);font-size:14px}
 .topic-sources{font-family:var(--f-ui);font-size:15px}
 
@@ -267,8 +332,8 @@ table.data td.n{font-variant-numeric:tabular-nums;text-align:right}
   <div class="top-in">
     <a class="brand" href="#home">CCNA Study Hub <small>200-301 v1.1</small></a>
     <nav class="nav" id="nav" aria-label="Sections">
-      <a href="#home" data-v="home">Plan</a>
-      <a href="#d1" data-v="lesson">Lessons</a>
+      <a href="#home" data-v="home">Path</a>
+      <a href="#learn" data-v="lesson">Learn</a>
       <a href="#quiz" data-v="quiz">Quizzes</a>
       <a href="#exam" data-v="exam">Practice exams</a>
       <a href="#drills" data-v="drills">Drills</a>
@@ -289,22 +354,12 @@ table.data td.n{font-variant-numeric:tabular-nums;text-align:right}
 <script>
 "use strict";
 /* ============================================================ data + state */
-const WEEKS = [
-  {n:1, hours:8,  note:"Set up Packet Tracer, learn the core models, and begin a daily 10-minute subnetting drill."},
-  {n:2, hours:14, note:"Build speed with IPv4 subnetting, then cover IPv6, wireless principles, virtualization, and switching."},
-  {n:3, hours:12, note:"Configure and troubleshoot the main Layer 2 technologies in Packet Tracer."},
-  {n:4, hours:12, note:"Focus on routing decisions, static routes, and OSPF. Finish with Checkpoint 1."},
-  {n:5, hours:18, note:"Complete OSPF and work through FHRP, IP services, ACLs, and management access."},
-  {n:6, hours:12, note:"Study security fundamentals, VPNs, Layer 2 protections, AAA, and wireless security."},
-  {n:7, hours:14, note:"Finish wireless and automation topics, then take Practice Exam A under timed conditions."},
-  {n:8, hours:8,  note:"Review weak areas, take Practice Exam B, and re-take missed questions. Avoid adding new material."}
-];
-const DOMAIN_SHORT = {1:"Fundamentals",2:"Network Access",3:"IP Connectivity",4:"IP Services",5:"Security",6:"Automation"};
+const DOMAIN_SHORT = {0:"Start here",1:"Fundamentals",2:"Network Access",3:"IP Connectivity",4:"IP Services",5:"Security",6:"Automation"};
 let OUT = null, QS = [], CARDS = [], RES = [], COV = [];
 const TOPIC = {};          // id -> {id,title,domain,parent}
 const lessonCache = {};
 
-const blank = () => ({v:1, studied:{}, labs:{}, q:{}, exams:[], cards:{}, updated:0});
+const blank = () => ({v:1, studied:{}, labs:{}, q:{}, exams:[], cards:{}, rev:{}, notes:{}, goals:{}, updated:0});
 let S = blank();
 let db = null, docRef = null, saveTimer = null, saving = false, dirty = false;
 
@@ -314,6 +369,12 @@ function merge(a, b){
   const m = blank();
   m.studied = Object.assign({}, a.studied, b.studied);
   m.labs = Object.assign({}, a.labs, b.labs);
+  m.notes = Object.assign({}, a.notes, b.notes);
+  m.goals = Object.assign({}, a.goals, b.goals);
+  for (const k of new Set([...Object.keys(a.rev||{}), ...Object.keys(b.rev||{})])){
+    const x = (a.rev||{})[k], y = (b.rev||{})[k];
+    m.rev[k] = !x ? y : !y ? x : (y[2] > x[2] ? y : x);
+  }
   for (const k of new Set([...Object.keys(a.q), ...Object.keys(b.q)])){
     const x = a.q[k], y = b.q[k];
     m.q[k] = !x ? y : !y ? x : (y[3] > x[3] ? y : x);
@@ -365,7 +426,6 @@ const domOf = t => +String(t).split(".")[0];
 const topOf = t => t.split(".").slice(0,2).join(".");
 const dcol = d => `var(--d${d})`;
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.remove("hidden"); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.add("hidden"),2200); }
-function weekTopics(n){ const w = OUT.weeks.find(x=>x.n===n); return w ? w.topics : []; }
 function qStats(filter){
   let n=0,c=0,seen=0; for (const q of QS){ if (!filter(q)) continue; n++; const r=S.q[q.id]; if (r){ seen++; if (r[2]) c++; } }
   return {n, seen, correct:c, acc: seen ? c/seen : null};
@@ -384,15 +444,18 @@ function route(){
   const h = (location.hash || "#home").slice(1);
   const app = $("#app");
   let v = "home";
-  if (/^d[1-6]$/.test(h) || /^t-\d/.test(h) || /^lab-/.test(h)) v = "lesson";
+  if (/^d[1-6]$/.test(h) || /^u\d+$/.test(h) || /^t-\d/.test(h) || /^lab-/.test(h) || h === "learn") v = "lesson";
   else if (/^quiz(-|$)/.test(h)) v = "quiz";
   else if (/^exam/.test(h)) v = "exam";
   else if (["drills","cards","sources","coverage"].includes(h)) v = h;
   for (const a of document.querySelectorAll("#nav a")) { if (a.dataset.v === v) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); }
   if (RUN && v !== "quiz" && v !== "exam") { RUN = null; clearTimeout(tick.h); }
-  if (v !== "lesson") delete app.dataset.lesson;
+  if (!/^t-\d|^lab-/.test(h)) delete app.dataset.topic;
   if (!OUT){ return; }
   if (v === "home") renderHome(app);
+  else if (h === "learn") { const nx = nextStep(); location.replace(nx ? "#" + sid(nx.t) : "#u" + PATH.units[PATH.units.length-1].n); }
+  else if (/^u\d+$/.test(h)) renderUnit(app, +h.slice(1));
+  else if (/^d[1-6]$/.test(h)) renderDomain(app, +h.slice(1));
   else if (v === "lesson") renderLesson(app, h);
   else if (v === "quiz") { if (RUN && RUN.kind==="quiz" && h==="quiz-run") renderRun(app); else renderQuizBuilder(app, h); }
   else if (v === "exam") { if (RUN && RUN.kind==="exam" && h==="exam-run") renderRun(app); else renderExamHome(app); }
@@ -403,63 +466,141 @@ function route(){
 }
 window.addEventListener("hashchange", () => { route(); if (!/^#t-|^#lab-/.test(location.hash)) window.scrollTo(0,0); });
 
+/* ============================================================ path */
+// The guided path (data/path.json) orders every lesson by prerequisite and carries the teaching
+// scaffolding for each one. Spaced reviews use expanding intervals; each successful review moves
+// a topic to the next interval, a failed one sends it back to tomorrow.
+let PATH = null;
+const ORDER = [];   // every step in learning order: {t, unit, i, step}
+const STEP = {};    // topic id -> ORDER entry
+const DAY = 864e5;
+const INTERVALS = [1, 3, 7, 16, 35];
+function buildPath(){
+  for (const p of PATH.primers) TOPIC[p.id] = {id:p.id, title:p.title, domain:0, parent:null};
+  for (const u of PATH.units) u.steps.forEach((s,i)=>{
+    if (!TOPIC[s.t]) TOPIC[s.t] = {id:s.t, title:s.title || s.t, domain:domOf(s.t), parent:null};
+    const e = {t:s.t, unit:u, i, step:s}; ORDER.push(e); STEP[s.t] = e;
+  });
+}
+const unitByN = n => PATH.units.find(u=>u.n===n);
+const unitTopics = n => (unitByN(n)||{steps:[]}).steps.map(s=>s.t);
+const earlierTopics = n => PATH.units.filter(u=>u.n>0 && u.n<n).flatMap(u=>u.steps.map(s=>s.t));
+const nextStep = () => ORDER.find(e=>!S.studied[e.t]) || null;
+const unitDone = u => u.steps.filter(s=>S.studied[s.t]).length;
+const quizCount = list => QS.filter(q=>q.pool==="quiz" && q.topics.some(x=>list.some(t=>x===t||x.startsWith(t+".")))).length;
+const stepLabel = t => t.startsWith("0.") ? "" : t + " ";
+function dueTopics(now=Date.now()){ return Object.keys(S.rev).filter(t=>S.studied[t] && S.rev[t][1] <= now).sort((a,b)=>S.rev[a][1]-S.rev[b][1]); }
+function reviewResult(t, ok){
+  const r = S.rev[t]; if (!r) return;
+  const box = ok ? Math.min(INTERVALS.length-1, r[0]+1) : 0;
+  S.rev[t] = [box, Date.now() + INTERVALS[box]*DAY, Date.now()];
+}
+function applyReviews(run){
+  const by = {}, now = Date.now();
+  for (const x of run.items){
+    if (x.skipped) continue;
+    for (const t of new Set(x.q.topics.map(topOf))){
+      if (!S.studied[t] || !S.rev[t] || S.rev[t][1] > now) continue;
+      by[t] = by[t] || [0,0]; by[t][1]++; if (x.ok) by[t][0]++;
+    }
+  }
+  const out = Object.entries(by).map(([t,[c,n]])=>{ const ok = c/n >= 0.7; reviewResult(t, ok); return {t, ok, days: INTERVALS[S.rev[t][0]]}; });
+  if (out.length) touch();
+  return out;
+}
+function setLearned(t, on){
+  if (on){ S.studied[t] = Date.now(); if (!S.rev[t]) S.rev[t] = [0, Date.now()+INTERVALS[0]*DAY, Date.now()]; }
+  else { delete S.studied[t]; delete S.rev[t]; }
+  touch();
+}
+function whenText(ts){
+  const days = Math.round((ts - Date.now())/DAY);
+  return days <= 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
+}
+
+// Per-viewer conveniences that never need to sync: reading mode and how far into each lesson you are.
+const P = (()=>{ const d = {mode:"guided", pos:{}}; try { return Object.assign(d, JSON.parse(localStorage.getItem("ccna-hub-prefs")||"{}")); } catch(e){ return d; } })();
+function savePrefs(){ try{ localStorage.setItem("ccna-hub-prefs", JSON.stringify(P)); }catch(e){} }
+function bindNotes(root){
+  for (const el of root.querySelectorAll("textarea[data-note]")){
+    const k = el.dataset.note; el.value = S.notes[k] || "";
+    el.addEventListener("input", ()=>{ if (el.value.trim()) S.notes[k] = el.value; else delete S.notes[k]; touch(); });
+  }
+}
+
+/* ============================================================ focus timer */
+const POMO = {phase:"focus", left:25*60, end:0, run:false};
+const pomoFmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+function pomoHTML(){
+  return `<div class="pomo" id="pomo"><div class="pomo-h">${POMO.phase==="focus"?"Focus session":"Break"}</div>
+    <div class="pomo-t num" id="pomo-t">${pomoFmt(POMO.left)}</div>
+    <div class="row"><button class="btn small" id="pomo-go">${POMO.run?"Pause":"Start"}</button><button class="btn small" id="pomo-reset">Reset</button></div>
+    <p class="pomo-p">${POMO.phase==="focus"?"One lesson, notifications off, 25 minutes.":"Step away from the screen. Your brain keeps working while you rest."}</p></div>`;
+}
+function bindPomo(){
+  const go = $("#pomo-go"), reset = $("#pomo-reset"); if (!go) return;
+  go.addEventListener("click", ()=>{ if (POMO.run){ POMO.run=false; } else { POMO.run=true; POMO.end = Date.now()+POMO.left*1000; } refreshPomo(); });
+  reset.addEventListener("click", ()=>{ POMO.run=false; POMO.phase="focus"; POMO.left=25*60; refreshPomo(); });
+}
+function refreshPomo(){ const el = $("#pomo"); if (!el) return; el.outerHTML = pomoHTML(); bindPomo(); }
+setInterval(()=>{
+  if (!POMO.run) return;
+  POMO.left = Math.max(0, Math.round((POMO.end-Date.now())/1000));
+  if (!POMO.left){
+    POMO.run = false; POMO.phase = POMO.phase==="focus" ? "break" : "focus"; POMO.left = (POMO.phase==="focus"?25:5)*60;
+    toast(POMO.phase==="break" ? "25 minutes done. Take a 5-minute break away from the screen." : "Break over. Recall where you were, then start the next chunk.");
+    refreshPomo(); return;
+  }
+  const t = $("#pomo-t"); if (t) t.textContent = pomoFmt(POMO.left);
+}, 1000);
+
 /* ============================================================ home */
 function renderHome(app){
-  const allTop = OUT.domains.flatMap(d=>d.topics.map(t=>t.id));
-  const studiedN = allTop.filter(t=>S.studied[t]).length;
+  const total = ORDER.length, learned = ORDER.filter(e=>S.studied[e.t]).length;
   const qs = qStats(q=>q.pool==="quiz");
   const lastExam = S.exams[S.exams.length-1];
-  const weak = weakTopics(6);
+  const weak = weakTopics(6), nx = nextStep(), due = dueTopics();
+  const hours = PATH.units.reduce((a,u)=>a+u.hours,0);
+  const cur = nx ? nx.unit : PATH.units[PATH.units.length-1];
   app.innerHTML = `
   <div class="hero">
     <div class="panel">
       <div class="eyebrow">Cisco CCNA 200-301 · blueprint v1.1</div>
-      <h1>A complete eight-week CCNA study program</h1>
-      <div class="count"><span class="big tab">8</span><span class="muted">structured weeks · start whenever you are ready</span></div>
-      <p class="lead" style="margin-top:12px">Every topic on Cisco's v1.1 outline, taught in a focused eight-week sequence with labs, ${QS.filter(q=>q.pool==="quiz").length} study questions, two timed 100-question practice exams, drills and flashcards. Your progress is saved in this browser.</p>
+      <h1>Learn networking from zero to CCNA</h1>
+      <p class="lead">A guided path of ${PATH.units.length} units for someone who has never studied networking. Each unit answers one question and builds on the one before. Each lesson starts by recalling what you already know, teaches in short chunks, and asks you to recall and explain before you move on. Every topic on Cisco's v1.1 outline is covered.</p>
       <div class="stat" style="margin-top:14px">
-        <div><b class="tab">${studiedN}/${allTop.length}</b>topics studied</div>
-        <div><b class="tab">${qs.seen}</b>questions answered</div>
-        <div><b class="tab">${qs.acc==null?"–":Math.round(qs.acc*100)+"%"}</b>latest accuracy</div>
+        <div><b class="tab">${learned}/${total}</b>lessons learned</div>
+        <div><b class="tab">${due.length}</b>reviews due</div>
+        <div><b class="tab">${qs.acc==null?"–":Math.round(qs.acc*100)+"%"}</b>quiz accuracy</div>
         <div><b class="tab">${lastExam?Math.round(lastExam.score*100)+"%":"–"}</b>last practice exam</div>
       </div>
+      <div class="row" style="margin-top:16px">${nx ? `<a class="btn primary" href="#${sid(nx.t)}">${learned?"Continue":"Start"}: ${esc(stepLabel(nx.t))}${esc(shortTitle(TOPIC[nx.t].title))}</a>` : `<a class="btn primary" href="#exam">Take a practice exam</a>`}<a class="btn" href="#u${cur.n}">Unit ${cur.n} overview</a></div>
     </div>
-    <div class="panel thisweek">
-      <div class="eyebrow">Flexible schedule</div>
-      <h3>Work through one numbered week at a time</h3>
-      <p class="muted">The hour estimates are targets, not deadlines. Complete the lessons and labs for each week, then use its quiz before moving on.</p>
-      <div class="row" style="margin-bottom:12px">${weekTopics(1).map(t=>topicChip(t)).join("")}</div>
-      <div class="row"><a class="btn primary" href="#${sid(weekTopics(1)[0])}">Start Week 1</a><a class="btn" href="#quiz-w1">Week 1 quiz</a></div>
+    <div class="panel today">
+      <div class="eyebrow">Today's session · about an hour</div>
+      <ol class="plan">
+        <li><b>Review, 10 minutes.</b> ${due.length ? `${due.length} learned topic${due.length===1?" is":"s are"} due: <span class="row" style="margin:6px 0">${due.slice(0,6).map(t=>topicChip(t)).join("")}</span><a class="btn small primary" href="#quiz-review">Start my review</a>` : `Nothing is due. Each lesson you mark as learned comes back here after 1, 3, 7, 16 and 35 days.`}</li>
+        <li><b>Learn, two 25-minute sessions.</b> ${nx ? `Next up: <a href="#${sid(nx.t)}">${esc(stepLabel(nx.t))}${esc(TOPIC[nx.t].title)}</a>. Take a 5-minute break away from the screen between sessions.` : "You have finished the path. Work on weak spots and practice exams."}</li>
+        <li><b>Practise, 10 minutes.</b> ${esc(cur.practice)} <a href="#drills">Drills</a> · <a href="#cards">Flashcards</a></li>
+      </ol>
     </div>
   </div>
 
   <section class="block">
-    <h2>What the exam weighs</h2>
-    <div class="panel bp">${OUT.domains.map(d=>{
-      const tops=d.topics.map(t=>t.id); const st=tops.filter(t=>S.studied[t]).length;
-      const acc=qStats(q=>q.domain===d.id && q.pool==="quiz");
-      return `<div class="bp-row">
-        <a href="#d${d.id}"><span class="dom-dot" style="background:${dcol(d.id)}"></span><span class="num">${d.id}.0</span> ${esc(d.name)}</a>
-        <div class="bar" title="${d.weight}% of the exam"><i style="width:${d.weight*4}%;background:${dcol(d.id)}"></i></div>
-        <span class="bp-meta">${d.weight}% · ${st}/${tops.length} studied · ${acc.acc==null?"no quiz yet":Math.round(acc.acc*100)+"% right"}</span>
-      </div>`;}).join("")}
-    </div>
+    <h2>The learning path</h2>
+    <p class="muted" style="margin-top:-4px">Units follow what you need to know first, not the order of Cisco's outline. About ${hours} hours for a complete beginner. There are no deadlines; consistency matters more than speed.</p>
+    <div class="units">${PATH.units.map(u=>unitCard(u, cur)).join("")}</div>
   </section>
 
   <section class="block">
-    <h2>Week by week</h2>
-    <div class="weeks">${WEEKS.map(w=>{
-      const tops = weekTopics(w.n);
-      const ck = w.n===4 ? `<div class="note"><strong>Checkpoint 1:</strong> Take the <a href="#quiz-cp1">50-question checkpoint quiz</a> covering weeks 1 to 4. If you score below 60%, review weak areas before moving on.</div>`
-             : w.n===7 ? `<div class="note"><strong>Checkpoint 2:</strong> Take <a href="#exam">Practice Exam A</a> under timed conditions. Aim for at least 80% before the final review week.</div>`
-             : w.n===8 ? `<div class="note">Take Practice Exam B, then use the <a href="#quiz-mistakes">mistakes quiz</a> and weak-topic list for final review.</div>` : "";
-      return `<div class="wk">
-        <div class="when">Week ${w.n}<span>about ${w.hours} h</span></div>
-        <div><div class="topics">${tops.length?tops.map(t=>topicChip(t)).join(""):'<span class="muted">Review, practice exams, weak areas</span>'}</div>
-          <div class="note">${esc(w.note)}</div>${ck}</div>
-        <div>${tops.length?`<a class="btn small" href="#quiz-w${w.n}">Quiz week ${w.n}</a>`:`<a class="btn small" href="#exam">Exams</a>`}</div>
-      </div>`;}).join("")}
+    <h2>How this course teaches</h2>
+    <div class="principles">
+      <div class="panel"><h3>Recall, not re-reading</h3><p>Every chunk ends with a pause to recall it, and every lesson ends with a blank-page recall. Recognising a page is not the same as knowing it.</p></div>
+      <div class="panel"><h3>Short, focused sessions</h3><p>Lessons are split into chunks sized for 25-minute sessions with real breaks. Breaks are when new ideas connect to old ones.</p></div>
+      <div class="panel"><h3>Spaced, mixed practice</h3><p>Learned topics return on an expanding schedule, and warm-ups mix questions from earlier units so you practise choosing the right tool.</p></div>
+      <div class="panel"><h3>Big picture first</h3><p>Each unit opens with a driving question and a mental model; each lesson says why it comes now and gives an analogy before the details.</p></div>
     </div>
+    <p style="margin-top:10px"><a href="#t-0-0">Read why this works: How to learn networking (and anything hard)</a></p>
   </section>
 
   <div class="two block" style="margin-top:30px">
@@ -469,21 +610,26 @@ function renderHome(app){
         <a class="btn small" href="#quiz-weak">Quiz my weak spots</a>` : `<p class="muted">Topics you get below 75% on (after 3 or more answers) show up here.</p>`}
     </div>
     <div class="panel">
-      <h3 style="margin-top:0">Every day</h3>
-      <ul style="padding-left:18px;margin:0">
-        <li><a href="#drills">10 minutes of subnetting drills</a>, aiming for under 30 seconds a problem.</li>
-        <li><a href="#cards">Flashcards</a> for the week's numbers and defaults.</li>
-        <li>One lab from the current lesson in Packet Tracer.</li>
-        <li><a href="#quiz-mistakes">Re-take questions you missed</a> until they stick.</li>
-      </ul>
+      <h3 style="margin-top:0">What the exam weighs</h3>
+      <div class="bp">${OUT.domains.map(d=>{
+        const tops=d.topics.map(t=>t.id), st=tops.filter(t=>S.studied[t]).length;
+        return `<div class="bp-row"><a href="#d${d.id}"><span class="dom-dot" style="background:${dcol(d.id)}"></span><span class="num">${d.id}.0</span> ${esc(DOMAIN_SHORT[d.id])}</a>
+          <div class="bar" title="${d.weight}% of the exam"><i style="width:${d.weight*4}%;background:${dcol(d.id)}"></i></div>
+          <span class="bp-meta">${d.weight}% · ${st}/${tops.length}</span></div>`;}).join("")}</div>
     </div>
   </div>`;
 }
-function weekTitle(n){
-  return ({1:"Network components, topologies, cabling, TCP and UDP",2:"Addressing, IPv6, wireless principles, virtualization, switching",
-    3:"VLANs, trunks, CDP/LLDP, EtherChannel, Rapid PVST+",4:"Routing table, static routes, OSPFv2",
-    5:"OSPF wrap-up, FHRP, IP services, ACLs, management access",6:"Security concepts, VPNs, Layer 2 security, AAA, wireless security",
-    7:"Wireless architectures and WLC GUI, automation and programmability"})[n] || "";
+function unitCard(u, cur){
+  const n = u.steps.length, d = unitDone(u);
+  const done = n ? d===n : S.exams.some(e=>e.form==="B");
+  const ms = u.milestone==="cp1" ? "Ends with Checkpoint 1" : u.milestone==="examA" ? "Ends with Practice Exam A" : u.milestone==="examB" ? "Practice Exam B" : "";
+  return `<a class="unit ${done?"done":""} ${u===cur?"now":""}" href="#u${u.n}">
+    <div class="unit-head"><span class="num">Unit ${u.n}</span><span>${n?`${d}/${n} · `:""}~${u.hours} h</span></div>
+    <h3>${esc(u.title)}</h3>
+    <p>${esc(u.question)}</p>
+    ${n?`<div class="bar"><i style="width:${Math.round(d/n*100)}%;background:var(--good)"></i></div>`:""}
+    ${ms?`<div class="unit-ms">${ms}</div>`:""}
+  </a>`;
 }
 function topicChip(t){
   const T = TOPIC[t]; const done = S.studied[t];
@@ -491,69 +637,250 @@ function topicChip(t){
 }
 function shortTitle(s){ s = s.replace(/^Configure and verify /i,"").replace(/^(Interpret|Describe|Explain) /i,""); return s.length>34 ? s.slice(0,32)+"…" : s.charAt(0).toUpperCase()+s.slice(1); }
 
+/* ============================================================ unit pages */
+function renderUnit(app, n){
+  const u = unitByN(n); if (!u) { location.hash = "home"; return; }
+  const prev = unitByN(n-1), next = unitByN(n+1);
+  const topics = u.steps.map(s=>s.t), qn = quizCount(topics), mixed = quizCount(earlierTopics(n));
+  const ms = u.milestone==="cp1" ? `<a class="btn primary" href="#quiz-cp1">Take Checkpoint 1 (Units 1 to 6)</a><p class="muted">Fifty questions under test conditions. Below 70%? Spend two or three days on your weakest units before moving on.</p>`
+    : u.milestone==="examA" ? `<a class="btn primary" href="#exam">Take Practice Exam A</a><p class="muted">Timed, 100 questions. Aim for 80% before the final review.</p>`
+    : u.milestone==="examB" ? `<a class="btn primary" href="#exam">Take Practice Exam B</a> <a class="btn" href="#quiz-mistakes">Re-take what I missed</a> <a class="btn" href="#quiz-weak">Weak spots</a>` : "";
+  app.innerHTML = `
+    <div class="unit-page">
+    <div class="eyebrow">Unit ${n} of ${PATH.units.length-1} · about ${u.hours} hours</div>
+    <h1 class="num unit-title">${esc(u.title)}</h1>
+    <p class="driving">${esc(u.question)}</p>
+    <div class="panel">
+      <p style="margin-top:0"><strong>Where this fits.</strong> ${esc(u.why)}</p>
+      <div class="callout key" style="margin-bottom:0"><p><strong>The big picture:</strong> ${esc(u.model)}</p></div>
+    </div>
+    <section class="block">
+      <h2>By the end of this unit you can</h2>
+      <ul class="goals">${u.goals.map(g=>`<li>${esc(g)}</li>`).join("")}</ul>
+    </section>
+    ${n>1 && mixed ? `<section class="block"><h2>Before you start: warm up</h2><p>Ten mixed questions from Units 1 to ${n-1}. Mixing old topics keeps them fresh and practises recognising which idea a problem needs.</p><a class="btn" href="#quiz-m${n}">Mixed warm-up</a></section>` : ""}
+    ${u.steps.length ? `<section class="block">
+      <h2>Lessons in order</h2>
+      <ol class="steps">${u.steps.map((s,i)=>`<li class="${S.studied[s.t]?"done":""}">
+        <a href="#${sid(s.t)}"><span class="dom-dot" style="background:${dcol(domOf(s.t))}"></span><span class="num">${esc(stepLabel(s.t))}</span>${esc(TOPIC[s.t].title)}</a>
+        <p>${esc(s.why)}</p>${S.studied[s.t] && S.rev[s.t] ? `<span class="muted small-note">Learned · next review ${whenText(S.rev[s.t][1])}</span>` : ""}</li>`).join("")}</ol>
+    </section>` : ""}
+    <section class="block">
+      <h2>Practice for this unit</h2>
+      <p>${esc(u.practice)}</p>
+      <div class="row"><a class="btn" href="#drills">Drills</a><a class="btn" href="#cards">Flashcards</a>${qn?`<a class="btn" href="#quiz-u${n}">Unit ${n} quiz (${qn})</a>`:""}</div>
+    </section>
+    <section class="block">
+      <h2>${u.steps.length ? "Wrap-up: check yourself before moving on" : "Readiness check"}</h2>
+      <p class="muted">Tick each one only if you can do it now, without notes. If you cannot, return to that lesson's recall and teach-back sections first.</p>
+      <div class="goal-checks">${u.goals.map((g,i)=>`<label><input type="checkbox" data-goal="u${n}:${i}" ${S.goals[`u${n}:${i}`]?"checked":""}> I can ${esc(g.charAt(0).toLowerCase()+g.slice(1))}</label>`).join("")}</div>
+      <div class="row" style="margin-top:12px">${qn?`<a class="btn primary" href="#quiz-u${n}">Take the unit ${n} quiz</a>`:""}</div>
+      ${ms?`<div style="margin-top:14px">${ms}</div>`:""}
+      <p class="muted" style="margin-top:14px">Finished? Sleep on it before starting the next unit. Memory consolidates overnight.</p>
+    </section>
+    <nav class="pager">${prev?`<a class="btn" href="#u${prev.n}">← Unit ${prev.n}: ${esc(prev.title)}</a>`:"<span></span>"}${next?`<a class="btn" href="#u${next.n}">Unit ${next.n}: ${esc(next.title)} →</a>`:""}</nav>
+    </div>`;
+  for (const cb of app.querySelectorAll("input[data-goal]")) cb.addEventListener("change", ()=>{ if (cb.checked) S.goals[cb.dataset.goal] = Date.now(); else delete S.goals[cb.dataset.goal]; touch(); });
+}
+
+/* ============================================================ domain index */
+function renderDomain(app, d){
+  const dom = OUT.domains.find(x=>x.id===d);
+  app.innerHTML = `
+    <div class="eyebrow">Browse by exam domain</div>
+    <div class="dom-tabs">${OUT.domains.map(x=>`<a class="chip" href="#d${x.id}" ${x.id===d?'aria-current="page"':""}><span class="dom-dot" style="background:${dcol(x.id)}"></span><span class="num">${x.id}.0</span> ${esc(DOMAIN_SHORT[x.id])}</a>`).join("")}</div>
+    <h1 class="num" style="font-size:32px;margin:6px 0 8px">${d}.0 ${esc(dom.name)}</h1>
+    <p class="lead">${dom.weight}% of the exam. The course teaches these topics in learning order, so they are spread across several units. Use this page as a reference map; follow the <a href="#learn">learning path</a> to study.</p>
+    <div class="tblwrap" style="margin-top:14px"><table class="data"><thead><tr><th>Topic</th><th>Taught in</th><th>Quiz</th><th>Learned</th></tr></thead><tbody>
+    ${dom.topics.map(t=>{ const e = STEP[t.id]; return `<tr><td><a href="#${sid(t.id)}"><span class="num">${t.id}</span> ${esc(t.title)}</a></td>
+      <td>${e?`<a href="#u${e.unit.n}">Unit ${e.unit.n}</a>, lesson ${e.i+1}`:"–"}</td><td class="n">${quizCount([t.id])}</td><td>${S.studied[t.id]?"✓":""}</td></tr>`; }).join("")}
+    </tbody></table></div>`;
+}
+
 /* ============================================================ lessons */
+const lessonFrag = {};
 async function getLesson(d){
-  if (lessonCache[d]) return lessonCache[d];
+  if (lessonFrag[d]) return lessonFrag[d];
   const r = await fetch(`lessons/d${d}.html`); if (!r.ok) throw new Error("lesson " + d);
-  lessonCache[d] = await r.text(); return lessonCache[d];
+  const tpl = document.createElement("template"); tpl.innerHTML = await r.text();
+  lessonFrag[d] = tpl.content; return lessonFrag[d];
+}
+function findSection(frag, target){
+  let el = frag.getElementById(target);
+  if (!el && /^t-\d+-\d+-[a-z]$/.test(target)) el = frag.getElementById(target.replace(/-[a-z]$/,""));
+  const sec = el && el.closest("section.topic");
+  return sec ? {sec, el} : null;
+}
+// Split a lesson into chunks at each h3 and each lab. The intro joins the first chunk.
+function splitChunks(sec){
+  const chunks = []; let cur = {title:null, nodes:[], intro:true};
+  const hasContent = c => c.nodes.some(n=>n.nodeType===1 || n.textContent.trim());
+  for (const n of [...sec.childNodes]){
+    const isH3 = n.nodeType===1 && n.tagName==="H3";
+    const isLab = n.nodeType===1 && n.classList.contains("lab");
+    if (isH3 && cur.intro){ cur.title = n.textContent; cur.intro = false; cur.nodes.push(n); continue; }
+    if (isH3 || isLab){
+      if (hasContent(cur)) chunks.push(cur);
+      const h4 = isLab ? n.querySelector("h4") : null;
+      cur = {title: isLab ? (h4 ? h4.textContent : "Lab") : n.textContent, nodes:[n], lab:isLab};
+      continue;
+    }
+    cur.nodes.push(n);
+  }
+  if (hasContent(cur)) chunks.push(cur);
+  let run = 0;
+  chunks.forEach((c,i)=>{
+    if (!c.title) c.title = "Overview";
+    const text = c.nodes.map(n=>n.textContent).join(" ");
+    const m = c.lab && text.match(/~\s*(\d+)\s*min/);
+    c.min = m ? +m[1] : Math.max(3, Math.round(text.split(/\s+/).length/110));
+    run += c.min;
+    if (run >= 22 && i < chunks.length-1){ c.breakAfter = true; run = 0; }
+  });
+  return chunks;
 }
 async function renderLesson(app, h){
-  let d, target = null;
-  if (/^d[1-6]$/.test(h)) d = +h[1];
-  else if (/^t-/.test(h)) { d = +h.split("-")[1]; target = h; }
-  else if (/^lab-/.test(h)) { d = +h.split("-")[1]; target = h; }
-  if (!(d>=1 && d<=6)) d = 1;
-  const dom = OUT.domains.find(x=>x.id===d);
-  if (!app.dataset.lesson || app.dataset.lesson !== String(d)) {
-    app.dataset.lesson = String(d);
-    app.innerHTML = `<div class="dom-tabs">${OUT.domains.map(x=>`<a class="chip" href="#d${x.id}" ${x.id===d?'style="border-color:var(--accent);color:var(--accent)"':""}><span class="dom-dot" style="background:${dcol(x.id)}"></span><span class="num">${x.id}.0</span> ${esc(DOMAIN_SHORT[x.id])}</a>`).join("")}</div>
-      <div class="lesson"><nav class="rail" id="rail" aria-label="Topics"></nav><article class="doc" id="doc"><p class="loading">Loading ${esc(dom.name)}…</p></article></div>`;
-    try{
-      const html = await getLesson(d);
-      if (app.dataset.lesson !== String(d)) return;
-      const docEl = $("#doc");
-      docEl.innerHTML = `<div class="eyebrow">Domain ${d}.0 · ${dom.weight}% of the exam</div>` + html;
-      enhanceLesson(docEl, d);
-    }catch(e){ $("#doc").innerHTML = `<p>This lesson didn't load. Reload the page to try again.</p>`; return; }
+  const d = +h.split("-")[1];
+  if (!(d>=0 && d<=6)) { location.replace("#learn"); return; }
+  const token = renderLesson.token = (renderLesson.token||0) + 1;
+  let frag;
+  try { frag = await getLesson(d); } catch(e){ app.innerHTML = `<p>This lesson didn't load. Reload the page to try again.</p>`; return; }
+  if (token !== renderLesson.token) return;
+  const found = findSection(frag, h);
+  if (!found){ delete app.dataset.topic; app.innerHTML = `<p>That lesson wasn't found. <a href="#learn">Continue the learning path</a>.</p>`; return; }
+  const secId = found.sec.id, fresh = app.dataset.topic !== secId;
+  if (fresh) buildTopicPage(app, frag, found.sec);
+  if (h !== secId){
+    const el = document.getElementById(h);
+    if (el){ const c = el.closest(".chunk"); if (c && c.hidden) revealUpTo(app, +c.dataset.i); el.scrollIntoView({block:"start"}); return; }
   }
-  renderRail(d);
-  if (target){
-    let el = document.getElementById(target);
-    if (!el && /^t-\d+-\d+-[a-z]$/.test(target)) el = document.getElementById(target.replace(/-[a-z]$/,""));
-    if (el) el.scrollIntoView({block:"start"});
-  } else window.scrollTo(0,0);
+  if (fresh) window.scrollTo(0,0);
 }
-function renderRail(d){
-  const rail = $("#rail"); if (!rail) return;
-  const dom = OUT.domains.find(x=>x.id===d);
-  const secs = [...document.querySelectorAll("#doc section.topic")];
-  rail.innerHTML = `<div class="eyebrow" style="padding:4px 8px">${esc(dom.name)}</div>` + secs.map(s=>{
-    const h2 = s.querySelector("h2"); const t = s.id.replace(/^t-/,"").replace(/-/g,".");
-    const txt = h2 ? h2.textContent.replace(/^\s*[\d.]+\s*/,"") : s.id;
-    return `<a href="#${s.id}" class="${S.studied[t]?"done":""}"><span class="num">${/^\d/.test(t)&&t!==d+".0"?t:"·"}</span><span>${esc(txt)}</span></a>`;
-  }).join("") + `<div style="padding:10px 8px" class="row"><a class="btn small" href="#quiz-d${d}">Quiz domain ${d}</a></div>`;
-}
-function enhanceLesson(docEl, d){
-  for (const t of docEl.querySelectorAll("table")) { if (!t.parentElement.classList.contains("tbl")) { const w=document.createElement("div"); w.className="tbl"; t.replaceWith(w); w.appendChild(t); } }
-  for (const a of docEl.querySelectorAll("a[href^='http']")) { a.target="_blank"; a.rel="noopener"; }
-  for (const lab of docEl.querySelectorAll(".lab[id]")) {
+function buildTopicPage(app, frag, sec){
+  const t = sec.id.replace(/^t-/,"").replace(/-/g,".");
+  app.dataset.topic = sec.id;
+  const e = STEP[t], u = e ? e.unit : null, st = e ? e.step : {warmup:[],focus:[],later:[],needs:[]};
+  const d = domOf(t), dom = OUT.domains.find(x=>x.id===d);
+  const clone = sec.cloneNode(true);
+  const h2 = clone.querySelector("h2"), title = h2 ? h2.textContent : (TOPIC[t]||{}).title || t; if (h2) h2.remove();
+  const recap = clone.querySelector(".recap"); if (recap) recap.remove();
+  const chunks = splitChunks(clone);
+  const totalMin = chunks.reduce((a,c)=>a+c.min,0), sessions = Math.max(1, Math.ceil(totalMin/25));
+  let srcs = sec.nextElementSibling; while (srcs && !srcs.classList.contains("topic-sources")) srcs = srcs.nextElementSibling;
+  const qn = quizCount([t]);
+  const prev = e ? ORDER[ORDER.indexOf(e)-1] : null, next = e ? ORDER[ORDER.indexOf(e)+1] : null;
+  const due = S.studied[t] && S.rev[t] && S.rev[t][1] <= Date.now();
+  const needs = (st.needs||[]).filter(x=>TOPIC[x]);
+  const missing = needs.filter(x=>!S.studied[x]);
+
+  app.innerHTML = `<div class="lesson"><nav class="rail" id="rail" aria-label="Lessons in this unit"></nav><article class="doc" id="doc">
+    <div class="eyebrow">${u?`<a href="#u${u.n}">Unit ${u.n} · ${esc(u.title)}</a> · lesson ${e.i+1} of ${u.steps.length}`:""}${d?`${u?" · ":""}Domain ${d}.0, ${dom.weight}% of the exam`:""}</div>
+    <h2 class="topic-title">${esc(title)}</h2>
+    ${due ? `<div class="callout key due"><p><strong>Due for review.</strong> Do the warm-up and the blank-page recall at the end, then ${qn?"take the quick check: your score reschedules this topic.":"rate how well you remembered it."}</p>
+      <div class="row">${qn?`<button class="btn small primary" data-quick>Quick check</button>`:""}<button class="btn small" data-rate="1">I remembered it</button><button class="btn small" data-rate="0">I'd forgotten a lot</button></div></div>` : ""}
+    ${st.warmup && st.warmup.length ? `<section class="stage"><h3 class="stage-h">Warm up from memory</h3>
+      <p class="muted">Answer each in your head before opening it. Getting it wrong is fine; the attempt is what strengthens the memory and links it to today's lesson.</p>
+      ${st.warmup.map(([q,a])=>`<details class="wq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</section>` : ""}
+    ${st.why ? `<section class="stage"><h3 class="stage-h">The big picture</h3>
+      <p><strong>Why this comes now.</strong> ${esc(st.why)}</p>
+      <div class="callout tip"><p><strong>Think of it like this:</strong> ${esc(st.analogy)}</p></div>
+      ${needs.length ? `<p class="needs"><strong>Builds on:</strong> ${needs.map(x=>topicChip(x)).join(" ")}${missing.length?`<br><span class="muted">You haven't marked ${missing.map(esc).join(", ")} as learned yet. Skim ${missing.length===1?"its":"their"} recap first if this lesson feels hard to follow.</span>`:""}</p>` : ""}
+      <div class="fl"><div><h4>Focus on during the first pass</h4><ul>${st.focus.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
+        ${st.later.length?`<div><h4>Fine to skim for now</h4><ul>${st.later.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}</div>
+    </section>` : ""}
+    <section class="stage"><h3 class="stage-h">Map of this lesson</h3>
+      <p class="muted">Spend a minute skimming these headings and any diagrams before you start; it gives the details somewhere to land. About ${totalMin} minutes${sessions>1?`, or ${sessions} focused sessions with a break between each`:""}.</p>
+      <ol class="map">${chunks.map((c,i)=>`<li><a href="#" data-goto="${i}">${esc(c.title)}</a> <span class="muted">· ${c.min} min${c.lab?" · lab":""}</span>${c.breakAfter?` <span class="brk">break</span>`:""}</li>`).join("")}</ol>
+      <div class="mode" role="group" aria-label="Reading mode"><span class="muted">Reading mode:</span>
+        <button class="btn small ${P.mode==="guided"?"on":""}" data-mode="guided">One chunk at a time</button><button class="btn small ${P.mode==="full"?"on":""}" data-mode="full">Whole lesson</button></div>
+    </section>
+    <div id="chunks" class="chunks ${P.mode}"></div>
+    <div id="after" hidden>
+      <section class="stage"><h3 class="stage-h">Recall the whole lesson</h3>
+        <p>Look away from the screen and list everything you remember: the key ideas, numbers, commands and traps. Write it below or on paper. Then reveal the recap and compare. Whatever you missed is exactly what to re-read.</p>
+        <textarea data-note="${esc(t)}:recall" rows="5" placeholder="Everything I remember about this lesson…"></textarea>
+        <div class="row"><button class="btn" id="show-recap">Reveal the recap</button></div>
+        <div id="recap-box" hidden></div>
+      </section>
+      ${st.explain ? `<section class="stage"><h3 class="stage-h">Teach it back</h3>
+        <p><strong>${esc(st.explain)}</strong></p>
+        <p class="muted">Use plain words, as if to a friend with no networking background. Where you get stuck or reach for jargon is where your understanding has a gap; go back to that chunk.</p>
+        <textarea data-note="${esc(t)}:explain" rows="4" placeholder="In my own words…"></textarea></section>` : ""}
+      <section class="stage"><h3 class="stage-h">Test yourself</h3>
+        ${qn ? `<p>Five questions, with feedback after each. Testing is practice, not just measurement: a question you get wrong now is one you are more likely to get right on the exam.</p>
+        <div class="row"><button class="btn primary" data-quick>Quick check (5)</button><a class="btn" href="#quiz-t${t.replace(/\./g,"-")}">All ${qn} questions on ${esc(t)}</a></div>`
+        : `<p>There is no quiz for this lesson. Your test is the lab and the teach-back above: could you do or explain it tomorrow without the page?</p>`}
+        <label class="learned"><input type="checkbox" id="learned" ${S.studied[t]?"checked":""}> I've learned this: schedule my spaced reviews</label>
+        <p class="muted" id="learned-note">${S.studied[t] && S.rev[t] ? `Next review ${whenText(S.rev[t][1])}.` : "It will come back for review after 1 day, then 3, 7, 16 and 35 days."}</p>
+      </section>
+    </div>
+    <nav class="pager">${prev?`<a class="btn" href="#${sid(prev.t)}">← ${esc(stepLabel(prev.t))}${esc(shortTitle(TOPIC[prev.t].title))}</a>`:"<span></span>"}
+      ${next ? (next.unit!==u ? `<a class="btn primary" href="#u${u.n}">Unit ${u.n} wrap-up →</a>` : `<a class="btn primary" href="#${sid(next.t)}">Next: ${esc(stepLabel(next.t))}${esc(shortTitle(TOPIC[next.t].title))} →</a>`) : (u?`<a class="btn primary" href="#u${u.n}">Unit ${u.n} wrap-up →</a>`:"")}</nav>
+    ${srcs ? `<details class="srcs"><summary>Sources and further reading</summary></details>` : ""}
+  </article></div>`;
+
+  const box = $("#chunks");
+  chunks.forEach((c,i)=>{
+    const div = document.createElement("div"); div.className = "chunk" + (c.lab?" is-lab":""); div.dataset.i = i;
+    const lab = document.createElement("div"); lab.className = "chunk-label"; lab.textContent = `Chunk ${i+1} of ${chunks.length} · about ${c.min} min${c.lab?" · hands-on":""}`;
+    div.appendChild(lab);
+    for (const n of c.nodes) div.appendChild(n);
+    const rc = document.createElement("div"); rc.className = "recall";
+    rc.innerHTML = `<div class="recall-h">Pause and recall</div>
+      <p>${c.lab ? "Could you rebuild this lab tomorrow without the steps? Say what it showed you that reading alone did not." : `Look away. In one or two sentences, what is the main idea of “${esc(c.title)}”? If you can't say it, re-read this chunk once and try again.`}</p>
+      <textarea data-note="${esc(t)}#${i}" rows="2" placeholder="Optional: jot it down"></textarea>
+      ${c.breakAfter ? `<p class="brk-note">That's roughly 25 minutes of focused work. Take a 5-minute break away from the screen: walk, stretch, get water. Then recall where you were before reading on.</p>` : ""}
+      <button class="btn small primary" data-next="${i+1}">${i<chunks.length-1 ? "Got it: next chunk" : "Got it: finish the lesson"}</button>`;
+    div.appendChild(rc);
+    box.appendChild(div);
+  });
+  if (recap) $("#recap-box").appendChild(recap);
+  if (srcs){ const det = $(".srcs"); for (const n of [...srcs.cloneNode(true).childNodes]) if (!(n.nodeType===1 && n.tagName==="H2")) det.appendChild(n); }
+  const doc = $("#doc");
+  for (const tb of doc.querySelectorAll("table")) { if (!tb.parentElement.classList.contains("tbl")) { const w=document.createElement("div"); w.className="tbl"; tb.replaceWith(w); w.appendChild(tb); } }
+  for (const a of doc.querySelectorAll("a[href^='http']")) { a.target="_blank"; a.rel="noopener"; }
+  for (const lab of doc.querySelectorAll(".lab[id]")) {
     const row = document.createElement("label"); row.className = "lab-done";
-    row.innerHTML = `<input type="checkbox" id="labchk-${esc(lab.id)}"> I've done this lab`;
+    row.innerHTML = `<input type="checkbox"> I've done this lab`;
     const cb = row.querySelector("input"); cb.checked = !!S.labs[lab.id];
     cb.addEventListener("change", ()=>{ if (cb.checked) S.labs[lab.id]=Date.now(); else delete S.labs[lab.id]; touch(); });
     lab.appendChild(row);
   }
-  for (const s of docEl.querySelectorAll("section.topic")) {
-    const t = s.id.replace(/^t-/,"").replace(/-/g,".");
-    if (!TOPIC[t]) continue;
-    const n = QS.filter(q=>q.pool==="quiz" && q.topics.some(x=>x===t||x.startsWith(t+"."))).length;
-    const tools = document.createElement("div"); tools.className = "topic-tools";
-    tools.innerHTML = `<label class="row"><input type="checkbox" id="st-${esc(s.id)}"> Mark ${esc(t)} as studied</label>
-      ${n?`<a class="btn small primary" href="#quiz-t${t.replace(/\./g,"-")}">Quiz me on ${esc(t)} (${n})</a>`:""}`;
-    const cb = tools.querySelector("input"); cb.checked = !!S.studied[t];
-    cb.addEventListener("change", ()=>{ if (cb.checked) S.studied[t]=Date.now(); else delete S.studied[t]; touch(); renderRail(d); });
-    s.appendChild(tools);
-  }
+  bindNotes(doc);
+  revealUpTo(app, P.mode==="full" ? chunks.length : Math.min(P.pos[t]||0, chunks.length));
+
+  doc.addEventListener("click", ev=>{
+    const b = ev.target.closest("button,a[data-goto]"); if (!b) return;
+    if (b.dataset.next){ const i = +b.dataset.next; P.pos[t] = Math.max(P.pos[t]||0, i); savePrefs(); revealUpTo(app, i);
+      const el = i < chunks.length ? box.querySelector(`.chunk[data-i="${i}"]`) : $("#after"); if (el) el.scrollIntoView({block:"start", behavior:"smooth"}); }
+    else if (b.dataset.goto){ ev.preventDefault(); const i = +b.dataset.goto; revealUpTo(app, Math.max(i, P.pos[t]||0)); box.querySelector(`.chunk[data-i="${i}"]`).scrollIntoView({block:"start"}); }
+    else if (b.dataset.mode){ P.mode = b.dataset.mode; savePrefs(); delete app.dataset.topic; route(); }
+    else if (b.id==="show-recap"){ $("#recap-box").hidden = false; b.hidden = true; }
+    else if (b.hasAttribute("data-quick")) quickCheck(t);
+    else if (b.dataset.rate){ reviewResult(t, b.dataset.rate==="1"); touch(); toast(`Next review ${whenText(S.rev[t][1])}.`); delete app.dataset.topic; route(); }
+  });
+  $("#learned").addEventListener("change", ev=>{ setLearned(t, ev.target.checked); $("#learned-note").textContent = ev.target.checked ? `Next review ${whenText(S.rev[t][1])}.` : "It will come back for review after 1 day, then 3, 7, 16 and 35 days."; renderRail(t); });
+  renderRail(t);
+}
+function revealUpTo(app, i){
+  const all = [...document.querySelectorAll("#chunks .chunk")];
+  all.forEach((c,k)=>{ c.hidden = k > i; });
+  const after = $("#after"); if (after) after.hidden = i < all.length;
+}
+function renderRail(t){
+  const rail = $("#rail"); if (!rail) return;
+  const e = STEP[t], u = e ? e.unit : null;
+  rail.innerHTML = (u ? `<a class="rail-unit" href="#u${u.n}"><span class="eyebrow">Unit ${u.n}</span>${esc(u.title)}</a>` +
+    u.steps.map(s=>`<a href="#${sid(s.t)}" class="${S.studied[s.t]?"done":""}" ${s.t===t?'aria-current="page"':""}><span class="num">${esc(s.t)}</span><span>${esc(shortTitle(TOPIC[s.t].title))}</span></a>`).join("") : "")
+    + pomoHTML()
+    + `<div class="rail-links"><a href="#home">All units</a>${domOf(t)?` · <a href="#d${domOf(t)}">Domain ${domOf(t)} map</a>`:""}</div>`;
+  bindPomo();
+}
+function quickCheck(t){
+  const list = QS.filter(q=>q.pool==="quiz" && q.topics.some(x=>x===t||x.startsWith(t+".")));
+  const score = q => { const r = S.q[q.id]; return !r ? 0 : r[2] ? 2 : 1; };
+  const pick = shuffle(list).sort((a,b)=>score(a)-score(b)).slice(0,5);
+  if (pick.length) startRun({kind:"quiz", mode:"study", list: shuffle(pick), title:`Quick check: ${t}`, back:"#"+sid(t)});
 }
 
 /* ============================================================ quiz builder */
@@ -561,7 +888,9 @@ let RUN = null;
 function scopeFromHash(h){
   let m;
   if ((m = h.match(/^quiz-d([1-6])$/))) return {scope:"domain", val:m[1]};
-  if ((m = h.match(/^quiz-w([1-7])$/))) return {scope:"week", val:m[1]};
+  if ((m = h.match(/^quiz-u(\d+)$/))) return {scope:"unit", val:m[1]};
+  if ((m = h.match(/^quiz-m(\d+)$/))) return {scope:"mixed", val:m[1]};
+  if (h === "quiz-review") return {scope:"review"};
   if ((m = h.match(/^quiz-t([\d-]+)$/))) return {scope:"topic", val:m[1].replace(/-/g,".")};
   if (h === "quiz-weak") return {scope:"weak"};
   if (h === "quiz-mistakes") return {scope:"mistakes"};
@@ -574,11 +903,13 @@ function selectQuestions(sc){
   const inTopics = (q, list) => q.topics.some(x=>list.some(t=>x===t||x.startsWith(t+".")));
   switch(sc.scope){
     case "domain": return quiz.filter(q=>q.domain===+sc.val);
-    case "week": return quiz.filter(q=>inTopics(q, weekTopics(+sc.val)));
+    case "unit": return quiz.filter(q=>inTopics(q, unitTopics(+sc.val)));
+    case "mixed": return quiz.filter(q=>inTopics(q, earlierTopics(+sc.val)));
+    case "review": { const due = dueTopics(); return due.length ? quiz.filter(q=>inTopics(q, due)) : []; }
     case "topic": return quiz.filter(q=>inTopics(q, [sc.val]));
     case "weak": { const w = weakTopics(10).map(x=>x.id); return quiz.filter(q=>inTopics(q, w)); }
     case "mistakes": return QS.filter(q=>S.q[q.id] && !S.q[q.id][2] && (q.pool==="quiz" || S.q[q.id]));
-    case "cp1": { const t=[1,2,3,4].flatMap(weekTopics); return quiz.filter(q=>inTopics(q,t)); }
+    case "cp1": { const t=earlierTopics(7); return quiz.filter(q=>inTopics(q,t)); }
     case "new": return quiz.filter(q=>!S.q[q.id]);
     case "all": return quiz;
   }
@@ -586,22 +917,28 @@ function selectQuestions(sc){
 }
 function renderQuizBuilder(app, h){
   const sc = scopeFromHash(h);
-  const topicOpts = OUT.domains.flatMap(d=>d.topics.map(t=>`<option value="${t.id}" ${sc.scope==="topic"&&sc.val===t.id?"selected":""}>${t.id} ${esc(t.title)}</option>`)).join("");
+  const topicOpts = ORDER.filter(e=>!e.t.startsWith("0.")).map(e=>`<option value="${e.t}" ${sc.scope==="topic"&&sc.val===e.t?"selected":""}>${e.t} ${esc(TOPIC[e.t].title)}</option>`).join("");
+  const unitOpts = PATH.units.filter(u=>u.steps.length && u.n>0).map(u=>`<option value="${u.n}">Unit ${u.n}: ${esc(u.title)}</option>`).join("");
   const isCp = sc.scope === "cp1";
+  const intro = {
+    cp1: "Fifty questions from Units 1 to 6 under exam conditions: no feedback until the end. Use the domain breakdown to decide which units to revisit before Unit 7.",
+    review: "Questions from the learned topics that are due for spaced review. Each topic you score 70% or more on moves to a longer interval; anything lower comes back tomorrow.",
+    mixed: "A warm-up that mixes questions from every unit before the one you are starting. Mixing topics feels harder than practising one at a time, and that is why it works: the exam never tells you which topic a question is about.",
+  }[sc.scope] || "Study mode shows the answer and explanation after each question. Test mode holds everything until the end. Questions are shuffled across topics so you practise recognising what each one needs. Practice exam questions stay out of quizzes so the exams stay fresh.";
   app.innerHTML = `
     <div class="eyebrow">Quizzes</div>
-    <h1 class="num" style="font-size:32px;margin:6px 0 8px">${isCp?"Checkpoint 1":"Build a quiz"}</h1>
-    <p class="lead">${isCp?"Fifty questions from weeks 1 to 4 under exam conditions: no feedback until the end. Use the domain breakdown to rebalance the next three weeks."
-      :"Study mode shows the answer and explanation after each question. Test mode holds everything until the end. Practice exam questions stay out of quizzes so the exams stay fresh."}</p>
+    <h1 class="num" style="font-size:32px;margin:6px 0 8px">${isCp?"Checkpoint 1":sc.scope==="review"?"Spaced review":sc.scope==="mixed"?"Mixed warm-up":"Build a quiz"}</h1>
+    <p class="lead">${intro}</p>
     <div class="panel builder" style="margin:16px 0">
       <label>Questions from
         <select id="b-scope">
-          <option value="domain">A domain</option><option value="week">A plan week</option><option value="topic">One outline topic</option>
+          <option value="review">Topics due for review</option><option value="unit">A path unit</option><option value="mixed">Mixed: every unit before…</option>
+          <option value="topic">One outline topic</option><option value="domain">An exam domain</option>
           <option value="weak">My weak spots</option><option value="mistakes">Questions I got wrong</option><option value="new">Questions I haven't seen</option>
-          <option value="cp1">Checkpoint 1 (weeks 1 to 4)</option><option value="all">Everything</option>
+          <option value="cp1">Checkpoint 1 (Units 1 to 6)</option><option value="all">Everything</option>
         </select></label>
       <label id="l-domain">Domain <select id="b-domain">${OUT.domains.map(d=>`<option value="${d.id}">${d.id}.0 ${esc(d.name)}</option>`).join("")}</select></label>
-      <label id="l-week">Week <select id="b-week">${[1,2,3,4,5,6,7].map(n=>`<option value="${n}">Week ${n}: ${esc(weekTitle(n))}</option>`).join("")}</select></label>
+      <label id="l-unit">Unit <select id="b-unit">${unitOpts}</select></label>
       <label id="l-topic">Topic <select id="b-topic">${topicOpts}</select></label>
       <label>How many <select id="b-count"><option>10</option><option selected>20</option><option>30</option><option>50</option><option value="999">All</option></select></label>
       <label>Mode <select id="b-mode"><option value="study">Study: feedback each question</option><option value="test">Test: feedback at the end</option></select></label>
@@ -610,28 +947,31 @@ function renderQuizBuilder(app, h){
   const sel = id => document.getElementById(id);
   sel("b-scope").value = sc.scope;
   if (sc.scope==="domain") sel("b-domain").value = sc.val;
-  if (sc.scope==="week") sel("b-week").value = sc.val;
+  if ((sc.scope==="unit" || sc.scope==="mixed") && sel("b-unit").querySelector(`option[value="${sc.val}"]`)) sel("b-unit").value = sc.val;
   if (isCp){ sel("b-count").value = "50"; sel("b-mode").value = "test"; }
-  const cur = () => ({scope: sel("b-scope").value, val: ({domain:sel("b-domain").value, week:sel("b-week").value, topic:sel("b-topic").value})[sel("b-scope").value]});
+  if (sc.scope==="mixed") sel("b-count").value = "10";
+  const cur = () => { const scope = sel("b-scope").value; return {scope, val: ({domain:sel("b-domain").value, unit:sel("b-unit").value, mixed:sel("b-unit").value, topic:sel("b-topic").value})[scope]}; };
   const upd = () => {
     const s = cur();
     sel("l-domain").classList.toggle("hidden", s.scope!=="domain");
-    sel("l-week").classList.toggle("hidden", s.scope!=="week");
+    sel("l-unit").classList.toggle("hidden", s.scope!=="unit" && s.scope!=="mixed");
     sel("l-topic").classList.toggle("hidden", s.scope!=="topic");
     const n = selectQuestions(s).length;
-    sel("b-n").textContent = n ? `${n} questions available` : (s.scope==="weak" ? "No weak spots yet. Answer a few quizzes first." : s.scope==="mistakes" ? "Nothing to review: no wrong answers on record." : "No questions here yet.");
+    sel("b-n").textContent = n ? `${n} questions available` : (s.scope==="weak" ? "No weak spots yet. Answer a few quizzes first." : s.scope==="mistakes" ? "Nothing to review: no wrong answers on record." : s.scope==="review" ? "Nothing is due for review today. Mark lessons as learned to schedule them." : s.scope==="mixed" ? "Mixed warm-ups start from Unit 2." : "No questions here yet.");
     sel("b-go").disabled = !n;
   };
-  for (const id of ["b-scope","b-domain","b-week","b-topic"]) sel(id).addEventListener("change", upd);
+  for (const id of ["b-scope","b-domain","b-unit","b-topic"]) sel(id).addEventListener("change", upd);
   upd();
   sel("b-go").addEventListener("click", ()=>{
     const s = cur(); let list = selectQuestions(s);
     const count = +sel("b-count").value;
-    // unseen and missed first, then the rest
+    // unseen and missed first, then the rest; then interleave everything except a single-topic quiz
     list = shuffle(list).sort((a,b)=>score(a)-score(b)).slice(0, count);
-    if (s.scope!=="cp1" && s.scope!=="all" && s.scope!=="weak" && s.scope!=="mistakes") list.sort((a,b)=>a.id.localeCompare(b.id));
-    startRun({kind:"quiz", mode: sel("b-mode").value, list: s.scope==="topic"||s.scope==="domain"||s.scope==="week" ? list : shuffle(list),
-      title: s.scope==="cp1" ? "Checkpoint 1" : s.scope==="domain" ? `Domain ${s.val} quiz` : s.scope==="week" ? `Week ${s.val} quiz` : s.scope==="topic" ? `Topic ${s.val} quiz` : s.scope==="weak" ? "Weak spots" : s.scope==="mistakes" ? "Mistakes review" : "Mixed quiz"});
+    list = s.scope==="topic" ? list.sort((a,b)=>a.id.localeCompare(b.id)) : shuffle(list);
+    const unit = s.val && unitByN(+s.val);
+    startRun({kind:"quiz", mode: sel("b-mode").value, list,
+      title: s.scope==="cp1" ? "Checkpoint 1" : s.scope==="domain" ? `Domain ${s.val} quiz` : s.scope==="unit" ? `Unit ${s.val} quiz` : s.scope==="mixed" ? `Mixed warm-up before Unit ${s.val}` : s.scope==="review" ? "Spaced review" : s.scope==="topic" ? `Topic ${s.val} quiz` : s.scope==="weak" ? "Weak spots" : s.scope==="mistakes" ? "Mistakes review" : "Mixed quiz",
+      back: s.scope==="unit" || s.scope==="mixed" ? (unit ? "#u"+unit.n : null) : null});
   });
   function score(q){ const r = S.q[q.id]; return !r ? 0 : r[2] ? 2 : 1; }
 }
@@ -767,6 +1107,7 @@ function renderResults(app){
   const byD = {}; for (const x of items){ const d=x.q.domain; byD[d] = byD[d]||[0,0]; byD[d][1]++; if (x.ok) byD[d][0]++; }
   if (!RUN.saved){
     RUN.saved = true;
+    RUN.revs = applyReviews(RUN);
     if (RUN.kind==="exam"){ S.exams.push({id: "e"+Date.now(), form: RUN.form, at: Date.now(), score: c/n, n, byDomain: byD, secs: Math.round((Date.now()-RUN.started)/1000), timedOut: !!RUN.timedOut}); touch(); }
   }
   const pct = Math.round(c/n*100);
@@ -776,7 +1117,9 @@ function renderResults(app){
     <div class="result-head"><span class="big tab">${pct}%</span><span class="muted">${c} of ${n} correct${RUN.timedOut?" · time ran out":""}${RUN.kind==="exam"?` · ${Math.round((Date.now()-RUN.started)/60000)} min`:""}</span></div>
     ${verdict?`<p class="lead">${verdict} Cisco doesn't publish a pass mark, so treat 80% or more here as ready, the same bar as your plan.</p>`:""}
     <div class="panel bp" style="margin:16px 0;max-width:860px">${Object.keys(byD).sort().map(d=>{ const [a,b]=byD[d]; return `<div class="bp-row"><a href="#d${d}"><span class="dom-dot" style="background:${dcol(+d)}"></span>${d}.0 ${esc(DOMAIN_SHORT[d])}</a><div class="bar"><i style="width:${Math.round(a/b*100)}%;background:${dcol(+d)}"></i></div><span class="bp-meta">${a}/${b}</span></div>`; }).join("")}</div>
-    <div class="row" style="margin-bottom:16px"><a class="btn primary" href="#quiz-mistakes">Re-take what I missed</a><a class="btn" href="#home">Back to the plan</a></div>
+    ${RUN.revs && RUN.revs.length ? `<div class="panel" style="max-width:860px;margin-bottom:16px"><strong>Spaced reviews updated.</strong> ${RUN.revs.map(r=>`<span class="num">${esc(r.t)}</span> ${r.ok?`remembered, next review in ${r.days} days`:"needs another look, back tomorrow"}`).join(" · ")}</div>` : ""}
+    ${c<n && RUN.kind!=="exam" ? `<p class="muted" style="max-width:860px">Each wrong answer below links to its lesson. Re-read only that chunk, then explain the right answer to yourself in one sentence. That turns a mistake into a memory.</p>` : ""}
+    <div class="row" style="margin-bottom:16px">${RUN.back?`<a class="btn primary" href="${esc(RUN.back)}">Back to the lesson</a>`:""}<a class="btn ${RUN.back?"":"primary"}" href="#quiz-mistakes">Re-take what I missed</a><a class="btn" href="#home">Back to the plan</a></div>
     <h2 class="num" style="font-size:22px">Review</h2>
     <div style="max-width:860px">${items.map((x,i)=>`<div class="review-item">
       <div class="qmeta"><span class="${x.ok?"tag-ok":"tag-no"}">${x.ok?"Correct":x.skipped?"Not answered":"Wrong"}</span><span>Q${i+1}</span><span>${x.q.topics.slice(0,2).map(esc).join(" · ")}</span></div>
@@ -807,10 +1150,15 @@ function renderExamHome(app){
   app.innerHTML = `
     <div class="eyebrow">Practice exams</div>
     <h1 class="num" style="font-size:32px;margin:6px 0 8px">Two full-length exams, timed like the real one</h1>
-    <p class="lead">Each form has 100 questions weighted to the v1.1 blueprint (20, 20, 25, 10, 15, 10) and a 120-minute clock. As on Cisco's exam, there's no going back to an earlier question. Take Form A after Week 7 and Form B during Week 8. Results feed into your weak-topic list.</p>
+    <p class="lead">Each form has 100 questions weighted to the v1.1 blueprint (20, 20, 25, 10, 15, 10) and a 120-minute clock. As on Cisco's exam, there's no going back to an earlier question. Take Form A at the end of Unit 12 and Form B during the final review. Results feed into your weak-topic list.</p>
+    <div class="panel" style="margin-top:14px;max-width:900px"><h3 style="margin-top:0">Exam technique</h3><ul style="margin:0;padding-left:18px">
+      <li><strong>Pace yourself.</strong> About 70 seconds a question. You can't go back, so if one has you stuck, eliminate what you can, pick the best remaining answer and move on.</li>
+      <li><strong>Check with fresh eyes.</strong> Before you confirm an answer, glance back at the question. When you are focused, a wrong answer can look right.</li>
+      <li><strong>Calm the nerves.</strong> A few slow breaths from the belly before you start. Nervousness is your body getting ready to perform; telling yourself "I'm excited" helps more than "I'm anxious".</li>
+      <li><strong>Sleep the night before.</strong> Cramming late costs more than it gains.</li></ul></div>
     <div class="two" style="margin:18px 0">
       ${["A","B"].map(f=>`<div class="panel"><h3 style="margin-top:0">Form ${f}</h3>
-        <p class="muted">${forms[f].length} questions · 120 minutes · ${f==="A"?"After Week 7":"During Week 8"}</p>
+        <p class="muted">${forms[f].length} questions · 120 minutes · ${f==="A"?"After Unit 12":"Final review"}</p>
         <div class="row"><button class="btn primary" data-form="${f}" ${forms[f].length?"":"disabled"}>Start form ${f}</button><button class="btn" data-form="${f}" data-mode="study" ${forms[f].length?"":"disabled"}>Study this form untimed</button></div></div>`).join("")}
     </div>
     <h2 class="num" style="font-size:22px">History</h2>
@@ -936,22 +1284,23 @@ function renderDrills(app){
 function newProb(){ DR.prob = ({facts:genFacts, hosts:genHosts, same:genSame, v6:genV6, eui:genEui})[DR.mode](); DR.t0 = Date.now(); }
 
 /* ============================================================ flashcards */
-const FC = {dom:"all", idx:0, deck:[], back:false};
+const FC = {dom:null, idx:0, deck:[], back:false};
 function buildDeck(){
-  const list = CARDS.filter(c=>FC.dom==="all" || c.domain===+FC.dom);
+  const list = CARDS.filter(c=>FC.dom==="all" || (FC.dom==="learned" ? (c.topics||[]).some(t=>S.studied[topOf(t)]) : c.domain===+FC.dom));
   const now = Date.now();
   const due = c => { const r=S.cards[c.id]; if (!r) return 0; const box=r[0]; const wait=[0, 0, 864e5, 3*864e5, 7*864e5, 14*864e5][box]||0; return (r[1]+wait) - now; };
   FC.deck = shuffle(list).sort((a,b)=>due(a)-due(b)); FC.idx = 0; FC.back = false;
 }
 function renderCards(app){
+  if (FC.dom === null) FC.dom = Object.keys(S.studied).length ? "learned" : "all";
   if (!FC.deck.length) buildDeck();
   const c = FC.deck[FC.idx];
   const known = CARDS.filter(x=>(S.cards[x.id]||[0])[0]>=3).length;
   app.innerHTML = `
     <div class="eyebrow">Flashcards · ${CARDS.length} cards · ${known} well known</div>
     <h1 class="num" style="font-size:32px;margin:6px 0 8px">Numbers, defaults and terms</h1>
-    <p class="lead">Tap the card to flip it. "Again" brings it back soon; "Got it" spaces it out over days. Cards you know well sink to the bottom.</p>
-    <div class="row" style="margin:14px 0"><label>Deck <select id="fc-dom"><option value="all">All domains</option>${OUT.domains.map(d=>`<option value="${d.id}" ${String(FC.dom)===String(d.id)?"selected":""}>${d.id}.0 ${esc(d.name)}</option>`).join("")}</select></label></div>
+    <p class="lead">Say the answer out loud before you flip the card; only count it if you produced it, not if it looked familiar. "Again" brings it back soon; "Got it" spaces it out over days. The "Lessons I've learned" deck keeps practice to what you have already studied.</p>
+    <div class="row" style="margin:14px 0"><label>Deck <select id="fc-dom"><option value="learned" ${FC.dom==="learned"?"selected":""}>Lessons I've learned</option><option value="all" ${FC.dom==="all"?"selected":""}>All domains</option>${OUT.domains.map(d=>`<option value="${d.id}" ${String(FC.dom)===String(d.id)?"selected":""}>${d.id}.0 ${esc(d.name)}</option>`).join("")}</select></label></div>
     ${c ? `<div class="fc ${FC.back?"back":""}" id="fc" role="button" tabindex="0" aria-label="Flip card">
       <div><div class="side">${FC.back?"Answer":"Prompt"} · ${esc((c.topics||[]).join(", "))}</div><div>${esc(FC.back?c.back:c.front)}</div></div></div>
       <div class="row" style="margin-top:14px"><button class="btn" id="fc-again">Again</button><button class="btn primary" id="fc-good">Got it</button><span class="muted">${FC.idx+1} of ${FC.deck.length}</span></div>`
@@ -986,9 +1335,9 @@ function renderCoverage(app){
     <div class="eyebrow">Coverage against Cisco's outline</div>
     <h1 class="num" style="font-size:32px;margin:6px 0 8px">Every topic, accounted for</h1>
     <p class="lead">Each row is one item on the CCNA 200-301 v1.1 outline. It shows where the lesson covers it and how many study questions, practice-exam questions and flashcards test it. ${tq} study questions and ${tx} practice-exam questions in total.</p>
-    <div class="tblwrap" style="margin-top:14px"><table class="data"><thead><tr><th>Topic</th><th>Lesson</th><th>Quiz</th><th>Exam</th><th>Cards</th><th>Studied</th></tr></thead><tbody>
+    <div class="tblwrap" style="margin-top:14px"><table class="data"><thead><tr><th>Topic</th><th>Lesson</th><th>Unit</th><th>Quiz</th><th>Exam</th><th>Cards</th><th>Studied</th></tr></thead><tbody>
     ${COV.map(r=>{ const top = !/\.[a-z]$/.test(r.id); return `<tr><td style="${top?"font-weight:600":"padding-left:26px"}"><span class="num">${esc(r.id)}</span> ${esc(r.title)}</td>
-      <td>${r.lesson?`<a href="#${sid(r.id)}">Open</a>`:"missing"}</td><td class="n">${r.quiz}</td><td class="n">${r.exam}</td><td class="n">${r.cards}</td><td>${top?(S.studied[r.id]?"✓":""):""}</td></tr>`; }).join("")}
+      <td>${r.lesson?`<a href="#${sid(r.id)}">Open</a>`:"missing"}</td><td>${top && STEP[r.id] ? `<a href="#u${STEP[r.id].unit.n}">${STEP[r.id].unit.n}</a>` : ""}</td><td class="n">${r.quiz}</td><td class="n">${r.exam}</td><td class="n">${r.cards}</td><td>${top?(S.studied[r.id]?"✓":""):""}</td></tr>`; }).join("")}
     </tbody></table></div>`;
 }
 
@@ -996,10 +1345,13 @@ function renderCoverage(app){
 async function boot(){
   loadLocal();
   try{
-    const [o,q,c,r,cv] = await Promise.all(["outline","questions","cards","resources","coverage"].map(n=>fetch(`data/${n}.json`).then(x=>{ if(!x.ok) throw new Error(n); return x.json(); })));
-    OUT=o; QS=q; CARDS=c; RES=r; COV=cv;
+    const [o,q,c,r,cv,pa] = await Promise.all(["outline","questions","cards","resources","coverage","path"].map(n=>fetch(`data/${n}.json`).then(x=>{ if(!x.ok) throw new Error(n); return x.json(); })));
+    OUT=o; QS=q; CARDS=c; RES=r; COV=cv; PATH=pa;
   }catch(e){ $("#app").innerHTML = `<p>The study data didn't load. Reload the page to try again.</p>`; return; }
   for (const d of OUT.domains) for (const t of d.topics){ TOPIC[t.id] = {id:t.id, title:t.title, domain:d.id, parent:null}; for (const s of t.subs) TOPIC[s[0]] = {id:s[0], title:s[1], domain:d.id, parent:t.id}; }
+  buildPath();
+  // Topics marked studied before spaced review existed start their schedule from the day they were studied.
+  for (const t of Object.keys(S.studied)) if (!S.rev[t]) S.rev[t] = [0, (+S.studied[t]||Date.now()) + INTERVALS[0]*DAY, Date.now()];
   route();
   connectDb();
 }

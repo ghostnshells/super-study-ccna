@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "python3 -m http.server 3000",
     "build": "node scripts/build.mjs",
-    "validate": "node scripts/validate.mjs"
+    "validate": "node scripts/validate.mjs",
+    "path": "node scripts/path-source.mjs"
   },
   "engines": {
     "node": ">=26"
